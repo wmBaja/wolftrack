@@ -15,6 +15,7 @@ import sys
 from MainWindow import MainWindow
 
 from SpeedPoller import SpeedPoller
+from FuelPoller import FuelPoller
 
 class WolfTrack(QObject):
     """
@@ -26,14 +27,21 @@ class WolfTrack(QObject):
     # signal emitted when there is a change in RPMs
     rpmChange = pyqtSignal(int)
     # signal emitted when there is a change in the fuel level
-    fuelChange = pyqtSignal(int)
+    fuelChange = pyqtSignal(float)
 
     def __init__(self):
         super().__init__()
         print('Initializing WolfTrack...')
+
+        # speed
         self.speedPoller = SpeedPoller(100)
         self.speedPoller.signal.connect(self.speedChange)
         self.speedPoller.start()
+
+        # fuel
+        self.fuelPoller = FuelPoller(500)
+        self.fuelPoller.signal.connect(self.fuelChange)
+        self.fuelPoller.start()
 
     def quit(self):
         print('Cleaning up and exiting...')

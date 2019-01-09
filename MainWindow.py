@@ -23,6 +23,7 @@ class MainWindow(QWidget):
         self.clock = DigitalClock(self)
         grid.addWidget(self.clock, 0, 1)
 
+        # speed
         speedLbl = QLabel('Speed (MPH)', self)
         grid.addWidget(speedLbl, 1, 0)
 
@@ -30,11 +31,22 @@ class MainWindow(QWidget):
         grid.addWidget(self.speed, 1, 1)
         self.model.speedChange.connect(self.setSpeed)
 
+        # fuel
+        fuelLbl = QLabel('Fuel', self)
+        grid.addWidget(fuelLbl, 2, 0)
+
+        self.fuel = QLabel('100 %', self)
+        grid.addWidget(self.fuel, 2, 1)
+        self.model.fuelChange.connect(self.setFuel)
+
         self.setGeometry(50, 50, 480, 320)
         self.setWindowTitle('WolfTrack')
 
     def setSpeed(self, speed):
         self.speed.setText(str(speed))
+
+    def setFuel(self, fuel):
+        self.fuel.setText("{:.0f} %".format(fuel * 100))
 
     def keyPressEvent(self, event):
         if event.key() == Qt.Key_Escape:
