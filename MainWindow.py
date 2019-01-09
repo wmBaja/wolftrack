@@ -27,15 +27,19 @@ class MainWindow(QWidget):
         speedLbl = QLabel('Speed (MPH)', self)
         grid.addWidget(speedLbl, 1, 0)
 
-        self.speed = QLabel('0', self)
+        self.speed = QLCDNumber(self)
+        self.speed.setSegmentStyle(QLCDNumber.Filled)
+        self.speed.setDigitCount(3)
         grid.addWidget(self.speed, 1, 1)
         self.model.speedChange.connect(self.setSpeed)
 
         # fuel
-        fuelLbl = QLabel('Fuel', self)
+        fuelLbl = QLabel('Fuel (%)', self)
         grid.addWidget(fuelLbl, 2, 0)
 
-        self.fuel = QLabel('100 %', self)
+        self.fuel = QLCDNumber(self)
+        self.fuel.setSegmentStyle(QLCDNumber.Filled)
+        self.fuel.setDigitCount(3)
         grid.addWidget(self.fuel, 2, 1)
         self.model.fuelChange.connect(self.setFuel)
 
@@ -43,10 +47,10 @@ class MainWindow(QWidget):
         self.setWindowTitle('WolfTrack')
 
     def setSpeed(self, speed):
-        self.speed.setText(str(speed))
+        self.speed.display(str(speed))
 
     def setFuel(self, fuel):
-        self.fuel.setText("{:.0f} %".format(fuel * 100))
+        self.fuel.display("{:.0f}".format(fuel * 100))
 
     def keyPressEvent(self, event):
         if event.key() == Qt.Key_Escape:
