@@ -85,11 +85,11 @@ class FuelPoller(SensorPoller):
                 # level at which the magnet can be detected
                 self.remainingFuel = INITIAL_PERC_FUEL
             # else if the voltage is below the no-mag-field range
-            else if (voltage < NO_MAG_FIELD_VOLTAGE_RANGE[0]):
+            elif (voltage < NO_MAG_FIELD_VOLTAGE_RANGE[0]):
                 fuelUsed = (NO_MAG_FIELD_VOLTAGE_RANGE[0] - voltage) / (DIF_LOWEST_VOLTAGE_NMF_RANGE) * INITIAL_PERC_FUEL
                 self.remainingFuel = INITIAL_PERC_FUEL - fuelUsed
             # else if the voltage is above the no-mag-field range
-            else if (voltage > NO_MAG_FIELD_VOLTAGE_RANGE[1]):
+            elif (voltage > NO_MAG_FIELD_VOLTAGE_RANGE[1]):
                 fuelUsed = (voltage - NO_MAG_FIELD_VOLTAGE_RANGE[1]) / (DIF_HIGHEST_VOLTAGE_NMF_RANGE) * INITIAL_PERC_FUEL
                 self.remainingFuel = INITIAL_PERC_FUEL - fuelUsed
         else:
