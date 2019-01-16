@@ -98,4 +98,4 @@ class FuelPoller(SensorPoller):
             if (self.remainingFuel < 0):
                 self.remainingFuel = 1.0
 
-        print('Remaining fuel: ' + self.remainingFuel)
+        print('Remaining fuel: ' + str(self.remainingFuel))
