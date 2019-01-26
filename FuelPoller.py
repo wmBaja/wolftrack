@@ -19,6 +19,8 @@ if (machineIsRaspberryPi):
     # this is the pin on the MCP3008 that is connected to the hall sensor
     # on the fuel tank
     FUEL_HALL_SENSOR_MCP_PIN = MCP.P0
+else:
+    import random
 
 # the range of voltages that do not warrant any significant magnetic field
 # detection by the hall sensor on the fuel tank
@@ -72,30 +74,30 @@ class FuelPoller(SensorPoller):
         self.signal.emit(self.remainingFuel)
 
     def calculateRemainingFuel(self):
+        voltage = 1
         # if running on a RPI
         if (machineIsRaspberryPi):
             voltage = self.sensorChannel.voltage
             # print('Raw ADC Value: ', self.sensorChannel.value)
-            # print('ADC Voltage: ' + str(self.sensorChannel.voltage) + 'V')
-
-            # calculate fuel level based on magnetic intensity
-            # if the voltage is within the no-mag-field range
-            if (voltage >= NO_MAG_FIELD_VOLTAGE_RANGE[0] and voltage <= NO_MAG_FIELD_VOLTAGE_RANGE[1]):
-                # the fuel level is guaranteed to be at least at the initial
-                # level at which the magnet can be detected
-                self.remainingFuel = INITIAL_PERC_FUEL
-            # else if the voltage is below the no-mag-field range
-            elif (voltage < NO_MAG_FIELD_VOLTAGE_RANGE[0]):
-                fuelUsed = (NO_MAG_FIELD_VOLTAGE_RANGE[0] - voltage) / (DIF_LOWEST_VOLTAGE_NMF_RANGE) * INITIAL_PERC_FUEL
-                self.remainingFuel = INITIAL_PERC_FUEL - fuelUsed
-            # else if the voltage is above the no-mag-field range
-            elif (voltage > NO_MAG_FIELD_VOLTAGE_RANGE[1]):
-                fuelUsed = (voltage - NO_MAG_FIELD_VOLTAGE_RANGE[1]) / (DIF_HIGHEST_VOLTAGE_NMF_RANGE) * INITIAL_PERC_FUEL
-                self.remainingFuel = INITIAL_PERC_FUEL - fuelUsed
+            # print('ADC Voltage: ' + str(voltage) + 'V')
         else:
-            # just do a quick calculation to change the remaining fuel in a meaningful way
-            self.remainingFuel = self.remainingFuel - 0.063
-            if (self.remainingFuel < 0):
-                self.remainingFuel = 1.0
+            # just generate a random voltage value
+            voltage = random.random() * (HIGHEST_VOLTAGE - LOWEST_VOLTAGE) + 0.05
+            print('ADC Voltage: ' + str(voltage) + 'V')
+
+        # calculate fuel level based on magnetic intensity
+        # if the voltage is within the no-mag-field range
+        if (voltage >= NO_MAG_FIELD_VOLTAGE_RANGE[0] and voltage <= NO_MAG_FIELD_VOLTAGE_RANGE[1]):
+            # the fuel level is guaranteed to be at least at the initial
+            # level at which the magnet can be detected
+            self.remainingFuel = INITIAL_PERC_FUEL
+        # else if the voltage is below the no-mag-field range
+        elif (voltage < NO_MAG_FIELD_VOLTAGE_RANGE[0]):
+            fuelUsed = (NO_MAG_FIELD_VOLTAGE_RANGE[0] - voltage) / (DIF_LOWEST_VOLTAGE_NMF_RANGE) * INITIAL_PERC_FUEL
+            self.remainingFuel = INITIAL_PERC_FUEL - fuelUsed
+        # else if the voltage is above the no-mag-field range
+        elif (voltage > NO_MAG_FIELD_VOLTAGE_RANGE[1]):
+            fuelUsed = (voltage - NO_MAG_FIELD_VOLTAGE_RANGE[1]) / (DIF_HIGHEST_VOLTAGE_NMF_RANGE) * INITIAL_PERC_FUEL
+            self.remainingFuel = INITIAL_PERC_FUEL - fuelUsed
 
         print('Remaining fuel: ' + str(self.remainingFuel))
