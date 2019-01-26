@@ -14,8 +14,14 @@ from PyQt5.QtCore import QObject, pyqtSignal
 import sys
 from MainWindow import MainWindow
 
+# import pollers
 from SpeedPoller import SpeedPoller
 from FuelPoller import FuelPoller
+
+# the number of milliseconds in between speed calculations
+SPEED_POLLING_RATE = 100
+# the number of milliseconds in between fuel level calculations
+FUEL_POLLING_RATE = 1000
 
 class WolfTrack(QObject):
     """
@@ -34,12 +40,12 @@ class WolfTrack(QObject):
         print('Initializing WolfTrack...')
 
         # speed
-        self.speedPoller = SpeedPoller(100)
+        self.speedPoller = SpeedPoller(SPEED_POLLING_RATE)
         self.speedPoller.signal.connect(self.speedChange)
         self.speedPoller.start()
 
         # fuel
-        self.fuelPoller = FuelPoller(500)
+        self.fuelPoller = FuelPoller(FUEL_POLLING_RATE)
         self.fuelPoller.signal.connect(self.fuelChange)
         self.fuelPoller.start()
 
