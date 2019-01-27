@@ -33,14 +33,24 @@ class MainWindow(QWidget):
         grid.addWidget(self.speed, 1, 1)
         self.model.speedChange.connect(self.setSpeed)
 
-        # fuel
-        fuelLbl = QLabel('Fuel (%)', self)
-        grid.addWidget(fuelLbl, 2, 0)
+        # fuel percentage
+        fuelPercLbl = QLabel('Fuel (%)', self)
+        grid.addWidget(fuelPercLbl, 2, 0)
 
-        self.fuel = QLCDNumber(self)
-        self.fuel.setSegmentStyle(QLCDNumber.Filled)
-        self.fuel.setDigitCount(3)
-        grid.addWidget(self.fuel, 2, 1)
+        self.fuelPerc = QLCDNumber(self)
+        self.fuelPerc.setSegmentStyle(QLCDNumber.Filled)
+        self.fuelPerc.setDigitCount(3)
+        grid.addWidget(self.fuelPerc, 2, 1)
+
+        # fuel liters
+        fuelLitersLbl = QLabel('Fuel (L)', self)
+        grid.addWidget(fuelLitersLbl, 3, 0)
+
+        self.fuelLiters = QLCDNumber(self)
+        self.fuelLiters.setSegmentStyle(QLCDNumber.Filled)
+        self.fuelLiters.setDigitCount(4)
+        grid.addWidget(self.fuelLiters, 3, 1)
+
         self.model.fuelChange.connect(self.setFuel)
 
         self.setGeometry(50, 50, 480, 320)
@@ -49,8 +59,9 @@ class MainWindow(QWidget):
     def setSpeed(self, speed):
         self.speed.display(str(speed))
 
-    def setFuel(self, fuel):
-        self.fuel.display("{:.0f}".format(fuel * 100))
+    def setFuel(self, fuelPerc, fuelLiters):
+        self.fuelPerc.display("{:.0f}".format(fuelPerc * 100))
+        self.fuelLiters.display("{:.2f}".format(fuelLiters))
 
     def keyPressEvent(self, event):
         if event.key() == Qt.Key_Escape:
