@@ -45,14 +45,19 @@ DIF_HIGHEST_VOLTAGE_NMF_RANGE = HIGHEST_VOLTAGE - NO_MAG_FIELD_VOLTAGE_RANGE[1]
 INITIAL_PERC_FUEL = 0.5 # the hall sensor can detect the magnet when there is
                         # approximately half a tank of fuel remaining
 
+# the maximum number of liters of fuel that the tank can hold
+MAX_FUEL_CAPACITY = 3.45
+
 class FuelPoller(SensorPoller):
     """
     This object serves as an independent thread that polls for a fuel level.
     """
     # signal that emits the current fuel level as a float (between 0.0 and 1.0)
-    signal = pyqtSignal(float)
+    signal = pyqtSignal(float, float)
     # the percentage (as a value between 0.0 and 1.0) of fuel remaining
-    remainingFuel = 0.6
+    remainingPerc = 0.66667
+    # the liters of fuel remaining in the tank
+    remainingLiters = 2.3
 
     def __init__(self, pollingRate):
         super().__init__(pollingRate)
@@ -71,7 +76,7 @@ class FuelPoller(SensorPoller):
         # calculate the remaining fuel
         self.calculateRemainingFuel()
         # emit fuel percentage value
-        self.signal.emit(self.remainingFuel)
+        self.signal.emit(self.remainingPerc, self.remainingLiters)
 
     def calculateRemainingFuel(self):
         voltage = 1
@@ -86,18 +91,13 @@ class FuelPoller(SensorPoller):
             print('ADC Voltage: ' + str(voltage) + 'V')
 
         # calculate fuel level based on magnetic intensity
-        # if the voltage is within the no-mag-field range
-        if (voltage >= NO_MAG_FIELD_VOLTAGE_RANGE[0] and voltage <= NO_MAG_FIELD_VOLTAGE_RANGE[1]):
-            # the fuel level is guaranteed to be at least at the initial
-            # level at which the magnet can be detected
-            self.remainingFuel = INITIAL_PERC_FUEL
-        # else if the voltage is below the no-mag-field range
-        elif (voltage < NO_MAG_FIELD_VOLTAGE_RANGE[0]):
-            fuelUsed = (NO_MAG_FIELD_VOLTAGE_RANGE[0] - voltage) / (DIF_LOWEST_VOLTAGE_NMF_RANGE) * INITIAL_PERC_FUEL
-            self.remainingFuel = INITIAL_PERC_FUEL - fuelUsed
-        # else if the voltage is above the no-mag-field range
-        elif (voltage > NO_MAG_FIELD_VOLTAGE_RANGE[1]):
-            fuelUsed = (voltage - NO_MAG_FIELD_VOLTAGE_RANGE[1]) / (DIF_HIGHEST_VOLTAGE_NMF_RANGE) * INITIAL_PERC_FUEL
-            self.remainingFuel = INITIAL_PERC_FUEL - fuelUsed
+        distFromCenterVoltage = abs(voltage - 1)
 
-        print('Remaining fuel: ' + str(self.remainingFuel))
+        self.remainingLiters = self.voltsToLiters(distFromCenterVoltage)
+        self.remainingPerc = self.remainingLiters / MAX_FUEL_CAPACITY
+
+        print('Remaining percentage: ' + "{:.0f}".format(self.remainingPerc * 100) + '%')
+        print('Remaining liters: ' +  "{:.2f}".format(self.remainingLiters))
+
+    def voltsToLiters(self, voltage):
+        return 0.8392 * ((32.82899052 * voltage ** 4) - (72.79865982 * voltage ** 3) + (55.46786707 * voltage ** 2) - (18.13107941 * voltage) + 3.480572899) - 0.2488

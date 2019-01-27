@@ -33,7 +33,7 @@ class WolfTrack(QObject):
     # signal emitted when there is a change in RPMs
     rpmChange = pyqtSignal(int)
     # signal emitted when there is a change in the fuel level
-    fuelChange = pyqtSignal(float)
+    fuelChange = pyqtSignal(float, float)
 
     def __init__(self):
         super().__init__()
