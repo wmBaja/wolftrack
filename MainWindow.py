@@ -60,8 +60,16 @@ class MainWindow(QWidget):
         self.speed.display(str(speed))
 
     def setFuel(self, fuelPerc, fuelLiters):
-        self.fuelPerc.display("{:.0f}".format(fuelPerc * 100))
-        self.fuelLiters.display("{:.2f}".format(fuelLiters))
+        percent = fuelPerc * 100
+        percentString = "> 55"
+        if (percent < 55):
+            percentString = "{:.0f}".format(percent)
+
+        litersString = "> 1.9"
+        if (fuelLiters < 1.9):
+            litersString = "{:.2f}".format(fuelLiters)
+        self.fuelPerc.display(percentString)
+        self.fuelLiters.display(litersString)
 
     def keyPressEvent(self, event):
         if event.key() == Qt.Key_Escape:

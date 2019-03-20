@@ -84,7 +84,7 @@ class FuelPoller(SensorPoller):
         if (machineIsRaspberryPi):
             voltage = self.sensorChannel.voltage
             # print('Raw ADC Value: ', self.sensorChannel.value)
-            # print('ADC Voltage: ' + str(voltage) + 'V')
+            print('ADC Voltage: ' + str(voltage) + 'V')
         else:
             # just generate a random voltage value
             voltage = random.random() * (HIGHEST_VOLTAGE - LOWEST_VOLTAGE) + 0.05
@@ -100,4 +100,4 @@ class FuelPoller(SensorPoller):
         print('Remaining liters: ' +  "{:.2f}".format(self.remainingLiters))
 
     def voltsToLiters(self, voltage):
-        return 0.8392 * ((32.82899052 * voltage ** 4) - (72.79865982 * voltage ** 3) + (55.46786707 * voltage ** 2) - (18.13107941 * voltage) + 3.480572899) - 0.2488
+        return .398 * (voltage ** -0.58)
