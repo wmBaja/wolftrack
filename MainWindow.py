@@ -24,40 +24,40 @@ class MainWindow(QWidget):
         grid.addWidget(self.clock, 0, 1)
 
         # speed
-        speedLbl = QLabel('Speed (MPH)', self)
-        grid.addWidget(speedLbl, 1, 0)
+        # speedLbl = QLabel('Speed (MPH)', self)
+        # grid.addWidget(speedLbl, 1, 0)
 
-        self.speed = QLCDNumber(self)
-        self.speed.setSegmentStyle(QLCDNumber.Filled)
-        self.speed.setDigitCount(3)
-        grid.addWidget(self.speed, 1, 1)
-        self.model.speedChange.connect(self.setSpeed)
+        # self.speed = QLCDNumber(self)
+        # self.speed.setSegmentStyle(QLCDNumber.Filled)
+        # self.speed.setDigitCount(3)
+        # grid.addWidget(self.speed, 1, 1)
+        # self.model.speedChange.connect(self.setSpeed)
 
         # fuel percentage
         fuelPercLbl = QLabel('Fuel (%)', self)
-        grid.addWidget(fuelPercLbl, 2, 0)
+        grid.addWidget(fuelPercLbl, 1, 0)
 
         self.fuelPerc = QLCDNumber(self)
         self.fuelPerc.setSegmentStyle(QLCDNumber.Filled)
         self.fuelPerc.setDigitCount(3)
-        grid.addWidget(self.fuelPerc, 2, 1)
+        grid.addWidget(self.fuelPerc, 1, 1)
 
         # fuel liters
         fuelLitersLbl = QLabel('Fuel (L)', self)
-        grid.addWidget(fuelLitersLbl, 3, 0)
+        grid.addWidget(fuelLitersLbl, 2, 0)
 
         self.fuelLiters = QLCDNumber(self)
         self.fuelLiters.setSegmentStyle(QLCDNumber.Filled)
         self.fuelLiters.setDigitCount(4)
-        grid.addWidget(self.fuelLiters, 3, 1)
+        grid.addWidget(self.fuelLiters, 2, 1)
 
         self.model.fuelChange.connect(self.setFuel)
 
         self.setGeometry(50, 50, 480, 320)
         self.setWindowTitle('WolfTrack')
 
-    def setSpeed(self, speed):
-        self.speed.display(str(speed))
+    # def setSpeed(self, speed):
+        # self.speed.display(str(speed))
 
     def setFuel(self, fuelPerc, fuelLiters):
         percent = fuelPerc * 100

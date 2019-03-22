@@ -10,7 +10,7 @@ Author: Stanton Parham
 """
 
 from PyQt5.QtWidgets import QApplication
-from PyQt5.QtCore import QObject, pyqtSignal
+from PyQt5.QtCore import QObject, pyqtSignal, QDateTime, Qt
 import sys
 from MainWindow import MainWindow
 
@@ -49,16 +49,28 @@ class WolfTrack(QObject):
         self.fuelPoller.signal.connect(self.fuelChange)
         self.fuelPoller.start()
 
+        # save fuel data
+        now = QDateTime.currentDateTime()
+        file_name = now.toUTC().toString(Qt.ISODate) + "_fuel_data.txt"
+        self.fuel_file = open(file_name, "a+")
+        self.fuelChange.connect(self.saveFuelData)
+
     def quit(self):
         print('Cleaning up and exiting...')
+        self.fuel_file.close()
         sys.exit(0)
 
+    def saveFuelData(self, fuelPerc, fuelLiters):
+        now = QDateTime.currentDateTime()
+        utc = now.toUTC().toString(Qt.ISODate)
+
+        self.fuel_file.write("{:s} {:.2f}\n".format(utc, fuelLiters))
 
 if __name__ == '__main__':
     # this has to be initialized before anything that uses Qt
     app = QApplication(sys.argv)
     model = WolfTrack()
     view = MainWindow(model)
-    # view.showFullScreen()
-    view.show()
+    view.showFullScreen()
+    # view.show()
     sys.exit(app.exec_())

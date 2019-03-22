@@ -100,4 +100,4 @@ class FuelPoller(SensorPoller):
         print('Remaining liters: ' +  "{:.2f}".format(self.remainingLiters))
 
     def voltsToLiters(self, voltage):
-        return .398 * (voltage ** -0.58)
+        return .331 * (voltage ** -0.627)
