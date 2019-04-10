@@ -33,7 +33,7 @@ class WolfTrack(QObject):
     # signal emitted when there is a change in RPMs
     rpmChange = pyqtSignal(int)
     # signal emitted when there is a change in the fuel level
-    fuelChange = pyqtSignal(float, float)
+    fuelChange = pyqtSignal(float, float, float)
 
     def __init__(self):
         super().__init__()
@@ -52,7 +52,7 @@ class WolfTrack(QObject):
         # save fuel data
         now = QDateTime.currentDateTime()
         file_name = now.toUTC().toString(Qt.ISODate) + "_fuel_data.txt"
-        self.fuel_file = open(file_name, "a+")
+        self.fuel_file = open("data/" + file_name, "a+")
         self.fuelChange.connect(self.saveFuelData)
 
     def quit(self):
@@ -60,11 +60,12 @@ class WolfTrack(QObject):
         self.fuel_file.close()
         sys.exit(0)
 
-    def saveFuelData(self, fuelPerc, fuelLiters):
+    def saveFuelData(self, fuelPerc, fuelLiters, emaLiters):
         now = QDateTime.currentDateTime()
         utc = now.toUTC().toString(Qt.ISODate)
 
-        self.fuel_file.write("{:s} {:.2f}\n".format(utc, fuelLiters))
+        self.fuel_file.write("{:s},{:.2f},{:.2f}\n".format(utc, fuelLiters, emaLiters))
+        # self.fuel_file.write("{:.2f}\n".format(emaLiters))
 
 if __name__ == '__main__':
     # this has to be initialized before anything that uses Qt
