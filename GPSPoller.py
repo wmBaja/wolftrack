@@ -9,16 +9,11 @@ machineIsRaspberryPi = os.uname()[4].startswith("arm")
 
 # if running on a RPI
 if (machineIsRaspberryPi):
-    # import libraries related to reading from the GPIO of the RPI
+    # import libraries related to reading from the GPS module
     import busio
-    import digitalio
     import board
-    import adafruit_mcp3xxx.mcp3008 as MCP
-    from adafruit_mcp3xxx.analog_in import AnalogIn
-
-    # this is the pin on the MCP3008 that is connected to the hall sensor
-    # on the fuel tank
-    FUEL_HALL_SENSOR_MCP_PIN = MCP.P0
+    import time
+    import adafruit_gps
 else:
     import random
 
@@ -66,7 +61,14 @@ class GPSPoller(SensorPoller):
         # if running on a RPI
         if (machineIsRaspberryPi):
             # TODO do set up for GPS
-            print("DO SET UP FOR GPS")
+            # for a computer, use the pyserial library for uart access
+            import serial
+            uart = serial.Serial("/dev/ttyS0", baudrate=9600, timeout=3000)
+
+            # Create a GPS module instance.
+            self.gps = adafruit_gps.GPS(uart, debug=False)
+            self.gps.send_command(b'PMTK314,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0') # set data that you want
+            self.gps.send_command(b('PMTK220,' + str(pollingRate))) # set polling rate
         else:
             # TODO find a way to mock data
             print("DO SET UP FOR MOCK DATA")
@@ -81,11 +83,23 @@ class GPSPoller(SensorPoller):
         """
         Gets the GPS data from the module.
         """
-        voltage = 1
         # if running on a RPI
         if (machineIsRaspberryPi):
-            # TODO get the data from the GPS
-            print("GET THE DATAS FROM THE GPS")
+            # get the data from the GPS
+            self.gps.update()
+            if not gps.has_fix:
+                # Try again if we don't have a fix yet.
+                print('Waiting for fix...')
+            else:
+                # get the lat and lon
+                self.latitude = gps.latitude
+                self.longitude = gps.longitude
+                if gps.speed_knots is not None:
+                    # get the speed in MPH
+                    self.speed = gps.speed_knots * 1.151
+                if gps.track_angle_deg is not None:
+                    # get the tracking angle
+                   self.trackAngleDeg = gps.track_angle_deg
         else:
             # TODO just get the next value from the mock data
             print("GET THE MOCK DATAS")
