@@ -68,7 +68,7 @@ class GPSPoller(SensorPoller):
             # Create a GPS module instance.
             self.gps = adafruit_gps.GPS(uart, debug=False)
             self.gps.send_command(b'PMTK314,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0') # set data that you want
-            self.gps.send_command(b('PMTK220,' + str(pollingRate))) # set polling rate
+            self.gps.send_command(bytes('PMTK220,' + str(pollingRate), 'utf-8')) # set polling rate
         else:
             # TODO find a way to mock data
             print("DO SET UP FOR MOCK DATA")
@@ -87,19 +87,19 @@ class GPSPoller(SensorPoller):
         if (machineIsRaspberryPi):
             # get the data from the GPS
             self.gps.update()
-            if not gps.has_fix:
+            if not self.gps.has_fix:
                 # Try again if we don't have a fix yet.
                 print('Waiting for fix...')
             else:
                 # get the lat and lon
-                self.latitude = gps.latitude
-                self.longitude = gps.longitude
-                if gps.speed_knots is not None:
+                self.latitude = self.gps.latitude
+                self.longitude = self.gps.longitude
+                if self.gps.speed_knots is not None:
                     # get the speed in MPH
-                    self.speed = gps.speed_knots * 1.151
-                if gps.track_angle_deg is not None:
+                    self.speed = self.gps.speed_knots * 1.151
+                if self.gps.track_angle_deg is not None:
                     # get the tracking angle
-                   self.trackAngleDeg = gps.track_angle_deg
+                   self.trackAngleDeg = self.gps.track_angle_deg
         else:
             # TODO just get the next value from the mock data
             print("GET THE MOCK DATAS")
