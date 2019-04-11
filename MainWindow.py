@@ -23,7 +23,10 @@ class AlertThread(QThread):
     # signal that emits an integer
     signal = pyqtSignal(bool)
 
+    # whether or not the LCD display is on or not
+    # (used to create the flashing effect when the fuel level gets beyond the alert point)
     switchedOn = False
+
     def __init__(self):
         super().__init__()
         # init the timer and move it to this thread
@@ -46,6 +49,9 @@ class AlertThread(QThread):
         self.switchedOn = not self.switchedOn
 
 class MainWindow(QWidget):
+    # the percentage of fuel to be displayed
+    fuelPerc = 0.0
+
     def __init__(self, model):
         super().__init__()
         self.model = model
