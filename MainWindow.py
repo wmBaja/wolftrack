@@ -147,10 +147,12 @@ class MainWindow(QWidget):
         qp.setBrush(QColor(color['r'], color['g'], color['b']))
         # qp.setBrush(QColor(240, 15, 0))
         # qp.drawRect(0, h, w, -till)
-        qp.drawRect(0, 0, w, h / 14) # top rectangle
-        qp.drawRect(0, h / 14, w / 5, h - h / 7) # left rectangle
-        qp.drawRect(w - w / 5, h / 14, w / 5, h - h / 7) # right rectangle
-        qp.drawRect(0, h - h / 14, w, h / 14)
+        HEIGHT_OF_BORDER = h / 30
+        WIDTH_OF_BORDER = w / 6
+        qp.drawRect(0, 0, w, HEIGHT_OF_BORDER) # top rectangle
+        qp.drawRect(0, HEIGHT_OF_BORDER, WIDTH_OF_BORDER, h - (HEIGHT_OF_BORDER * 2)) # left rectangle
+        qp.drawRect(w - WIDTH_OF_BORDER, HEIGHT_OF_BORDER, WIDTH_OF_BORDER, h - (HEIGHT_OF_BORDER * 2)) # right rectangle
+        qp.drawRect(0, h - HEIGHT_OF_BORDER, w, HEIGHT_OF_BORDER)
 
 
         pen = QPen(QColor(20, 20, 20), 1, Qt.SolidLine)
