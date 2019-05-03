@@ -19,7 +19,7 @@ from FuelPoller import FuelPoller
 from GPSPoller import GPSPoller
 
 # the number of milliseconds in between speed calculations
-GPS_POLLING_RATE = 200
+GPS_POLLING_RATE = 500
 # the number of milliseconds in between fuel level calculations
 FUEL_POLLING_RATE = 1000
 
