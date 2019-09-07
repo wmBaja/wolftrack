@@ -8,6 +8,8 @@ import './mapbox-gl.css';
 import mapStyle from './mapbox-style/style.json';
 import testGeo from './mapbox-style/test.geojson';
 
+import { sendMsg } from './api.js';
+
 const dataLayer = fromJS({
   id: 'data',
   source: 'testData',
@@ -24,7 +26,9 @@ function App() {
   return (
     <div className="App">
       <header className="App-header">
-        <Map />
+        <h1>Henlo</h1>
+        <button onClick={sendMsg}>Send a message</button>
+        {/* <Map /> */}
         <div className="Speed">
           42
         </div>
