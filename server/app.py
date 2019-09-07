@@ -61,10 +61,6 @@ STATIC_DIR = '../client/build'
 def hello():
   return send_from_directory(STATIC_DIR, 'index.html')
 
-@app.route('/testapi', methods=['GET'])
-def testapi():
-  return 'yuh'
-
 @app.route('/<path>')
 def send_js(path):
   return send_from_directory(STATIC_DIR, path)
