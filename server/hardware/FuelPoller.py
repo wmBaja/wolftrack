@@ -101,7 +101,7 @@ class FuelPoller(SensorPoller):
       self.mocked_data_idx += 1
       if (self.mocked_data_idx >= len(self.mocked_data) + 1):
         self.mocked_data_idx = 0
-    print('ADC Voltage: ' + str(voltage) + 'V')
+    # print('ADC Voltage: ' + str(voltage) + 'V')
 
     distFromCenterVoltage = abs(voltage - 1)
 
@@ -109,9 +109,9 @@ class FuelPoller(SensorPoller):
     self.emaLiters = self.calcEMA(self.emaLiters, self.remainingLiters)
     self.remainingPerc = self.emaLiters / MAX_FUEL_CAPACITY
 
-    print('Remaining percentage: ' + '{:.0f}'.format(self.remainingPerc * 100) + '%')
-    print('Remaining liters: ' +  '{:.2f}'.format(self.remainingLiters))
-    print('EMA liters: ' +  '{:.2f}'.format(self.emaLiters))
+    # print('Remaining percentage: ' + '{:.0f}'.format(self.remainingPerc * 100) + '%')
+    # print('Remaining liters: ' +  '{:.2f}'.format(self.remainingLiters))
+    # print('EMA liters: ' +  '{:.2f}'.format(self.emaLiters))
 
   @staticmethod
   def voltsToLiters(voltage):
