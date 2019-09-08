@@ -8,7 +8,7 @@ import atexit
 from flask import Flask, send_from_directory, jsonify
 from flask_socketio import SocketIO, emit
 
-from HardwarePoller import HardwarePoller
+from hardware.HardwareManager import HardwareManager
 
 
 # monkey patch the threading library so that background threads will work with SocketIO
@@ -19,19 +19,15 @@ eventlet.monkey_patch()
 # whether or not the program has been cleaned up yet
 cleanedUp = False
 
-
 def cleanup():
   """
   Cleans up the program by:
-    - Stopping the hardware poller thread
-    - Closing the database connection
+    - Shutting down the hardware manager
   """
-  global cleanedUp, hwPoller
+  global cleanedUp, hwManager
   if not cleanedUp:
     print('Cleaning up')
-    print(hwPoller.stopEvent.isSet())
-    hwPoller.stopEvent.set()
-    print(hwPoller.stopEvent.isSet())
+    hwManager.stopPollers()
     cleanedUp = True
 
 def sigint_handler(signal, frame):
@@ -47,13 +43,12 @@ atexit.register(cleanup)
 app = Flask(__name__, static_url_path='')
 socketio = SocketIO(app)
 
-def callbackFunc(value):
-  print('I got called back!')
-  print(str(value))
-  socketio.emit('hwdata', value)
+def onHwData(dataType, value):
+  print(str(dataType) + ': ' + str(value))
+  socketio.emit('hwdata', {'type': dataType, 'value': value})
 
 
-hwPoller = HardwarePoller(2, callbackFunc)
+hwManager = HardwareManager(onHwData)
 
 STATIC_DIR = '../client/build'
 
@@ -88,7 +83,7 @@ def handle_custom_event(msg):
   socketio.send('message received')
 
 if __name__ == '__main__':
-  hwPoller.start() # start the hardware poller
+  hwManager.startPollers() # start the sensor pollers
 
   # running the app in debug mode will cause two threads to be started
   socketio.run(app, host='0.0.0.0', port='5000', debug=False)
