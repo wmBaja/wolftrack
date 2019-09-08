@@ -21,6 +21,3 @@ class HardwareManager():
     # tell each poller (thread) to stop
     for poller in self.pollerPool:
       poller.stopEvent.set()
-    # wait for each poller (thread) to stop
-    for poller in self.pollerPool:
-      poller.join()
