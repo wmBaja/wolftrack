@@ -9,7 +9,8 @@
 /coverage
 
 # production
-/build
+# push the built files because it's just easier for using them with the RPi
+# /build
 
 # misc
 .DS_Store
