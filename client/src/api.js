@@ -19,4 +19,8 @@ function sendMsg() {
   socket.emit('blah', Math.random());
 }
 
-export { sendMsg };
+function onHwData(callback) {
+  socket.on('hwdata', callback);
+}
+
+export { sendMsg, onHwData };

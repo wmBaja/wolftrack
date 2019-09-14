@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import React, { Component, useState } from 'react';
 import ReactMapGL from 'react-map-gl';
 import { fromJS } from 'immutable';
 
@@ -8,7 +8,7 @@ import './mapbox-gl.css';
 import mapStyle from './mapbox-style/style.json';
 import testGeo from './mapbox-style/test.geojson';
 
-import { sendMsg } from './api.js';
+import { sendMsg, onHwData } from './api.js';
 
 const dataLayer = fromJS({
   id: 'data',
@@ -23,6 +23,14 @@ const dataLayer = fromJS({
 });
 
 function App() {
+  const [fuelPerc, setFuelPerc] = useState(0);
+  onHwData((data) => {
+    if (data.type === 'fuel_data') {
+      console.log('updating fuel perc', data.value.remainingPercentage);
+      setFuelPerc(data.value.remainingPercentage);
+    }
+  });
+
   return (
     <div className="App">
       <header className="App-header">
@@ -30,7 +38,7 @@ function App() {
         <button onClick={sendMsg}>Send a message</button>
         {/* <Map /> */}
         <div className="Speed">
-          42
+          {fuelPerc}
         </div>
       </header>
     </div>
