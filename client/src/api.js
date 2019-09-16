@@ -1,13 +1,8 @@
 import io from 'socket.io-client';
 
 const socket = io();
-socket.on('connect', function() {
+socket.on('connect', () => {
   console.log('SocketIO connection established')
-});
-
-socket.on('hwdata', (data) => {
-  console.log('Received hardware data');
-  console.log(data);
 });
 
 socket.on('message', (data) => {
@@ -21,6 +16,10 @@ function sendMsg() {
 
 function onHwData(callback) {
   socket.on('hwdata', callback);
+  const unsubscribe = () => {
+    socket.off('hwdata', callback);
+  };
+  return unsubscribe;
 }
 
 export { sendMsg, onHwData };
