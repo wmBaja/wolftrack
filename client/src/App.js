@@ -27,6 +27,9 @@ function App() {
         if (data.type === 'fuel_data') {
           console.log('Updating fuel data', data.value);
           setData(prevState => ({ ...prevState, fuelData: data.value }));
+        } else if (data.type === 'gps_data') {
+          console.log('Updating GPS data', data.value);
+          setData(prevState => ({ ...prevState, gpsData: data.value }));
         }
       });
       return unsubscribe; // call unsubscribe when unmounting
