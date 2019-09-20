@@ -2,10 +2,19 @@ import React from 'react';
 
 import './Dashboard.css';
 
+function formatFuelPerc(origFuelPerc) {
+  let fuelPerc = origFuelPerc;
+  if (fuelPerc < 0) {
+    fuelPerc = 0;
+  }
+  fuelPerc = (fuelPerc * 100).toPrecision(2);
+  return fuelPerc;
+}
+
 function Dashboard({ data }) {
   const { fuelData, gpsData } = data;
 
-  const formattedPercentage = (fuelData.remainingPercentage * 100).toPrecision(2);
+  const formattedPercentage = formatFuelPerc(fuelData.remainingPercentage);
   const formattedSpeed = (gpsData.speed).toPrecision(2);
 
   return (
