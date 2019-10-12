@@ -30,18 +30,23 @@ class GPSPoller(SensorPoller):
   trackAngleDeg = 0.0
 
   def __init__(self, pollingRate, callback):
-    newPollingRate = pollingRate / 2 - 0.005 # have to poll at least as twice as fast as the interval that you want data at
-    super().__init__(newPollingRate, callback)
+    """
+    @param pollingRate - the polling rate in seconds
+    """
+    threadPollingRate = pollingRate / 2 - 0.005 # have to poll at least as twice as fast as the interval that you want data at
+    super().__init__(threadPollingRate, callback)
     # if running on a RPI
     if (machineIsRaspberryPi):
       # for a computer, use the pyserial library for uart access
       import serial
       uart = serial.Serial('/dev/ttyS0', baudrate=9600, timeout=3000)
 
+      modulePollingRate = pollingRate * 1000 # convert to milliseconds
+
       # Create a GPS module instance.
       self.gps = adafruit_gps.GPS(uart, debug=False)
       self.gps.send_command(b'PMTK314,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0') # set data that you want
-      self.gps.send_command(bytes('PMTK220,' + str(pollingRate), 'utf-8')) # set polling rate
+      self.gps.send_command(bytes('PMTK220,' + str(modulePollingRate), 'utf-8')) # set polling rate
     else:
       # TODO find a way to mock data
       print('DO SET UP FOR MOCK DATA')

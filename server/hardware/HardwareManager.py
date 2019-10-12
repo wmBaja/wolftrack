@@ -4,10 +4,10 @@ from .FuelPoller import FuelPoller
 from .GPSPoller import GPSPoller
 
 FUEL_DATA = 'fuel_data'
-FUEL_POLLING_RATE = 1
+FUEL_POLLING_RATE = 2
 
 GPS_DATA = 'gps_data'
-GPS_POLLING_RATE = 0.5
+GPS_POLLING_RATE = 0.2
 
 class HardwareManager():
   def __init__(self, callback):
