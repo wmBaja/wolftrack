@@ -1,0 +1,8 @@
+Flask==1.1.1
+flask-socketio==4.2.1
+eventlet==0.25.1
+RPi.GPIO==0.7.0
+Adafruit-Blinka==2.4.1
+adafruit-circuitpython-mcp3xxx==1.0.3
+adafruit-circuitpython-gps==3.3.0
+pyserial==3.4

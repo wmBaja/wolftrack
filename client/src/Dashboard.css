@@ -1,0 +1,29 @@
+.Dashboard {
+  background-color: #282c34;
+  min-height: calc(100vh - 10px);
+  min-width: 0;
+  padding: 5px;
+
+  display: grid;
+  grid-gap: 5px;
+  grid-template-columns: 1fr;
+  grid-auto-rows: 1fr;
+}
+
+.Dashboard > div {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #fff;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+  color: #000;
+  overflow: hidden;
+}
+
+.Dashboard-data-num {
+  font-size: 11em;
+}
+
+.Dashboard-data-unit {
+  font-size: 3em;
+}
