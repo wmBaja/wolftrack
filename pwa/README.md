@@ -1,3 +1,6 @@
+# Progressive Web Application
+Everything in this folder is related to the client that runs on the mobile device display on the Baja vehicle and the client that allows for remote monitoring of data from the Baja vehicle.
+
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
 ## Available Scripts
