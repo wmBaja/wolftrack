@@ -50,7 +50,7 @@ def onHwData(dataType, value):
 
 hwManager = HardwareManager(onHwData)
 
-STATIC_DIR = '../client/build'
+STATIC_DIR = '../pwa/build'
 
 @app.route('/')
 def hello():
