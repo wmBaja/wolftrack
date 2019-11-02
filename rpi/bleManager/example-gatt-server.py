@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import dbus
+import dbus.mainloop.glib
 
 import array
 try:
@@ -12,8 +13,8 @@ import sys
 from random import randint
 
 
-from .DBusGATTApplication.Application import Application
-from .DBusGATTApplication.dbusPaths import BLUEZ_SERVICE_NAME, DBUS_OM_IFACE, GATT_MANAGER_IFACE
+from DBusGATTApplication.Application import Application
+from DBusGATTApplication.dbusPaths import BLUEZ_SERVICE_NAME, DBUS_OM_IFACE, GATT_MANAGER_IFACE
 
 
 mainloop = None

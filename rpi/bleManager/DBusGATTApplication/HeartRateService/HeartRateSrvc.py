@@ -1,7 +1,7 @@
 from ..Service import Service
 from .HeartRateMeasurementChrc import HeartRateMeasurementChrc
 from .BodySensorLocationChrc import BodySensorLocationChrc
-from HeartRateControlPointChrc import HeartRateControlPointChrc
+from .HeartRateControlPointChrc import HeartRateControlPointChrc
 
 class HeartRateSrvc(Service):
   """

@@ -1,4 +1,5 @@
 import dbus
+import dbus.service
 
 from .errors import InvalidArgsException
 from .dbusPaths import GATT_SERVICE_IFACE, DBUS_PROP_IFACE
