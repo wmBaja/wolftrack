@@ -5,6 +5,12 @@ from .BatteryService.BatterySrvc import BatterySrvc
 from .TestService.TestSrvc import TestSrvc
 from .dbusPaths import DBUS_OM_IFACE
 
+from random import random
+try:
+  from gi.repository import GObject
+except ImportError:
+  import gobject as GObject
+
 class Application(dbus.service.Object):
   """
   org.bluez.GattApplication1 interface implementation
@@ -16,6 +22,18 @@ class Application(dbus.service.Object):
     self.add_service(HeartRateSrvc(bus, 0))
     self.add_service(BatterySrvc(bus, 1))
     self.add_service(TestSrvc(bus, 2))
+    
+    GObject.timeout_add(1000, self.updateTestChrcWithRandVal)
+
+
+
+  def updateTestChrcWithRandVal(self):
+    testSrvc = self.services[2]
+    testSrvc.updateTestCharacteristic(int(random() * 1024))
+    return True
+
+
+
 
   def get_path(self):
     return dbus.ObjectPath(self.path)

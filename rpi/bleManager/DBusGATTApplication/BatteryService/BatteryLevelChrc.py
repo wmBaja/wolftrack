@@ -29,7 +29,9 @@ class BatteryLevelChrc(Characteristic):
       return
     self.PropertiesChanged(
             GATT_CHRC_IFACE,
-            { 'Value': [dbus.Byte(self.battery_lvl)] }, [])
+            #{ 'Value': [dbus.Byte(self.battery_lvl)] },
+            { 'Value': [dbus.Double(self.battery_lvl)] },
+            [])
 
   def drain_battery(self):
     if not self.notifying:
@@ -44,7 +46,8 @@ class BatteryLevelChrc(Characteristic):
 
   def ReadValue(self, options):
     print('Battery Level read: ' + repr(self.battery_lvl))
-    return [dbus.Byte(self.battery_lvl)]
+    #return [dbus.Byte(self.battery_lvl)]
+    return [dbus.Double(self.battery_lvl)]
 
   def StartNotify(self):
     if self.notifying:
