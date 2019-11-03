@@ -1,6 +1,10 @@
 #! /usr/bin/env python
 """
-This is a Flask web server that
+This is the main file for the Python application that runs on the RPi.
+It serves as a go-between for the rest of the main components of the application.
+It essentially follows a producer-consumer design pattern which allows for
+modularity and the easy introduction of new components that either produce or
+consume values.
 """
 
 import signal
