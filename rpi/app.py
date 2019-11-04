@@ -9,6 +9,8 @@ introduction of further components which may be observers or subjects.
 import signal
 import atexit
 
+from observerPattern.Observer import Observer
+
 # the hardware manager is a subject
 from hardware.HardwareManager import HardwareManager
 
@@ -36,11 +38,10 @@ def sigintHandler(signal, frame):
   cleanup()
   quit()
 
-def onHwData(dataType, value):
-  """
-  A callback for getting hardware data.
-  """
-  print(str(dataType) + ': ' + str(value))
+class TestObserver(Observer):
+  def update(self, updates):
+    for update in updates:
+      print('{}: {}'.format(update['dataType'], str(update['value'])))
 
 def main():
   """
@@ -59,7 +60,9 @@ def main():
   #   - DBManager      -> HardwareManager
   #   - BLEGATTManager -> ?? (for commands from the device connected over BLE)
 
-  hwManager = HardwareManager(onHwData)
+  hwManager = HardwareManager()
+  hwManager.attach(TestObserver())
+
   hwManager.startPollers() # start the sensor pollers
 
   # TODO need some way of keeping the main app alive (probably some sort of loop like GLib's)
