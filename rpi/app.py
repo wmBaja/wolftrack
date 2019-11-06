@@ -11,6 +11,8 @@ import atexit
 
 from observerPattern.Observer import Observer
 
+from blegatt.BLEGATTManager import BLEGATTManager
+
 # the hardware manager is a subject
 from hardware.HardwareManager import HardwareManager
 
@@ -60,12 +62,17 @@ def main():
   #   - DBManager      -> HardwareManager
   #   - BLEGATTManager -> ?? (for commands from the device connected over BLE)
 
+  bleManager = BLEGATTManager()
   hwManager = HardwareManager()
-  hwManager.attach(TestObserver())
 
+  hwManager.attach(bleManager)
+
+
+  bleManager.start() # start the BLE GATT server
   hwManager.startPollers() # start the sensor pollers
 
   # TODO need some way of keeping the main app alive (probably some sort of loop like GLib's)
+  # it seems to work without a loop here, but the kill signal isn't letting threads be shutdown properly
 
 
 if __name__ == '__main__':

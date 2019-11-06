@@ -22,14 +22,14 @@ class Application(dbus.service.Object):
     self.add_service(HeartRateSrvc(bus, 0))
     self.add_service(BatterySrvc(bus, 1))
     self.add_service(TestSrvc(bus, 2))
-    
-    GObject.timeout_add(1000, self.updateTestChrcWithRandVal)
+
+    # GObject.timeout_add(1000, self.updateTestChrcWithRandVal)
 
 
 
-  def updateTestChrcWithRandVal(self):
+  def updateTestChrc(self, value):
     testSrvc = self.services[2]
-    testSrvc.updateTestCharacteristic(int(random() * 1024))
+    testSrvc.updateTestCharacteristic(int(value))
     return True
 
 
