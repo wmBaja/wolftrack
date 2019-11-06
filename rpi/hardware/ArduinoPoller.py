@@ -46,7 +46,7 @@ class ArduinoPoller(SensorPoller):
     """
     Gets the data from the Arduino.
     """
-    byteArr = list((self.serialConnection.read(2)))
+    byteArr = list((self.serialConnection.read(4)))
     intArr = self.getSensors(byteArr)
     self.actuation = intArr[0]
 

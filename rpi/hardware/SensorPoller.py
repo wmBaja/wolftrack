@@ -13,8 +13,12 @@ class SensorPoller(Thread):
     passes the returned value to the callback function. Calls the cleanup()
     method after the stop event is set.
     """
-    while not self.stopEvent.wait(self.pollingRate):
-      self.cb(self.poll())
+    if self.pollingRate == 0:
+      while True:
+        self.cb(self.poll())
+    else:
+      while not self.stopEvent.wait(self.pollingRate):
+        self.cb(self.poll())
     self.cleanup()
 
   def poll(self):

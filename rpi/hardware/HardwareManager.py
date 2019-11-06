@@ -9,7 +9,7 @@ GPS_DATA = 'gps_data'
 GPS_POLLING_RATE = 0.2
 
 ARDUINO_DATA = 'arduino_data'
-ARDUINO_POLLING_RATE = 1
+ARDUINO_POLLING_RATE = 0
 
 class HardwareManager():
   def __init__(self, callback):
