@@ -2,6 +2,9 @@ from .SensorPoller import SensorPoller
 
 import serial
 
+# the baud rate for the serial connection to the Arduino
+BAUD_RATE = 115200
+
 class ArduinoPoller(SensorPoller):
   """
   An independent thread that polls for data from the Arduino.
@@ -15,7 +18,7 @@ class ArduinoPoller(SensorPoller):
     @param pollingRate - the polling rate in seconds
     """
     super().__init__(pollingRate, callback)
-    self.serialConnection = serial.Serial('/dev/ttyACM0', 9600)
+    self.serialConnection = serial.Serial('/dev/ttyACM0', BAUD_RATE)
 
   def poll(self):
     """
