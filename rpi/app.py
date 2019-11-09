@@ -1,23 +1,26 @@
 #! /usr/bin/env python
 """
-This is a Flask web server that
+This is the main file for the Python application that runs on the RPi. It
+serves as a go-between for the rest of the main components of the application.
+It essentially follows an Observer design pattern which allows for the easy
+introduction of further components which may be observers or subjects.
 """
 
 import signal
 import atexit
-from flask import Flask, send_from_directory, jsonify
-from flask_socketio import SocketIO, emit
 
+from observerPattern.Observer import Observer
+
+from blegatt.BLEGATTManager import BLEGATTManager
+
+# the hardware manager is a subject
 from hardware.HardwareManager import HardwareManager
-
-
-# monkey patch the threading library so that background threads will work with SocketIO
-import eventlet
-eventlet.monkey_patch()
-
 
 # whether or not the program has been cleaned up yet
 cleanedUp = False
+
+# the hardware manager
+hwManager = None
 
 def cleanup():
   """
@@ -30,60 +33,47 @@ def cleanup():
     hwManager.stopPollers()
     cleanedUp = True
 
-def sigint_handler(signal, frame):
+def sigintHandler(signal, frame):
+  """
+  A handler for kill signals that are captured.
+  """
   cleanup()
   quit()
 
-# catch the kill signal to end gracefully
-signal.signal(signal.SIGINT, sigint_handler)
-# cleanup when exiting
-atexit.register(cleanup)
+class TestObserver(Observer):
+  def update(self, updates):
+    for update in updates:
+      print('{}: {}'.format(update['dataType'], str(update['value'])))
+
+def main():
+  """
+  Handles the instantiation and connection of the subjects and observers.
+  Also handles setting up the capture of kill signals for clean shutdowns.
+  """
+  global hwManager
+  # catch the kill signal to end gracefully
+  signal.signal(signal.SIGINT, sigintHandler)
+  # cleanup when exiting
+  atexit.register(cleanup)
+
+  # TODO connect observers to subjects
+  # Connections to make:
+  #   - BLEGATTManager -> HardwareManager
+  #   - DBManager      -> HardwareManager
+  #   - BLEGATTManager -> ?? (for commands from the device connected over BLE)
+
+  bleManager = BLEGATTManager()
+  hwManager = HardwareManager()
+
+  hwManager.attach(bleManager)
 
 
-app = Flask(__name__, static_url_path='')
-socketio = SocketIO(app)
-
-def onHwData(dataType, value):
-  print(str(dataType) + ': ' + str(value))
-  socketio.emit('hwdata', {'type': dataType, 'value': value})
-
-
-hwManager = HardwareManager(onHwData)
-
-STATIC_DIR = '../pwa/build'
-
-@app.route('/')
-def hello():
-  return send_from_directory(STATIC_DIR, 'index.html')
-
-@app.route('/<path>')
-def send_js(path):
-  return send_from_directory(STATIC_DIR, path)
-
-@app.route('/<path:base>/<path:path>')
-def send_files(base, path):
-  return send_from_directory(STATIC_DIR, base + '/' + path)
-
-
-@socketio.on('connect')
-def handle_connection():
-  print('New SocketIO connection established')
-
-@socketio.on('message')
-def handle_message(message):
-  print('Received message: ' + message)
-
-@socketio.on('json')
-def handle_json(json):
-  print('Received JSON: ' + str(json))
-
-@socketio.on('blah')
-def handle_custom_event(msg):
-  print('Received custom_event: ' + str(msg))
-  socketio.send('message received')
-
-if __name__ == '__main__':
+  bleManager.start() # start the BLE GATT server
   hwManager.startPollers() # start the sensor pollers
 
-  # running the app in debug mode will cause two threads to be started
-  socketio.run(app, host='0.0.0.0', port='5000', debug=False)
+  # TODO need some way of keeping the main app alive (probably some sort of loop like GLib's)
+  # it seems to work without a loop here, but the kill signal isn't letting threads be shutdown properly
+
+
+if __name__ == '__main__':
+  main()
