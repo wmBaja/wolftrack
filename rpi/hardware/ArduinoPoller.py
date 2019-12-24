@@ -29,10 +29,8 @@ class ArduinoPoller(SensorPoller):
     Retrieves data from the Arduino and returns it so that it can be used by SensorPoller.
     """
     # get the data from the Arduino
-    actuation = self.getArduinoData()
-    return {
-      'actuation': actuation,
-    }
+    data = self.getArduinoData()
+    return data
 
   def getSensors(self, sen):
     alength = len(sen)
@@ -55,11 +53,19 @@ class ArduinoPoller(SensorPoller):
     """
     if (self.serialConnection):
       byteArr = list((self.serialConnection.read(4)))
-      intArr = self.getSensors(byteArr)
-      return intArr[0]
+      # intArr = self.getSensors(byteArr)
+      # return intArr[0]
+      return byteArr
     else:
       time.sleep(1)
-      return randrange(1024)
+      return self.generateRandomByteList(8)
+
+  def generateRandomByteList(self, num16BitUints):
+    arr = []
+    for x in range(0, num16BitUints):
+      arr.append(randrange(4))
+      arr.append(randrange(256))
+    return arr
 
   def cleanup(self):
     """
