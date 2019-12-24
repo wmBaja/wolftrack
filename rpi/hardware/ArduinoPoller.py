@@ -2,6 +2,9 @@ from .SensorPoller import SensorPoller
 
 import serial
 
+from random import randrange
+import time
+
 # the baud rate for the serial connection to the Arduino
 BAUD_RATE = 115200
 
@@ -10,24 +13,25 @@ class ArduinoPoller(SensorPoller):
   An independent thread that polls for data from the Arduino.
   """
 
-  # the current actuation
-  actuation = 0
-
   def __init__(self, pollingRate, callback):
     """
     @param pollingRate - the polling rate in seconds
     """
     super().__init__(pollingRate, callback)
-    self.serialConnection = serial.Serial('/dev/ttyACM0', BAUD_RATE)
+    self.serialConnection = None
+    try:
+      self.serialConnection = serial.Serial('/dev/ttyACM0', BAUD_RATE)
+    except:
+      print('Could not connect to Arduino through serial connection.  Generating random numbers.')
 
   def poll(self):
     """
-    Retrieves data from the Arduino.
+    Retrieves data from the Arduino and returns it so that it can be used by SensorPoller.
     """
     # get the data from the Arduino
-    self.getArduinoData()
+    actuation = self.getArduinoData()
     return {
-      'actuation': self.actuation,
+      'actuation': actuation,
     }
 
   def getSensors(self, sen):
@@ -49,9 +53,13 @@ class ArduinoPoller(SensorPoller):
     """
     Gets the data from the Arduino.
     """
-    byteArr = list((self.serialConnection.read(4)))
-    intArr = self.getSensors(byteArr)
-    self.actuation = intArr[0]
+    if (self.serialConnection):
+      byteArr = list((self.serialConnection.read(4)))
+      intArr = self.getSensors(byteArr)
+      return intArr[0]
+    else:
+      time.sleep(1)
+      return randrange(1024)
 
   def cleanup(self):
     """

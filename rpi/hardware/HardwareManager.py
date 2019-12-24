@@ -11,7 +11,7 @@ GPS_DATA = 'gps_data'
 GPS_POLLING_RATE = 0.2
 
 ARDUINO_DATA = 'arduino_data'
-ARDUINO_POLLING_RATE = 0
+ARDUINO_POLLING_RATE = 0 # (no polling rate; i.e. there should be a blocking call in the poller)
 
 class HardwareManager(Subject):
   def __init__(self):
