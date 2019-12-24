@@ -26,19 +26,19 @@ class TestChrc(Characteristic):
   def notifyValueChange(self):
     if not self.notifying:
       return
-    arr = self.convertIntToDbusByteArray(self.value)
+    arr = self.ReadValue()
     self.PropertiesChanged(
             GATT_CHRC_IFACE,
             { 'Value': arr },
             [])
-  
+
   def updateValue(self, newVal):
     self.value = newVal
     print('Updated value: ' + repr(self.value))
-    
+
     if self.notifying:
       self.notifyValueChange()
-    
+
     return True
 
   def convertIntToDbusByteArray(self, integer):
@@ -46,14 +46,15 @@ class TestChrc(Characteristic):
     return dbus.ByteArray(byteArr)
 
 
-  def ReadValue(self, options):
+  def ReadValue(self, options=None):
     print('TestCharacteristic Read: ' + repr(self.value))
-    return self.convertIntToDbusByteArray(self.value)
+    # return self.convertIntToDbusByteArray(self.value)
+    return dbus.ByteArray(self.value)
 
   def WriteValue(self, value, options):
     print('TestCharacteristic Write: ' + repr(value))
     self.value = value
-    
+
   def StartNotify(self):
     if self.notifying:
       print('Already notifying, nothing to do')
