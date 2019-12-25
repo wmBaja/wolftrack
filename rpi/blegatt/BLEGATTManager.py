@@ -30,7 +30,7 @@ class BLEGATTManager(Observer, Thread):
       if self.app and update['dataType'] == 'arduino_data':
         print('Received Arduino data in BLEGATTManager')
         print('{}: {}'.format(update['dataType'], str(update['value'])))
-        self.app.updateTestChrc(update['value']['actuation'])
+        self.app.updateTestChrc(update['value'])
 
   def register_app_cb(self):
     print('GATT application registered')

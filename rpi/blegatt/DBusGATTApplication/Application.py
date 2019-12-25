@@ -5,7 +5,6 @@ from .BatteryService.BatterySrvc import BatterySrvc
 from .TestService.TestSrvc import TestSrvc
 from .dbusPaths import DBUS_OM_IFACE
 
-from random import random
 try:
   from gi.repository import GObject
 except ImportError:
@@ -29,7 +28,7 @@ class Application(dbus.service.Object):
 
   def updateTestChrc(self, value):
     testSrvc = self.services[2]
-    testSrvc.updateTestCharacteristic(int(value))
+    testSrvc.updateTestCharacteristic(value)
     return True
 
 

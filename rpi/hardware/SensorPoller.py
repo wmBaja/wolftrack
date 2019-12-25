@@ -1,7 +1,14 @@
 from threading import Thread, Event
 
 class SensorPoller(Thread):
+  """
+  An abstract class representing a thread that polls for values from a sensor.
+  """
+
   def __init__(self, pollingRate, callback):
+    """
+    Stores the polling rate and callback function and creates a stop event.
+    """
     super().__init__()
     self.pollingRate = pollingRate
     self.cb = callback
@@ -14,12 +21,18 @@ class SensorPoller(Thread):
     method after the stop event is set.
     """
     if self.pollingRate == 0:
-      while True:
+      while not self.stopEvent.isSet():
         self.cb(self.poll())
     else:
       while not self.stopEvent.wait(self.pollingRate):
         self.cb(self.poll())
     self.cleanup()
+
+  def stop(self):
+    """
+    Sets the stop event.
+    """
+    self.stopEvent.set()
 
   def poll(self):
     """

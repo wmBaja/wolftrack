@@ -9,15 +9,14 @@ introduction of further components which may be observers or subjects.
 import signal
 import atexit
 
-from observerPattern.Observer import Observer
-
 from blegatt.BLEGATTManager import BLEGATTManager
-
-# the hardware manager is a subject
 from hardware.HardwareManager import HardwareManager
 
 # whether or not the program has been cleaned up yet
 cleanedUp = False
+
+# the BLE GATT manager
+bleManager = None
 
 # the hardware manager
 hwManager = None
@@ -40,39 +39,25 @@ def sigintHandler(signal, frame):
   cleanup()
   quit()
 
-class TestObserver(Observer):
-  def update(self, updates):
-    for update in updates:
-      print('{}: {}'.format(update['dataType'], str(update['value'])))
-
 def main():
   """
   Handles the instantiation and connection of the subjects and observers.
   Also handles setting up the capture of kill signals for clean shutdowns.
   """
-  global hwManager
+  global hwManager, bleManager
   # catch the kill signal to end gracefully
   signal.signal(signal.SIGINT, sigintHandler)
   # cleanup when exiting
   atexit.register(cleanup)
 
-  # TODO connect observers to subjects
-  # Connections to make:
-  #   - BLEGATTManager -> HardwareManager
-  #   - DBManager      -> HardwareManager
-  #   - BLEGATTManager -> ?? (for commands from the device connected over BLE)
-
   bleManager = BLEGATTManager()
   hwManager = HardwareManager()
 
+  # connect BLEGATTManager to HardwareManager
   hwManager.attach(bleManager)
-
 
   bleManager.start() # start the BLE GATT server
   hwManager.startPollers() # start the sensor pollers
-
-  # TODO need some way of keeping the main app alive (probably some sort of loop like GLib's)
-  # it seems to work without a loop here, but the kill signal isn't letting threads be shutdown properly
 
 
 if __name__ == '__main__':

@@ -26,3 +26,6 @@ Install hcidump:
 
 Run hcidump:
 `hcidump -X`
+
+### Enable BLE advertising
+`sudo hciconfig hciX leadv`
