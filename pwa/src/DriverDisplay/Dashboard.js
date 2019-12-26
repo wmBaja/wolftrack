@@ -21,14 +21,14 @@ function Dashboard({ data }) {
     <div className="Dashboard">
       <div className="Fuel">
         <div>
-          <div class="Dashboard-data-num">{formattedPercentage}</div>
-          <div class="Dashboard-data-unit">% Fuel</div>
+          <div className="Dashboard-data-num">{formattedPercentage}</div>
+          <div className="Dashboard-data-unit">% Fuel</div>
         </div>
       </div>
       <div className="Speed">
       <div>
-          <div class="Dashboard-data-num">{formattedSpeed}</div>
-          <div class="Dashboard-data-unit">MPH</div>
+          <div className="Dashboard-data-num">{formattedSpeed}</div>
+          <div className="Dashboard-data-unit">MPH</div>
         </div>
       </div>
     </div>
