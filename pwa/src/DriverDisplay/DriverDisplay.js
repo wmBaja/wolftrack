@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useContext } from 'react';
 
 import './DriverDisplay.css';
 import Dashboard from './Dashboard.js';
-import BLEClient from './BLEClient/BLEClient.js';
+import BLEClientContext from '../BLEClient/BLEClientContext.js';
 
 const initialData = {
   fuelData: {
@@ -20,24 +20,8 @@ const initialData = {
 
 function DriverDisplay() {
   const [data, setData] = useState(initialData);
-  const [bleClient] = useState(new BLEClient());
-  const [bleConnected, setBleConnected] = useState(false);
-
-  useEffect(
-    () => {
-      // const unsubscribe = onHwData((data) => {
-      //   if (data.type === 'fuel_data') {
-      //     console.log('Updating fuel data', data.value);
-      //     setData(prevState => ({ ...prevState, fuelData: data.value }));
-      //   } else if (data.type === 'gps_data') {
-      //     console.log('Updating GPS data', data.value);
-      //     setData(prevState => ({ ...prevState, gpsData: data.value }));
-      //   }
-      // });
-      return bleClient.disconnect; // disconnect the client when unmounting
-    },
-    [], // only run on mount and unmount
-  );
+  const bleClient = useContext(BLEClientContext);
+  const [bleConnected, setBleConnected] = useState(bleClient.connected);
 
   function onData(data) {
     console.log('Received data.');
