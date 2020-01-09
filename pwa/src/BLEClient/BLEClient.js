@@ -1,21 +1,11 @@
+import { DEFAULT_DATA } from './DEFAULT_DATA.js';
+
 export default class BLEClient {
   constructor() {
     this.connected = false;
     this.simulating = false;
     this._callbacks = [];
-    this.currentData = {
-      fuelData: {
-        remainingPercentage: 0,
-        remainingLiters: 0,
-        remainingLitersEMA: 0,
-      },
-      gpsData: {
-        latitude: 0,
-        longitude: 0,
-        speed: 0,
-        trackAngle: 0,
-      },
-    };
+    this.currentData = DEFAULT_DATA;
   }
 
   /**
@@ -195,6 +185,7 @@ export default class BLEClient {
         console.log('Connection ended.');
       }
       this.connected = false;
+      this.currentData = DEFAULT_DATA;
       return true;
     }
     return false;
