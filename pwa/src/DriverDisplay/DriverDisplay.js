@@ -1,4 +1,5 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
+import Button from 'muicss/lib/react/button';
 
 import './DriverDisplay.css';
 import Dashboard from './Dashboard.js';
@@ -24,25 +25,38 @@ function DriverDisplay() {
   const [bleConnected, setBleConnected] = useState(bleClient.connected);
 
   function onData(data) {
-    console.log('Received data.');
-    console.log(data);
+    // console.log('Received data.');
+    // console.log(data);
     setData(data);
   }
 
+  // register/unregister the onData callback with the BLEClient
+  useEffect(() => {
+    bleClient.register(onData);
+    return () => {
+      bleClient.unregister(onData);
+    };
+  });
+
   async function connectToVehicle(simulate) {
-    const success = await bleClient.connect(onData, simulate);
+    const success = await bleClient.connect(simulate);
     if (success) {
       setBleConnected(true);
     }
   }
 
   return (
-    <div className="DriverDisplay">
+    <div className='DriverDisplay'>
       {bleConnected ?
       <Dashboard data={data} /> :
       <div>
-        <button onClick={() => connectToVehicle(false)}>Connect to vehicle</button>
-        <button onClick={() => connectToVehicle(true)}>Simulate connection</button>
+        <Button variant='raised' className='DriverDisplay-connect-btn' onClick={() => connectToVehicle(false)}>
+          Connect to vehicle
+        </Button>
+        <br/>
+        <Button variant='raised' className='DriverDisplay-simulate-btn' onClick={() => connectToVehicle(true)}>
+          Simulate connection
+        </Button>
       </div>}
     </div>
   );

@@ -1,6 +1,9 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import './index.css';
+// import CSS for MUI
+import 'muicss/dist/css/mui.min.css';
+
 import App from './App.js';
 import * as serviceWorker from './serviceWorker';
 
