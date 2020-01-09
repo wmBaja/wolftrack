@@ -1,64 +1,50 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
+import Button from 'muicss/lib/react/button';
 
 import './DriverDisplay.css';
 import Dashboard from './Dashboard.js';
-import BLEClient from './BLEClient/BLEClient.js';
-
-const initialData = {
-  fuelData: {
-    remainingPercentage: 0,
-    remainingLiters: 0,
-    remainingLitersEMA: 0,
-  },
-  gpsData: {
-    latitude: 0,
-    longitude: 0,
-    speed: 0,
-    trackAngle: 0,
-  },
-};
+import BLEClientContext from '../BLEClient/BLEClientContext.js';
+import { DEFAULT_DATA } from '../BLEClient/DEFAULT_DATA';
 
 function DriverDisplay() {
-  const [data, setData] = useState(initialData);
-  const [bleClient] = useState(new BLEClient());
-  const [bleConnected, setBleConnected] = useState(false);
-
-  useEffect(
-    () => {
-      // const unsubscribe = onHwData((data) => {
-      //   if (data.type === 'fuel_data') {
-      //     console.log('Updating fuel data', data.value);
-      //     setData(prevState => ({ ...prevState, fuelData: data.value }));
-      //   } else if (data.type === 'gps_data') {
-      //     console.log('Updating GPS data', data.value);
-      //     setData(prevState => ({ ...prevState, gpsData: data.value }));
-      //   }
-      // });
-      return bleClient.disconnect; // disconnect the client when unmounting
-    },
-    [], // only run on mount and unmount
-  );
+  const [data, setData] = useState(DEFAULT_DATA);
+  const bleClient = useContext(BLEClientContext);
+  const [bleConnected, setBleConnected] = useState(bleClient.connected);
 
   function onData(data) {
-    console.log('Received data.');
-    console.log(data);
+    // console.log('Received data.');
+    // console.log(data);
     setData(data);
   }
 
+  // register/unregister the onData callback with the BLEClient
+  useEffect(() => {
+    bleClient.register(onData);
+    return () => {
+      bleClient.unregister(onData);
+    };
+  });
+
   async function connectToVehicle(simulate) {
-    const success = await bleClient.connect(onData, simulate);
+    const success = await bleClient.connect(simulate);
     if (success) {
       setBleConnected(true);
     }
   }
 
   return (
-    <div className="DriverDisplay">
+    <div className='DriverDisplay'>
       {bleConnected ?
       <Dashboard data={data} /> :
       <div>
-        <button onClick={() => connectToVehicle(false)}>Connect to vehicle</button>
-        <button onClick={() => connectToVehicle(true)}>Simulate connection</button>
+        <h1>Driver Display</h1>
+        <Button variant='raised' className='DriverDisplay-connect-btn' onClick={() => connectToVehicle(false)}>
+          Connect to vehicle
+        </Button>
+        <br/>
+        <Button variant='raised' className='DriverDisplay-simulate-btn' onClick={() => connectToVehicle(true)}>
+          Simulate connection
+        </Button>
       </div>}
     </div>
   );

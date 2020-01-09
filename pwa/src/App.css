@@ -1,3 +1,19 @@
 .App {
-  text-align: center;
+  min-height: 100vh;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.App-settings-btn, .App-settings-btn:active, .App-settings-btn:focus, .App-settings-btn:hover {
+  position: fixed !important;
+  left: 7px;
+  top: 7px;
+  margin: 0;
+  background-color: #96b0af;
+}
+
+.App-settings-btn-icon {
+  margin-left: -9px;
+  float: left;
 }
