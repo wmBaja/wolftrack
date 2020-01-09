@@ -4,23 +4,10 @@ import Button from 'muicss/lib/react/button';
 import './DriverDisplay.css';
 import Dashboard from './Dashboard.js';
 import BLEClientContext from '../BLEClient/BLEClientContext.js';
-
-const initialData = {
-  fuelData: {
-    remainingPercentage: 0,
-    remainingLiters: 0,
-    remainingLitersEMA: 0,
-  },
-  gpsData: {
-    latitude: 0,
-    longitude: 0,
-    speed: 0,
-    trackAngle: 0,
-  },
-};
+import { DEFAULT_DATA } from '../BLEClient/DEFAULT_DATA';
 
 function DriverDisplay() {
-  const [data, setData] = useState(initialData);
+  const [data, setData] = useState(DEFAULT_DATA);
   const bleClient = useContext(BLEClientContext);
   const [bleConnected, setBleConnected] = useState(bleClient.connected);
 
@@ -50,6 +37,7 @@ function DriverDisplay() {
       {bleConnected ?
       <Dashboard data={data} /> :
       <div>
+        <h1>Driver Display</h1>
         <Button variant='raised' className='DriverDisplay-connect-btn' onClick={() => connectToVehicle(false)}>
           Connect to vehicle
         </Button>
