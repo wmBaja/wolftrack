@@ -4,7 +4,7 @@ import Button from 'muicss/lib/react/button';
 import './DriverDisplay.css';
 import Dashboard from './Dashboard.js';
 import BLEClientContext from '../BLEClient/BLEClientContext.js';
-import { DEFAULT_DATA } from '../BLEClient/DEFAULT_DATA';
+import { DEFAULT_DATA } from '../BLEClient/DEFAULT_DATA.js';
 
 function DriverDisplay() {
   const [data, setData] = useState(DEFAULT_DATA);
