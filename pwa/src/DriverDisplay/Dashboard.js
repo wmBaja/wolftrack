@@ -12,10 +12,10 @@ function formatFuelPerc(origFuelPerc) {
 }
 
 function Dashboard({ data }) {
-  const { fuelData, gpsData } = data;
+  const { fuel, drivetrain } = data;
 
-  const formattedPercentage = formatFuelPerc(fuelData.remainingPercentage);
-  const formattedSpeed = (gpsData.speed).toPrecision(2);
+  const formattedPercentage = formatFuelPerc(fuel.remainingEMAPercentage);
+  const formattedSpeed = drivetrain.speedMPH.toPrecision(2);
 
   return (
     <div className="Dashboard">

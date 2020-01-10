@@ -1,4 +1,6 @@
 import { DEFAULT_DATA } from './DEFAULT_DATA.js';
+import DataDecoder from './DataDecoder.js';
+import DataGenerator from './DataGenerator.js';
 
 export default class BLEClient {
   constructor() {
@@ -46,25 +48,9 @@ export default class BLEClient {
     });
   }
 
-  static generateRandomData() {
-    return {
-      fuelData: {
-        remainingPercentage: Math.random(),
-        remainingLiters: 0,
-        remainingLitersEMA: 0,
-      },
-      gpsData: {
-        latitude: 0,
-        longitude: 0,
-        speed: Math.random() * 40,
-        trackAngle: 0,
-      },
-    };
-  }
-
   _startSimulation() {
     const simulate = () => {
-      const generatedData = BLEClient.generateRandomData();
+      const generatedData = DataGenerator.generateRandomData(this.currentData);
       this._callCallbacks(generatedData);
     };
     this.simulationIntervalId = setInterval(simulate, 1000);
@@ -74,38 +60,10 @@ export default class BLEClient {
     clearInterval(this.simulationIntervalId);
   }
 
-  static decodeData(rawData) {
-    const hexReps = [];
-    const twoByteInts = [];
-    for (let i = 0; i < rawData.byteLength; i++) {
-      hexReps.push(('0' + rawData.getUint8(i).toString(16)).slice(-2));
-      if (i % 2 === 0) {
-        twoByteInts.push(rawData.getUint16(i));
-      }
-    }
-    console.log('HexRep: ' + hexReps.join(' '));
-    console.log('Uint16: ' + twoByteInts.join(' '));
-
-    // TODO this needs to be modified to actually get the correct values from the raw data
-    return {
-      fuelData: {
-        remainingPercentage: Math.random(),
-        remainingLiters: 0,
-        remainingLitersEMA: 0,
-      },
-      gpsData: {
-        latitude: 0,
-        longitude: 0,
-        speed: Math.random() * 40,
-        trackAngle: 0,
-      },
-    };
-  }
-
   async _startConnection() {
     const handleNotifications = (event) => {
-      const rawData = event.target.value;
-      const decodedData = BLEClient.decodeData(rawData);
+      const rawIncomingData = event.target.value;
+      const decodedData = DataDecoder.decodeData(rawIncomingData, this.currentData);
       this._callCallbacks(decodedData);
     };
 
