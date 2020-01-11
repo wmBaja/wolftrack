@@ -2,7 +2,7 @@ import React, { useState, useContext, useEffect } from 'react';
 import Button from 'muicss/lib/react/button';
 
 import './DriverDisplay.css';
-import Dashboard from './Dashboard.js';
+import PureInfoDisplay from './PureInfoDisplay/PureInfoDisplay.js';
 import BLEClientContext from '../BLEClient/BLEClientContext.js';
 import { DEFAULT_DATA } from '../BLEClient/DEFAULT_DATA.js';
 
@@ -35,7 +35,7 @@ function DriverDisplay() {
   return (
     <div className='DriverDisplay'>
       {bleConnected ?
-      <Dashboard data={data} /> :
+      <PureInfoDisplay data={data} /> :
       <div>
         <h1>Driver Display</h1>
         <Button variant='raised' className='DriverDisplay-connect-btn' onClick={() => connectToVehicle(false)}>

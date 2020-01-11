@@ -1,4 +1,4 @@
-.Dashboard {
+.PureInfoDisplay {
   background-color: #282c34;
   min-height: calc(100vh - 10px);
   min-width: 0;
@@ -10,7 +10,7 @@
   grid-auto-rows: 1fr;
 }
 
-.Dashboard > div {
+.PureInfoDisplay > div {
   display: flex;
   justify-content: center;
   align-items: center;
@@ -20,10 +20,10 @@
   overflow: hidden;
 }
 
-.Dashboard-data-num {
+.PureInfoDisplay-data-num {
   font-size: 11em;
 }
 
-.Dashboard-data-unit {
+.PureInfoDisplay-data-unit {
   font-size: 3em;
 }
