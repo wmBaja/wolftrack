@@ -23,10 +23,10 @@ function getValueAndUnitFor(typeOfValue, data) {
       return [data.drivetrain.speedMPH.toPrecision(2), 'MPH'];
     case 'ENGINE_RPM':
       return [data.drivetrain.engineRPM, 'Eng RPM'];
-    case 'CVT_RPM':
-      return [data.drivetrain.cvtRPM, 'CVT RPM'];
+    case 'SEC_RPM':
+      return [data.drivetrain.secRPM, 'Sec RPM'];
     case 'CVT_RATIO':
-      return [data.drivetrain.cvtRatio, 'CVT Ratio'];
+      return [data.drivetrain.cvtRatio.toPrecision(2), 'CVT Ratio'];
     case 'CVT_TEMPERATURE':
       return [data.drivetrain.cvtTemperatureCelsius, 'Temp C'];
     case 'ACCELERATION':
@@ -45,8 +45,6 @@ function getValueAndUnitFor(typeOfValue, data) {
 }
 
 function PureInfoDisplay({ data }) {
-  const { fuel, drivetrain } = data;
-
   const [settings] = useContext(SettingsContext);
 
   const numValuesToDisplay = settings.driverDisplay['PURE_INFO'].displayedValues.length;

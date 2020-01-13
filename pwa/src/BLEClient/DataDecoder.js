@@ -1,4 +1,4 @@
-import { NEUTRAL_MAGNETISM_VALUE, MAX_FUEL_CAPACITY } from './DEFAULT_DATA.js';
+import { NEUTRAL_MAGNETISM_VALUE, MAX_FUEL_CAPACITY, MAGICAL_CONSTANT_FOR_SPEED } from './DEFAULT_DATA.js';
 
 const FUEL_EMA_WEIGHT = 0.1;
 
@@ -71,13 +71,17 @@ export default class DataDecoder {
     };
   }
 
-  // TODO need to implement
-  static calculateDrivetrainData(engineRPM, cvtRPM, cvtThermistorReading) {
+  // TODO need to implement CVT temp calculation
+  static calculateDrivetrainData(engineRPM, secRPM, cvtThermistorReading) {
+    const cvtRatio = engineRPM / secRPM;
+
+    const speedMPH = secRPM * MAGICAL_CONSTANT_FOR_SPEED;
+
     return {
       engineRPM,
-      cvtRPM,
-      cvtRatio: 0,
-      speedMPH: 0,
+      secRPM,
+      cvtRatio,
+      speedMPH,
       cvtTemperatureCelsius: cvtThermistorReading,
     };
   }

@@ -12,9 +12,9 @@ export default class DataGenerator {
     // 1. fuel gauge Hall-effect sensor reading
     const fuelHallEffectReading = Math.round(Math.random() * 1024);
     // 2. engine RPM
-    const engineRPM = Math.round(Math.random() * 3500);
-    // 3. CVT RPM
-    const cvtRPM = Math.round(Math.random() * 1000);
+    const engineRPM = Math.round(Math.random() * 3000 + 1000);
+    // 3. CVT secondary RPM
+    const secRPM = Math.round(engineRPM / (Math.random() * 2.6 + 0.9));
     // 4. CVT thermistor reading
     const cvtThermistorReading = Math.round(Math.random() * 1024);
     // 5. brake pressure sensor 1 reading
@@ -29,7 +29,7 @@ export default class DataGenerator {
     // set the values in the DataView
     dataView.setUint16(0, fuelHallEffectReading);
     dataView.setUint16(2, engineRPM);
-    dataView.setUint16(4, cvtRPM);
+    dataView.setUint16(4, secRPM);
     dataView.setUint16(6, cvtThermistorReading);
     dataView.setUint16(8, brakePressureReading1);
     dataView.setUint16(10, brakePressureReading2);
