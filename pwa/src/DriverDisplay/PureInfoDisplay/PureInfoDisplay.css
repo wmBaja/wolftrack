@@ -6,7 +6,17 @@
 
   display: grid;
   grid-gap: 5px;
+  grid-template-columns: 1fr 1fr;
+  grid-auto-rows: 1fr;
+}
+
+.values-1, .values-2, .values-3 {
   grid-template-columns: 1fr;
+  grid-auto-rows: 1fr;
+}
+
+.values-4, .values-5, .values-6 {
+  grid-template-columns: 1fr 1fr;
   grid-auto-rows: 1fr;
 }
 
@@ -20,10 +30,50 @@
   overflow: hidden;
 }
 
-.PureInfoDisplay-data-num {
+.values-1 .PureInfoDisplay-data-num {
+  font-size: 15em;
+}
+
+.values-1 .PureInfoDisplay-data-unit {
+  font-size: 5em;
+}
+
+.values-2 .PureInfoDisplay-data-num {
   font-size: 11em;
 }
 
-.PureInfoDisplay-data-unit {
+.values-2 .PureInfoDisplay-data-unit {
   font-size: 3em;
+}
+
+.values-3 .PureInfoDisplay-data-num {
+  font-size: 9em;
+}
+
+.values-3 .PureInfoDisplay-data-unit {
+  font-size: 3em;
+}
+
+.values-4 .PureInfoDisplay-data-num {
+  font-size: 5em;
+}
+
+.values-4 .PureInfoDisplay-data-unit {
+  font-size: 2em;
+}
+
+.values-5 .PureInfoDisplay-data-num {
+  font-size: 5em;
+}
+
+.values-5 .PureInfoDisplay-data-unit {
+  font-size: 2em;
+}
+
+.values-6 .PureInfoDisplay-data-num {
+  font-size: 5em;
+}
+
+.values-6 .PureInfoDisplay-data-unit {
+  font-size: 2em;
 }
