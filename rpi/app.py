@@ -9,13 +9,13 @@ introduction of further components which may be observers or subjects.
 import signal
 import atexit
 
-from blegatt.BLEGATTManager import BLEGATTManager
+from ble.BLEManager import BLEManager
 from hardware.HardwareManager import HardwareManager
 
 # whether or not the program has been cleaned up yet
 cleanedUp = False
 
-# the BLE GATT manager
+# the BLE manager
 bleManager = None
 
 # the hardware manager
@@ -51,13 +51,13 @@ def main():
   # cleanup when exiting
   atexit.register(cleanup)
 
-  bleManager = BLEGATTManager()
+  bleManager = BLEManager()
   hwManager = HardwareManager()
 
-  # connect BLEGATTManager to HardwareManager
+  # connect BLEManager to HardwareManager
   hwManager.attach(bleManager)
 
-  bleManager.start() # start the BLE GATT server
+  bleManager.start() # start the BLE advertisements and the GATT server
   hwManager.startPollers() # start the sensor pollers
 
 

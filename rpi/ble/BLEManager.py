@@ -20,7 +20,7 @@ from .TestAdvertisement import TestAdvertisement
 
 
 
-class BLEGATTManager(Observer, Thread):
+class BLEManager(Observer, Thread):
   def __init__(self):
     super().__init__()
     self.mainloop = None
