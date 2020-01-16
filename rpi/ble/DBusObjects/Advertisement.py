@@ -82,10 +82,8 @@ class Advertisement(dbus.service.Object):
                         out_signature='a{sv}')
 
   def GetAll(self, interface):
-    print('GetAll')
     if interface != LE_ADVERTISEMENT_IFACE:
       raise InvalidArgsException()
-    print('returning props')
     return self.get_properties()[LE_ADVERTISEMENT_IFACE]
 
   @dbus.service.method(LE_ADVERTISEMENT_IFACE,

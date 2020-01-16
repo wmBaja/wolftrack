@@ -29,7 +29,7 @@ def cleanup():
   """
   global cleanedUp, hwManager, bleManager
   if not cleanedUp:
-    print('Cleaning up')
+    print('Cleaning up...')
     bleManager.stop()
     hwManager.stopPollers()
     cleanedUp = True

@@ -59,7 +59,7 @@ class ArduinoPoller(SensorPoller):
     Reads and returns data from the Arduino.
     """
     if (self.serialConnection):
-      byteArr = list((self.serialConnection.read(4)))
+      byteArr = list((self.serialConnection.read(16)))
       # intArr = self.getSensors(byteArr)
       # return intArr[0]
       return byteArr

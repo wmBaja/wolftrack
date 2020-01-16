@@ -34,7 +34,7 @@ class TestChrc(Characteristic):
 
   def updateValue(self, newVal):
     self.value = newVal
-    print('Updated value: ' + repr(self.value))
+    # print('Updated value: ' + repr(self.value))
 
     if self.notifying:
       self.notifyValueChange()
@@ -47,17 +47,17 @@ class TestChrc(Characteristic):
 
 
   def ReadValue(self, options=None):
-    print('TestCharacteristic Read: ' + repr(self.value))
+    # print('TestCharacteristic Read: ' + repr(self.value))
     # return self.convertIntToDbusByteArray(self.value)
     return dbus.ByteArray(self.value)
 
   def WriteValue(self, value, options):
-    print('TestCharacteristic Write: ' + repr(value))
+    # print('TestCharacteristic Write: ' + repr(value))
     self.value = value
 
   def StartNotify(self):
     if self.notifying:
-      print('Already notifying, nothing to do')
+      # print('Already notifying, nothing to do')
       return
 
     self.notifying = True
@@ -65,7 +65,7 @@ class TestChrc(Characteristic):
 
   def StopNotify(self):
     if not self.notifying:
-      print('Not notifying, nothing to do')
+      # print('Not notifying, nothing to do')
       return
 
     self.notifying = False

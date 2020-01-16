@@ -33,28 +33,28 @@ class BLEManager(Observer, Thread):
     """
     for update in updates:
       if self.app and update['dataType'] == 'arduino_data':
-        print('Received Arduino data in BLEGATTManager')
-        print('{}: {}'.format(update['dataType'], str(update['value'])))
+        # print('Received Arduino data in BLEGATTManager')
+        # print('{}: {}'.format(update['dataType'], str(update['value'])))
         self.app.updateTestChrc(update['value'])
 
   def register_ad_cb(self):
-    print('Advertisement registered')
+    print('LE advertisement registered.')
 
   def register_ad_error_cb(self, error):
-    print('Failed to register advertisement: ' + str(error))
+    print('Failed to register LE advertisement: ' + str(error))
     self.mainloop.quit()
 
   def register_app_cb(self):
     """
     Called when the GATT application is successfully registered through dbus.
     """
-    print('GATT application registered')
+    print('GATT application registered.')
 
   def register_app_error_cb(self, error):
     """
     Called when the GATT application fails to be registered.
     """
-    print('Failed to register application: ' + str(error))
+    print('Failed to register GATT application: ' + str(error))
     self.mainloop.quit()
 
   def find_bluetooth_adapter(self, bus):
@@ -82,7 +82,7 @@ class BLEManager(Observer, Thread):
 
     bluetooth_adapter = self.find_bluetooth_adapter(bus)#GATT_MANAGER_IFACE)
     if not bluetooth_adapter:
-      print('Bluetooth adapter interface not found')
+      print('Bluetooth adapter interface not found.')
       return
 
     adapter_props = dbus.Interface(bus.get_object(BLUEZ_SERVICE_NAME, bluetooth_adapter),
@@ -94,7 +94,6 @@ class BLEManager(Observer, Thread):
     # get LE advertising manager
     ad_manager = dbus.Interface(bus.get_object(BLUEZ_SERVICE_NAME, bluetooth_adapter),
                                 LE_ADVERTISING_MANAGER_IFACE)
-    print(ad_manager)
 
     self.advertisement = TestAdvertisement(bus, 0)
 
