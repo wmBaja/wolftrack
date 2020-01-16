@@ -13,10 +13,10 @@ from random import randint
 
 
 from observerPattern.Observer import Observer
-from .DBusGATTApplication.Application import Application
-from .DBusGATTApplication.dbusPaths import BLUEZ_SERVICE_NAME, DBUS_OM_IFACE, DBUS_PROP_IFACE, GATT_MANAGER_IFACE, BLUETOOTH_ADAPTER_IFACE, LE_ADVERTISING_MANAGER_IFACE
+from .DBusObjects.Application import Application
+from .DBusObjects.dbusPaths import BLUEZ_SERVICE_NAME, DBUS_OM_IFACE, DBUS_PROP_IFACE, GATT_MANAGER_IFACE, BLUETOOTH_ADAPTER_IFACE, LE_ADVERTISING_MANAGER_IFACE
 
-from .TestAdvertisement import TestAdvertisement
+from .DBusObjects.TestAdvertisement import TestAdvertisement
 
 
 
