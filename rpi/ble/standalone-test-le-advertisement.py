@@ -1,5 +1,10 @@
 #!/usr/bin/python
 
+"""
+This is a script for testing.
+It is intended to only be run directly.
+"""
+
 from __future__ import print_function
 
 import argparse

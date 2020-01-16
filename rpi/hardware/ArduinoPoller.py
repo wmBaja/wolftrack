@@ -85,4 +85,5 @@ class ArduinoPoller(SensorPoller):
     Closes the serial connection.
     Called by SensorPoller.
     """
-    self.serialConnection.close()
+    if (self.serialConnection):
+      self.serialConnection.close()
