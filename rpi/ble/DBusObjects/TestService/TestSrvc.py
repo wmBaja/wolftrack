@@ -13,8 +13,8 @@ class TestSrvc(Service):
   def __init__(self, bus, index):
     Service.__init__(self, bus, index, self.TEST_SVC_UUID, True)
     self.add_characteristic(TestChrc(bus, 0, self))
-    self.add_characteristic(TestSecureChrc(bus, 1, self))
-    
+    # self.add_characteristic(TestSecureChrc(bus, 1, self))
+
   def updateTestCharacteristic(self, value):
     testChrc = self.characteristics[0]
     testChrc.updateValue(value)
