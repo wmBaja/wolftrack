@@ -1,5 +1,12 @@
 #!/usr/bin/env python3
 
+"""
+This is a script for testing.
+It is intended to only be run directly.
+It depends on files in DBusObjects/.
+"""
+
+
 import dbus
 import dbus.mainloop.glib
 
@@ -13,8 +20,8 @@ import sys
 from random import randint
 
 
-from DBusGATTApplication.Application import Application
-from DBusGATTApplication.dbusPaths import BLUEZ_SERVICE_NAME, DBUS_OM_IFACE, GATT_MANAGER_IFACE
+from DBusObjects.Application import Application
+from DBusObjects.dbusPaths import BLUEZ_SERVICE_NAME, DBUS_OM_IFACE, GATT_MANAGER_IFACE
 
 
 mainloop = None
