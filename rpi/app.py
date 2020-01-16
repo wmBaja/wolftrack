@@ -24,11 +24,13 @@ hwManager = None
 def cleanup():
   """
   Cleans up the program by:
+    - Shutting down the BLE manager
     - Shutting down the hardware manager
   """
-  global cleanedUp, hwManager
+  global cleanedUp, hwManager, bleManager
   if not cleanedUp:
     print('Cleaning up')
+    bleManager.stop()
     hwManager.stopPollers()
     cleanedUp = True
 
@@ -37,7 +39,6 @@ def sigintHandler(signal, frame):
   A handler for kill signals that are captured.
   """
   cleanup()
-  quit()
 
 def main():
   """

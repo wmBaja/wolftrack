@@ -128,3 +128,6 @@ class BLEGATTManager(Observer, Thread):
     print('GATT application unregistered.')
     dbus.service.Object.remove_from_connection(self.app)
 
+
+  def stop(self):
+    self.mainloop.quit()
