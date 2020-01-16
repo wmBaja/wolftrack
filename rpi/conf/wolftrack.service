@@ -1,0 +1,13 @@
+[Unit]
+Description=The NCSU Wolftrack application
+Wants=bluetooth.target
+After=bluetooth.target
+
+[Service]
+User=pi
+WorkingDirectory=/home/pi/wolftrack
+ExecStart=/home/pi/wolftrack/venv/bin/python /home/pi/wolftrack/rpi/app.py
+ExecStop=/bin/kill -2 $MAINPID
+
+[Install]
+WantedBy=multi-user.target
