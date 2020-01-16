@@ -26,6 +26,10 @@ class BLEGATTManager(Observer, Thread):
     self.app = None
 
   def update(self, updates):
+    """
+    The update method for an Observer in the observer pattern.
+    This is what updates the characteristic in the BLE GATT server.
+    """
     for update in updates:
       if self.app and update['dataType'] == 'arduino_data':
         print('Received Arduino data in BLEGATTManager')
@@ -33,13 +37,22 @@ class BLEGATTManager(Observer, Thread):
         self.app.updateTestChrc(update['value'])
 
   def register_app_cb(self):
+    """
+    Called when the GATT application is successfully registered through dbus.
+    """
     print('GATT application registered')
 
   def register_app_error_cb(self, error):
+    """
+    Called when the GATT application fails to be registered.
+    """
     print('Failed to register application: ' + str(error))
     self.mainloop.quit()
 
   def find_adapter(self, bus):
+    """
+    Finds the adapter with the given interface on the given bus.
+    """
     remote_om = dbus.Interface(bus.get_object(BLUEZ_SERVICE_NAME, '/'),
                                 DBUS_OM_IFACE)
     objects = remote_om.GetManagedObjects()
@@ -51,6 +64,10 @@ class BLEGATTManager(Observer, Thread):
     return None
 
   def run(self):
+    """
+    Setup BLE advertising and the GATT server.
+    """
+
     dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
 
     bus = dbus.SystemBus()
