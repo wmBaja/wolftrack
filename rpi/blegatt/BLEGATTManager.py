@@ -14,8 +14,9 @@ from random import randint
 
 from observerPattern.Observer import Observer
 from .DBusGATTApplication.Application import Application
-from .DBusGATTApplication.dbusPaths import BLUEZ_SERVICE_NAME, DBUS_OM_IFACE, GATT_MANAGER_IFACE
+from .DBusGATTApplication.dbusPaths import BLUEZ_SERVICE_NAME, DBUS_OM_IFACE, DBUS_PROP_IFACE, GATT_MANAGER_IFACE, BLUETOOTH_ADAPTER_IFACE, LE_ADVERTISING_MANAGER_IFACE
 
+from .TestAdvertisement import TestAdvertisement
 
 
 
@@ -36,6 +37,13 @@ class BLEGATTManager(Observer, Thread):
         print('{}: {}'.format(update['dataType'], str(update['value'])))
         self.app.updateTestChrc(update['value'])
 
+  def register_ad_cb(self):
+    print('Advertisement registered')
+
+  def register_ad_error_cb(self, error):
+    print('Failed to register advertisement: ' + str(error))
+    self.mainloop.quit()
+
   def register_app_cb(self):
     """
     Called when the GATT application is successfully registered through dbus.
@@ -49,16 +57,16 @@ class BLEGATTManager(Observer, Thread):
     print('Failed to register application: ' + str(error))
     self.mainloop.quit()
 
-  def find_adapter(self, bus):
+  def find_bluetooth_adapter(self, bus):
     """
-    Finds the adapter with the given interface on the given bus.
+    Finds the Bluetooth adapter on the given bus.
     """
     remote_om = dbus.Interface(bus.get_object(BLUEZ_SERVICE_NAME, '/'),
                                 DBUS_OM_IFACE)
     objects = remote_om.GetManagedObjects()
 
     for o, props in objects.items():
-      if GATT_MANAGER_IFACE in props.keys():
+      if BLUETOOTH_ADAPTER_IFACE in props.keys():
         return o
 
     return None
@@ -67,29 +75,56 @@ class BLEGATTManager(Observer, Thread):
     """
     Setup BLE advertising and the GATT server.
     """
-
     dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
+    self.mainloop = GObject.MainLoop()
 
     bus = dbus.SystemBus()
 
-    adapter = self.find_adapter(bus)
-    if not adapter:
-      print('GattManager1 interface not found')
+    bluetooth_adapter = self.find_bluetooth_adapter(bus)#GATT_MANAGER_IFACE)
+    if not bluetooth_adapter:
+      print('Bluetooth adapter interface not found')
       return
 
-    service_manager = dbus.Interface(
-            bus.get_object(BLUEZ_SERVICE_NAME, adapter),
+    adapter_props = dbus.Interface(bus.get_object(BLUEZ_SERVICE_NAME, bluetooth_adapter),
+                                   DBUS_PROP_IFACE)
+
+    # ensure that the Bluetooth adapter is powered on
+    adapter_props.Set(BLUETOOTH_ADAPTER_IFACE, 'Powered', dbus.Boolean(1))
+
+    # get LE advertising manager
+    ad_manager = dbus.Interface(bus.get_object(BLUEZ_SERVICE_NAME, bluetooth_adapter),
+                                LE_ADVERTISING_MANAGER_IFACE)
+    print(ad_manager)
+
+    self.advertisement = TestAdvertisement(bus, 0)
+
+    print('Registering LE advertisement...')
+    ad_manager.RegisterAdvertisement(self.advertisement.get_path(), {},
+                                     reply_handler=self.register_ad_cb,
+                                     error_handler=self.register_ad_error_cb)
+
+    # get GATT manager
+    gatt_manager = dbus.Interface(
+            bus.get_object(BLUEZ_SERVICE_NAME, bluetooth_adapter),
             GATT_MANAGER_IFACE)
 
     self.app = Application(bus)
 
-    self.mainloop = GObject.MainLoop()
-
     print('Registering GATT application...')
-
-    service_manager.RegisterApplication(self.app.get_path(), {},
+    gatt_manager.RegisterApplication(self.app.get_path(), {},
                                     reply_handler=self.register_app_cb,
                                     error_handler=self.register_app_error_cb)
 
-    self.mainloop.run()
+    # start main loop
+    self.mainloop.run() # blocks until self.mainloop.quit() is called
+
+    # unregister LE advertisement
+    ad_manager.UnregisterAdvertisement(self.advertisement)
+    print('LE Advertisement unregistered.')
+    dbus.service.Object.remove_from_connection(self.advertisement)
+
+    # unregister GATT app
+    gatt_manager.UnregisterApplication(self.app)
+    print('GATT application unregistered.')
+    dbus.service.Object.remove_from_connection(self.app)
 
