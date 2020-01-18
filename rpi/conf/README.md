@@ -30,7 +30,7 @@ Now you need to setup a Python virtual environment for Wolftrack so that it can 
 2. Next make sure that you're in the root of the repo.  Run `cd /home/pi/wolftrack`.
 3. Next create a virtual environment called "venv" by running `python3 -m venv venv`.
 4. Now you need to activate the virtual environment by running `source venv/bin/activate`.  Now when you run the `python` or `pip` commands, it uses the copy of Python 3 that was setup in the virtual environment.  If you need to deactivate the virtual environment, then just run `deactivate`.
-5. Now you need to install the Python dependencies for Wolftrack by running `pip install -r rpi/requirements.txt`.
+5. Now you need to install the Python dependencies for Wolftrack by running `pip install -r rpi/requirements.txt`.  You may get errors during this process due to missing libraries, but there should be commands included in the output to tell you want you need to install.  Some libraries that you will probably need to install with `apt-get` for the PyGObject Python library are: `libglib2.0-dev`, `libgirepository1.0-dev`, and `libcairo2-dev`.
 
 If you'd like to manually run the software for whatever reason you can do so by changing into the rpi/ directory (`cd rpi`) and running `python app.py`.  However, this is not how the software should typically run.  Step 8 will show you how to setup Wolftrack to run as a systemd service.
 
@@ -76,6 +76,7 @@ You may also need to power up the Bluetooth adapter, but the software for the RP
 ### Set Bluetooth device name
 Edit (or create) `/etc/machine-info` and add:
   `PRETTY_HOSTNAME={DEVICE_NAME}`
+Ex: `PRETTY_HOSTNAME=NCSU Baja`
 
 Then restart the Bluetooth service:
 `sudo service bluetooth restart`
