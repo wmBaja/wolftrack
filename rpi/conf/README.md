@@ -76,6 +76,7 @@ You may also need to power up the Bluetooth adapter, but the software for the RP
 ### Set Bluetooth device name
 Edit (or create) `/etc/machine-info` and add:
   `PRETTY_HOSTNAME={DEVICE_NAME}`
+Ex: `PRETTY_HOSTNAME=NCSU Baja`
 
 Then restart the Bluetooth service:
 `sudo service bluetooth restart`
