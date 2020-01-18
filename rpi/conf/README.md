@@ -22,6 +22,7 @@ You'll also want to modify the Bluetooth device name, so follow the steps in the
 Now you can download the actual Wolftrack software Git repository.
 1. Make sure that you're in pi user's home directory by running `cd`.
 2. Now download the repo by running `git clone https://github.com/wmBaja/wolftrack.git`.  The repo should be copied into a directory called wolftrack.
+
 It's imperative that the repo is setup in this exact location (the service file (step 8) is written to use this location).  Ensure that the wolftrack repo's absolute path is `/home/pi/wolftrack`.
 ### 7. Setup a Python virtual environment for Wolftrack
 Now you need to setup a Python virtual environment for Wolftrack so that it can have its own isolated packages.
@@ -30,7 +31,9 @@ Now you need to setup a Python virtual environment for Wolftrack so that it can 
 3. Next create a virtual environment called "venv" by running `python3 -m venv venv`.
 4. Now you need to activate the virtual environment by running `source venv/bin/activate`.  Now when you run the `python` or `pip` commands, it uses the copy of Python 3 that was setup in the virtual environment.  If you need to deactivate the virtual environment, then just run `deactivate`.
 5. Now you need to install the Python dependencies for Wolftrack by running `pip install -r rpi/requirements.txt`.
+
 If you'd like to manually run the software for whatever reason you can do so by changing into the rpi/ directory (`cd rpi`) and running `python app.py`.  However, this is not how the software should typically run.  Step 8 will show you how to setup Wolftrack to run as a systemd service.
+
 More information about Python virtual environments can be found [here](https://realpython.com/python-virtual-environments-a-primer/).
 ### 8. Install the Wolftrack systemd service
 Wolftrack runs best as a systemd service.  A service file has already been created and is included in the rpi/conf/ folder of the repository.
@@ -38,6 +41,7 @@ Wolftrack runs best as a systemd service.  A service file has already been creat
 2. Then you need to modify the file permissions by running `sudo chmod 664 /etc/systemd/system/wolftrack.service`.
 3. Then reload the systemd configuration by running `sudo systemctl daemon-reload`.
 4. And enable Wolftrack so that it starts automatically at boot by running `sudo systemctl enable wolftrack`.
+
 Now you can start, stop, restart, and check the status of Wolftrack just like any other systemd service.  Use the following commands: `sudo systemctl start wolftrack`, `sudo systemctl stop wolftrack`, `sudo systemctl restart wolftrack`, `systemctl status wolftrack`.  You can also check the live logs of the service by running `journalctl -u wolftrack`.
 
 More information about custom systemd services can be found [here](https://www.shellhacks.com/systemd-service-file-example/).
