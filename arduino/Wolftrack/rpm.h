@@ -45,7 +45,13 @@ extern int numMagPasses;
  */
 void checkForSpikesAndSparks();
 
+/**
+ * Checks for magnet passes for measuring CVT RPM
+ */
 void checkForMagnetPasses();
 
+/**
+ * Updates both CVT and engine RPM
+ */
 void updateRPMs();
 

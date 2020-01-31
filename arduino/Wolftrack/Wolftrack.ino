@@ -3,13 +3,10 @@
 #include "defs.h"
 #include "rpm.h"
 
-
-
 // the current time (in ms)
 unsigned long curTime = 0;
 // the time at which the next data packet should be sent to the RPi
 unsigned long nextTransmissionTime = 0;
-
 // the next time to calculate the RPM (engine and secondary) (in ms)
 unsigned long nextRPMUpdateTime = 0;
 // the most recently calculated engine RPM
@@ -24,16 +21,11 @@ unsigned long lastSpikeTime = 0;
 int numSparks = 0;
 
 ////----------------END ENGINE RPM---------------------------
-
-
-
 // whether or not a magnet is currently passing
 bool magIsPassing = false;
 // the total number of magnet passes in this update period
 int numMagPasses = 0;
-
 //-------------------END RPM---------------------------------
-
 
 void setup() {
   Serial.begin(BAUD_RATE);
