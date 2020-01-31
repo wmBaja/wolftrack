@@ -1,3 +1,6 @@
+// the pin used to measure engine RPM
+#define ENGINE_RPM_INDUCTION_PIN A1
+// TODO the constants below should be changed to preprocessor defines
 // the number of milliseconds in a second
 int MILLIS_IN_SEC = 1000;
 // the number of seconds in a minute
@@ -27,17 +30,15 @@ int numSparks = 0;
 
 void setup() {
   // establish serial connection
-  Serial.begin(9600);
+  Serial.begin(115200);
   // calculate the next print time
   curTime = millis();
   nextUpdateTime = curTime + UPDATE_PERIOD;
 }
 
-
-
 void loop() {
   // get sensor reading
-  int sensorValue = analogRead(A0);
+  int sensorValue = analogRead(ENGINE_RPM_INDUCTION_PIN);
   // determine if there is currently a voltage spike
   bool isSpiking = sensorValue > THRESHOLD ? true : false;
 //  Serial.println(sensorValue);
