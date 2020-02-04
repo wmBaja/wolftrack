@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "firebase": "^7.8.0",
     "immutable": "^4.0.0-rc.12",
     "muicss": "^0.10.0",
     "react": "^16.8.6",
