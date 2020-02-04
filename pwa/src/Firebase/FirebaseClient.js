@@ -1,12 +1,14 @@
 import * as firebase from 'firebase/app';
-
 import 'firebase/auth';
+
+import firebaseConfig from './firebaseconfig.js';
+firebase.initializeApp(firebaseConfig);
 
 export default class FirebaseClient {
   constructor() {
     this.firebase = firebase;
     this.user = null;
-    firebase.auth().onAuthStateChanged(this.onAuthStateChanged);
+    firebase.auth().onAuthStateChanged(this._onAuthStateChanged.bind(this));
   }
 
   _onAuthStateChanged(user) {
