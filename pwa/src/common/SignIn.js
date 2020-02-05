@@ -9,6 +9,8 @@ import './SignIn.css';
 function SignIn(props) {
   const { prompt, onSignIn } = props;
 
+  const [fullPrompt, setFullPrompt] = useState(prompt);
+  const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
@@ -20,13 +22,27 @@ function SignIn(props) {
     setPassword(event.target.value);
   }
 
+  async function signIn(email, password) {
+    setLoading(true);
+    try {
+      await onSignIn(email, password);
+    } catch (error) {
+      setFullPrompt(error.message + ' ' + prompt);
+      setEmail('');
+      setPassword('');
+    }
+    // NOTE: It's assumed that this component will be unmounted if the sign-in process
+    // is successful so the following call will cause a memory leak warning.
+    // setLoading(false);
+  }
+
   return (
     <Panel className='SignIn-panel'>
-      <p>{prompt}</p>
+      <p>{fullPrompt}</p>
       <Input label='Email' type='email' value={email} onChange={onEmailChange} />
       <Input label='Password' type='password' value={password} onChange={onPasswordChange} />
-      <Button variant='raised' onClick={() => onSignIn(email, password)}>
-        Sign In
+      <Button variant='raised' onClick={() => signIn(email, password)} disabled={loading}>
+        {!loading ? 'Sign In' : '...'}
       </Button>
     </Panel>
   );
