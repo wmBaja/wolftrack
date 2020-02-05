@@ -21,13 +21,22 @@ export default class FirebaseClient {
     }
   }
 
+  isSignedIn() {
+    return this.user !== null;
+  }
+
   async signIn(email, password) {
-    const result = await firebase.auth().signInWithEmailAndPassword(email, password);
-    return true;
+    try {
+      await firebase.auth().signInWithEmailAndPassword(email, password);
+      return true;
+    } catch (error) {
+      console.log(error);
+      throw error;
+    }
   }
 
   async signOut() {
-    const result = firebase.auth().signOut();
+    await firebase.auth().signOut();
     return true;
   }
 }
