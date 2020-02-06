@@ -9,9 +9,6 @@ import FirebaseClientContext from '../FirebaseClient/FirebaseClientContext.js';
 
 import './FirebaseStatus.css';
 
-const SIGNED_IN_PROMPT = 'You are signed in. Data will be uploaded to the database.';
-const SIGNED_OUT_PROMPT = 'You are not signed in. Data will NOT be uploaded to the database.';
-
 function FirebaseStatus() {
   // Firebase state
   const firebaseClient = useContext(FirebaseClientContext);
@@ -45,9 +42,9 @@ function FirebaseStatus() {
     }
   }
 
-  let prompt = SIGNED_IN_PROMPT;
-  if (!signedIn) {
-    prompt = SIGNED_OUT_PROMPT;
+  let prompt = 'You are not signed in. Data will NOT be uploaded to the database.';
+  if (signedIn) {
+    prompt = `You are signed in as ${firebaseClient.user.email}. Data WILL be uploaded to the database.`;
   }
 
   return (
