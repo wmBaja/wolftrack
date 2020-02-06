@@ -1,0 +1,13 @@
+.FirebaseStatus {
+  margin: 10px;
+  padding: 10px;
+  text-align: center;
+}
+
+.FirebaseStatus-title {
+  margin: 0;
+}
+
+.FirebaseStatus-error-text {
+  color: red;
+}
