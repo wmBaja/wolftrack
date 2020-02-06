@@ -13,8 +13,8 @@ import { DEFAULT_SETTINGS } from './Settings/DEFAULT_SETTINGS.js';
 import BLEClientContext from './BLEClient/BLEClientContext.js';
 import BLEClient from './BLEClient/BLEClient.js';
 
-import FirebaseClientContext from './Firebase/FirebaseClientContext.js';
-import FirebaseClient from './Firebase/FirebaseClient.js';
+import FirebaseClientContext from './FirebaseClient/FirebaseClientContext.js';
+import FirebaseClient from './FirebaseClient/FirebaseClient.js';
 
 import Button from 'muicss/lib/react/button';
 

@@ -8,7 +8,7 @@ import './Settings.css';
 import DriverDisplaySettings from './DriverDisplaySettings/DriverDisplaySettings.js';
 import BLEClientContext from '../BLEClient/BLEClientContext.js';
 
-import FirebaseClientContext from '../Firebase/FirebaseClientContext.js';
+import FirebaseClientContext from '../FirebaseClient/FirebaseClientContext.js';
 
 function Settings(props) {
   const { currentDisplay, setCurrentDisplay, toggleSettingsPage } = props;

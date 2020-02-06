@@ -6,7 +6,7 @@ import PureInfoDisplay from './PureInfoDisplay/PureInfoDisplay.js';
 import BLEClientContext from '../BLEClient/BLEClientContext.js';
 import { DEFAULT_DATA } from '../BLEClient/DEFAULT_DATA.js';
 
-import FirebaseClientContext from '../Firebase/FirebaseClientContext.js';
+import FirebaseClientContext from '../FirebaseClient/FirebaseClientContext.js';
 
 import SignIn from '../common/SignIn.js';
 
