@@ -38,7 +38,7 @@ function DriverDisplay() {
     <div className='DriverDisplay'>
       {bleConnected ?
       <PureInfoDisplay data={data} /> :
-      <div>
+      <div className='DriverDisplay-statuses'>
         <h1>Driver Display</h1>
         <FirebaseStatus />
         <Button variant='raised' className='DriverDisplay-connect-btn' onClick={() => connectToVehicle(false)}>

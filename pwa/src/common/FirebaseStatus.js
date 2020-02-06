@@ -52,7 +52,7 @@ function FirebaseStatus() {
 
   return (
     <Panel className='FirebaseStatus'>
-      <h2 className='FirebaseStatus-title'>Database Status</h2>
+      <div className='mui--text-title FirebaseStatus-title'>Database Status</div>
       {error ? <p className='FirebaseStatus-error-text'>{error}</p> : ''}
       <p>{prompt}</p>
       {
