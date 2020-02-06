@@ -6,14 +6,16 @@ import PureInfoDisplay from './PureInfoDisplay/PureInfoDisplay.js';
 import BLEClientContext from '../BLEClient/BLEClientContext.js';
 import { DEFAULT_DATA } from '../BLEClient/DEFAULT_DATA.js';
 
+import FirebaseStatus from '../common/FirebaseStatus.js';
+
 function DriverDisplay() {
   const [data, setData] = useState(DEFAULT_DATA);
+
+  // BLE state
   const bleClient = useContext(BLEClientContext);
   const [bleConnected, setBleConnected] = useState(bleClient.connected);
 
   function onData(data) {
-    // console.log('Received data.');
-    // console.log(data);
     setData(data);
   }
 
@@ -36,8 +38,9 @@ function DriverDisplay() {
     <div className='DriverDisplay'>
       {bleConnected ?
       <PureInfoDisplay data={data} /> :
-      <div>
+      <div className='DriverDisplay-statuses'>
         <h1>Driver Display</h1>
+        <FirebaseStatus />
         <Button variant='raised' className='DriverDisplay-connect-btn' onClick={() => connectToVehicle(false)}>
           Connect to vehicle
         </Button>

@@ -8,8 +8,12 @@ import './Settings.css';
 import DriverDisplaySettings from './DriverDisplaySettings/DriverDisplaySettings.js';
 import BLEClientContext from '../BLEClient/BLEClientContext.js';
 
+import FirebaseStatus from '../common/FirebaseStatus.js';
+
 function Settings(props) {
   const { currentDisplay, setCurrentDisplay, toggleSettingsPage } = props;
+
+  // BLE state
   const bleClient = useContext(BLEClientContext);
   const [bleConnected, setBleConnected] = useState(bleClient.connected);
 
@@ -32,6 +36,8 @@ function Settings(props) {
   return (
     <div className='Settings'>
       <h1>Settings</h1>
+
+      <FirebaseStatus />
 
       <div className='Settings-control-btns'>
         {

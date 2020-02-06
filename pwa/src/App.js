@@ -5,11 +5,16 @@ import settingsImg from './img/settings.svg';
 
 import DriverDisplay from './DriverDisplay/DriverDisplay.js';
 import ObserverDisplay from './ObserverDisplay/ObserverDisplay.js';
+
 import Settings from './Settings/Settings.js';
 import SettingsContext from './Settings/SettingsContext.js';
 import { DEFAULT_SETTINGS } from './Settings/DEFAULT_SETTINGS.js';
+
 import BLEClientContext from './BLEClient/BLEClientContext.js';
 import BLEClient from './BLEClient/BLEClient.js';
+
+import FirebaseClientContext from './FirebaseClient/FirebaseClientContext.js';
+import FirebaseClient from './FirebaseClient/FirebaseClient.js';
 
 import Button from 'muicss/lib/react/button';
 
@@ -17,6 +22,7 @@ function App() {
   // functional state
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
   const [bleClient] = useState(new BLEClient());
+  const [firebaseClient] = useState(new FirebaseClient());
 
   // UI state
   const [showSettings, setShowSettings] = useState(false);
@@ -55,9 +61,11 @@ function App() {
   return (
     <SettingsContext.Provider value={[settings, setSettings]}>
       <BLEClientContext.Provider value={bleClient}>
-        <div className='App'>
-          {toRender}
-        </div>
+        <FirebaseClientContext.Provider value={firebaseClient}>
+          <div className='App'>
+            {toRender}
+          </div>
+        </FirebaseClientContext.Provider>
       </BLEClientContext.Provider>
     </SettingsContext.Provider>
   );
