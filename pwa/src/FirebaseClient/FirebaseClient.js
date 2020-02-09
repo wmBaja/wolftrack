@@ -21,8 +21,15 @@ export default class FirebaseClient {
 
     // the currently buffered data points awaiting upload
     this.dataPoints = [];
+    // the time that the first data point (currently awaiting upload) came in
+    this.docTime = null;
   }
 
+///////// AUTHENTICATION ///////////
+  /**
+   * A callback for monitoring for changes to auth state.
+   * @param {object} user all of the currently signed-in user's information
+   */
   _onAuthStateChanged(user) {
     if (user) {
       // get all the infos
@@ -33,10 +40,21 @@ export default class FirebaseClient {
     }
   }
 
+  /**
+   * Returns whether or not a user is currently signed in.
+   * @return whether or not a user is currently signed in
+   */
   isSignedIn() {
     return this.user !== null;
   }
 
+  /**
+   * Signs a user in with the given email and password
+   * @param {string} email the user's email
+   * @param {string} password the user's password
+   * @return true if the user was successfully signed in
+   * @throws an error if the user was not successfully signed in
+   */
   async signIn(email, password) {
     try {
       await firebase.auth().signInWithEmailAndPassword(email, password);
@@ -47,15 +65,28 @@ export default class FirebaseClient {
     }
   }
 
+  /**
+   * Signs out the currently signed in user.
+   * @return true if the user is successfully signed out
+   */
   async signOut() {
     await firebase.auth().signOut();
     return true;
   }
+///////// AUTHENTICATION //////////
 
+
+///////// FIRESTORE OPERATIONS ////////
+  /**
+   * Builds a new document from the current data points and doc time.
+   * Resets the data points and doc time after they have been used to
+   * create the document.
+   * @return a new document ready for upload
+   */
   buildDocument() {
     const timestamp = firebase.firestore.Timestamp.fromMillis(this.docTime);
 
-    // build the array of data points into Firestore blob form
+    // transform the array of data points into Firestore blob form
     const blobs = this.dataPoints.map((dataPoint) => {
       return firebase.firestore.Blob.fromUint8Array(dataPoint);
     });
@@ -65,27 +96,36 @@ export default class FirebaseClient {
       d: blobs,
     };
 
-    // delete dataPoints and docTime
+    // reset dataPoints and docTime
     this.dataPoints = [];
     this.docTime = null;
 
     return doc;
   }
 
-  async _uploadNewDocument() {
-    // build the document from the collected data points
-    const doc = this.buildDocument();
-
+  /**
+   * Uploads the given document to the data collection on Firestore.
+   * @param {object} doc the document to upload
+   */
+  async _uploadNewDocument(doc) {
     const collectionRef = this.db.collection(DATA_COLLECTION_ID);
     try {
       await collectionRef.add(doc);
       return true;
     } catch (error) {
       console.log('Error while uploading document: ', error);
+      // TODO add this document to a list of failed uploads
+      // this.failedUploads.push(doc);
+      // we can periodically be running a function that batch writes
+      // failed uploads; the max number of failed uploads should be constrained
       return false;
     }
   }
 
+  /**
+   * Adds a new data point to the internal list of data points awaiting upload.
+   * @param {object} data data in the format that the DataDecoder produces
+   */
   addNewDataPoint(data) {
     if (data.rawData.byteLength !== 16) {
       console.log('Non-protocol number of bytes in data array: ' + data.rawData.byteLength);
@@ -107,8 +147,10 @@ export default class FirebaseClient {
     dataPointDataView.setFloat64(16, geoCoordinate.lat);
     dataPointDataView.setFloat64(24, geoCoordinate.lon);
 
+    // add the data point to the dataPoints array as a Uint8Array
     this.dataPoints.push(new Uint8Array(dataPointBuffer));
-    if (!this.docTime) {
+    // if this is the first data point for this document
+    if (this.dataPoints.length === 1) {
       this.docTime = Date.now();
     }
   }
