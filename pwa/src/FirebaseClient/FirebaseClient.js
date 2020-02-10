@@ -23,6 +23,9 @@ export default class FirebaseClient {
     this.dataPoints = [];
     // the time that the first data point (currently awaiting upload) came in
     this.docTime = null;
+
+
+    this.uploadIntervalId = setInterval(this._upload.bind(this), UPLOAD_INTERVAL);
   }
 
 ///////// AUTHENTICATION ///////////
@@ -77,13 +80,26 @@ export default class FirebaseClient {
 
 
 ///////// FIRESTORE OPERATIONS ////////
+  async _upload() {
+    console.log('Attempting upload...');
+    if (!this.isSignedIn()) {
+      return;
+    }
+    const doc = this._buildDocument();
+    const success = await this._uploadNewDocument(doc);
+    console.log(success ? 'Upload successful.' : 'Upload failed.');
+  }
+
   /**
    * Builds a new document from the current data points and doc time.
    * Resets the data points and doc time after they have been used to
    * create the document.
    * @return a new document ready for upload
    */
-  buildDocument() {
+  _buildDocument() {
+    if (this.dataPoints.length < 1) {
+      return null;
+    }
     const timestamp = firebase.firestore.Timestamp.fromMillis(this.docTime);
 
     // transform the array of data points into Firestore blob form
@@ -108,6 +124,9 @@ export default class FirebaseClient {
    * @param {object} doc the document to upload
    */
   async _uploadNewDocument(doc) {
+    if (!doc) {
+      return false;
+    }
     const collectionRef = this.db.collection(DATA_COLLECTION_ID);
     try {
       await collectionRef.add(doc);
