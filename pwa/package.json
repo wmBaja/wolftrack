@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "dygraphs": "^2.1.0",
     "firebase": "^7.8.0",
     "immutable": "^4.0.0-rc.12",
     "muicss": "^0.10.0",

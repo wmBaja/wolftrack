@@ -26,7 +26,7 @@ function App() {
 
   // UI state
   const [showSettings, setShowSettings] = useState(false);
-  const [currentDisplay, setCurrentDisplay] = useState('driverDisplay');
+  const [currentDisplay, setCurrentDisplay] = useState('observerDisplay');
 
   function toggleSettingsPage() {
     console.log(showSettings ? 'Exiting settings' : 'Going to settings');
