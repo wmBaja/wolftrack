@@ -1,54 +1,111 @@
 #include "rpm.h"
 
-void checkForSpikesAndSparks() {
-  int sensorValue = analogRead(ENGINE_RPM_INDUCTION_PIN);
-  // determine if there is currently a voltage spike
-  bool isSpiking = sensorValue > SPIKE_THRESHOLD;
+////ENGINE RPM
+// whether or not the engine is currently sparking
+bool sparking = false;
+// the last time that an engine spark occurred (in us)
+unsigned long lastSparkTime = 0;
+// the number of sparks recorded during the current update interval
+int numSparks = 0;
+// the sum of all spark intervals (in us) recorded during current the update interval
+unsigned long sparkIntervalSum = 0;
 
-  // if a voltage spike is detected
-  if (isSpiking) {
-    // if the last spike occurred over MAX_SPIKE_INTERVAL milliseconds ago
-    if (curTime > lastSpikeTime + MAX_SPIKE_INTERVAL) {
-      // then a new spark is starting
+/**
+ * Checks whether or not the engine is sparking;
+ */
+void checkForSparks() {
+  int pinState = digitalRead(ENGINE_RPM_PIN);
+
+  // if the pin is high
+  if (pinState) {
+    // if the engine is not considered sparking
+    if (!sparking) {
+      // then this is a new spark
       numSparks++;
+      // and now we need to consider the engine as sparking
+      sparking = true;
+
+      // get the current time
+      unsigned long curTimeMicros = micros();
+      // add the last spark interval to the sum
+      sparkIntervalSum += curTimeMicros - lastSparkTime;
+      // update the last spark time to be this time
+      lastSparkTime = curTimeMicros;
     }
-    // this time is the new last spike time
-    lastSpikeTime = curTime;
+  } else { // else the pin is low
+    // thus the engine is not sparking
+    sparking = false;
   }
 }
 
-void checkForMagnetPasses() {
-  int sensorValue = analogRead(CVT_SEC_HALL_EFFECT_RPM_PIN);
-  // if the value is outside of the "normal" thresholds
-  if (sensorValue < LOW_THRESHOLD || sensorValue > HIGH_THRESHOLD) {
-    // if the magnet is not considered passing right now
+
+////CVT SEC RPM
+// whether or not the shaft's magnet is currently passing
+bool magIsPassing = false;
+// the last time that a magnet pass occurred (in us)
+unsigned long lastMagPassTime = 0;
+// the number of magnet passes recorded during the current update interval
+int numMagPasses = 0;
+// the sum of all magnet pass intervals (in us) recorded during current the update interval
+unsigned long magPassIntervalSum = 0;
+
+/**
+ * Checks whether or not the shaft's magnet is passing;
+ */
+void checkForMagPasses() {
+  int pinState = digitalRead(CVT_SEC_RPM_PIN);
+
+  // if the pin is high
+  if (pinState) {
+    // if the shaft's magnet is not currently considered passing
     if (!magIsPassing) {
       // then this is a new magnet pass
       numMagPasses++;
-      // now the magnet is passing
+      // and now we need to consider the shaft's magnet as passing
       magIsPassing = true;
+
+      // get the current time
+      unsigned long curTimeMicros = micros();
+      // add the last magnet pass interval to the sum
+      magPassIntervalSum += curTimeMicros - lastMagPassTime;
+      // update the last magnet pass time to be this time
+      lastMagPassTime = curTimeMicros;
     }
-  } else { // else the value is in within the "normal" thresholds
-    // thus the magnet is not passing
+  } else { // else the pin is low
+    // thus the shaft's magnet is not passing
     magIsPassing = false;
   }
 }
 
-////------------------END CVT SECONDARY RPM---------------
-
+/**
+ * Updates the engine and CVT secondary RPMs;
+ */
 void updateRPMs() {
   // if it's time to update the RPMs
   if (curTime > nextRPMUpdateTime) {
-    // calculate the engine RPM from the num sparks in this update period
-    engineRPM = numSparks * REVS_PER_UPDATE_TO_REVS_PER_MIN;
-    // reset the number of sparks
+    //////UPDATE ENGINE RPM
+    // calculate the average spark interval
+    unsigned long avgSparkInterval = sparkIntervalSum / numSparks; // could increase accuracy by using floating point ops
+
+    // calculate the engine RPM based on the average spark interval
+    engineRPM = MICROS_IN_MIN / avgSparkInterval; // could increase accuracy by using floating point ops
+
+    // reset the number of sparks and spark interval sum
     numSparks = 0;
+    sparkIntervalSum = 0;
+  
+    /////////UPDATE CVT SEC RPM
+    // calculate the average magnet pass interval
+    unsigned long avgMagPassInterval = magPassIntervalSum / numMagPasses; // could increase accuracy by using floating point ops
 
-    // calculate the secondary RPM from the num magnet passes in this update period
-    cvtSecRPM = numMagPasses * REVS_PER_UPDATE_TO_REVS_PER_MIN;
-    // reset the number of magnet passes
+    // calculate the CVT secondary RPM based on the average magnet pass interval
+    cvtSecRPM = MICROS_IN_MIN / avgMagPassInterval; // could increase accuracy by using floating point ops
+
+    // reset the number of magnet passes and magnet pass interval sum
     numMagPasses = 0;
+    magPassIntervalSum = 0;
 
+    ///////CALC NEXT RPM UPDATE TIME
     // calculate the next update time
     nextRPMUpdateTime = curTime + RPM_UPDATE_INTERVAL;
   }
