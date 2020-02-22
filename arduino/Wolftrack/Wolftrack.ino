@@ -19,6 +19,53 @@ int engineRPM = 0;
 // the most recently calculated CVT secondary RPM
 int cvtSecRPM = 0;
 
+#define ANALOG_READ_OFFSET 25
+
+#define FUEL_UPDATE_INTERVAL 5000
+#define CVT_TEMP_UPDATE_INTERVAL 1000
+#define BRAKE1_UPDATE_INTERVAL 100
+#define BRAKE2_UPDATE_INTERVAL 100
+#define SHOCK1_UPDATE_INTERVAL 100
+#define SHOCK2_UPDATE_INTERVAL 100
+
+int fuel = 0;
+// the next time to calculate the fuel level (in ms)
+unsigned long nextFuelUpdateTime = 0;
+int cvtTemp = 0;
+// the next time to calculate the CVT temp (in ms)
+unsigned long nextCvtTempUpdateTime = 0;
+int brake1 = 0;
+// the next time to calculate the brake pressure 1 (in ms)
+unsigned long nextBrake1UpdateTime = 0;
+int brake2 = 0;
+// the next time to calculate the brake pressure 2 (in ms)
+unsigned long nextBrake2UpdateTime = 0;
+int shock1 = 0;
+// the next time to calculate the shock actuation 1 (in ms)
+unsigned long nextShock1UpdateTime = 0;
+int shock2 = 0;
+// the next time to calculate the shock actuation 2 (in ms)
+unsigned long nextShock2UpdateTime = 0;
+
+void updateAnalogValue(int analogPin, unsigned long *nextUpdateTimePtr, int updateInterval, int *valuePtr) {
+  // if it's time to update
+  if (curTime > *nextUpdateTimePtr) {
+    // read the value
+    *valuePtr = analogRead(analogPin);
+    // calculate the next update time
+    *nextUpdateTimePtr = curTime + updateInterval;
+  }
+}
+
+void updateAnalogValues() {
+  updateAnalogValue(FUEL_HALL_EFFECT_PIN, &nextFuelUpdateTime, FUEL_UPDATE_INTERVAL, &fuel);
+  updateAnalogValue(CVT_TEMP_PIN, &nextCvtTempUpdateTime, CVT_TEMP_UPDATE_INTERVAL, &cvtTemp);
+  updateAnalogValue(BRAKE_PRESSURE_1_PIN, &nextBrake1UpdateTime, BRAKE1_UPDATE_INTERVAL, &brake1);
+  updateAnalogValue(BRAKE_PRESSURE_2_PIN, &nextBrake2UpdateTime, BRAKE2_UPDATE_INTERVAL, &brake2);
+  updateAnalogValue(SHOCK_ACTUATION_1_PIN, &nextShock1UpdateTime, SHOCK1_UPDATE_INTERVAL, &shock1);
+  updateAnalogValue(SHOCK_ACTUATION_2_PIN, &nextShock2UpdateTime, SHOCK2_UPDATE_INTERVAL, &shock2);
+}
+
 
 void setup() {
   // start serial connection
@@ -32,6 +79,13 @@ void setup() {
   curTime = millis();
   nextTransmissionTime = curTime + TRANSMISSION_INTERVAL;
   nextRPMUpdateTime = curTime + RPM_UPDATE_INTERVAL;
+
+  nextFuelUpdateTime = curTime + FUEL_UPDATE_INTERVAL;
+  nextCvtTempUpdateTime = curTime + CVT_TEMP_UPDATE_INTERVAL + ANALOG_READ_OFFSET;
+  nextBrake1UpdateTime = curTime + BRAKE1_UPDATE_INTERVAL + ANALOG_READ_OFFSET * 2;
+  nextBrake2UpdateTime = curTime + BRAKE2_UPDATE_INTERVAL + ANALOG_READ_OFFSET * 3;
+  nextShock1UpdateTime = curTime + SHOCK1_UPDATE_INTERVAL + ANALOG_READ_OFFSET * 4;
+  nextShock2UpdateTime = curTime + SHOCK2_UPDATE_INTERVAL + ANALOG_READ_OFFSET * 5;
 }
 
 // REMOVE: ONLY FOR PROFILING
@@ -46,13 +100,8 @@ void loop() {
   checkForMagPasses();
   updateRPMs();
 
-  // update all sensor values
-  int fuel = analogRead(FUEL_HALL_EFFECT_PIN);
-  int cvtTemp = analogRead(CVT_TEMP_PIN);
-  int brake1 = analogRead(BRAKE_PRESSURE_1_PIN);
-  int brake2 = analogRead(BRAKE_PRESSURE_2_PIN);
-  int shock1 = analogRead(SHOCK_ACTUATION_1_PIN);
-  int shock2 = analogRead(SHOCK_ACTUATION_2_PIN);
+  // update analog values
+  updateAnalogValues();
 
   // if it's time to transmit
   if (curTime > nextTransmissionTime) {
@@ -70,7 +119,7 @@ void loop() {
     };
 
     // send the data packet
-//    Serial.write(arr, DATA_PACKET_SIZE);
+    Serial.write(arr, DATA_PACKET_SIZE);
 
     // calculate the next transmission time
     nextTransmissionTime = curTime + TRANSMISSION_INTERVAL;
