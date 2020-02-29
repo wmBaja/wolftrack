@@ -88,10 +88,6 @@ void setup() {
   nextShock2UpdateTime = curTime + SHOCK2_UPDATE_INTERVAL + ANALOG_READ_OFFSET * 5;
 }
 
-// REMOVE: ONLY FOR PROFILING
-bool profilingDone = false;
-unsigned long loopCount = 0;
-
 void loop() {
   curTime = millis();
 
@@ -123,16 +119,5 @@ void loop() {
 
     // calculate the next transmission time
     nextTransmissionTime = curTime + TRANSMISSION_INTERVAL;
-  }
-
-  // REMOVE: ONLY FOR PROFILING
-  loopCount++;
-  unsigned long timePassed = micros();
-  if (timePassed > 5000000 && !profilingDone) {
-    Serial.println("\nTime passed (microseconds): ");
-    Serial.print(timePassed);
-    Serial.println("\nLoop count: ");
-    Serial.println(loopCount);
-    profilingDone = true;
   }
 }

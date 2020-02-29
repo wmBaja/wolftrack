@@ -7,7 +7,7 @@
 // the baud rate for the serial connection
 #define BAUD_RATE 115200
 // amount of time between transmissions to RPi (in ms)
-#define TRANSMISSION_INTERVAL 250
+#define TRANSMISSION_INTERVAL 100
 // the size of the data packet sent to the RPi
 #define DATA_PACKET_SIZE 18
 
