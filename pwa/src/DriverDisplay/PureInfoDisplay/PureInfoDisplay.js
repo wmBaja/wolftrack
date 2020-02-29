@@ -32,9 +32,9 @@ function getValueAndUnitFor(typeOfValue, data) {
     case 'ACCELERATION':
       return [0, 'G'];
     case 'SHOCK_ACTUATION_1':
-      return [data.suspension.shock1actuationMillimeters, 'S1 mm'];
+      return [data.suspension.shock1actuationInches.toPrecision(2), 'S1 in'];
     case 'SHOCK_ACTUATION_2':
-      return [data.suspension.shock2actuationMillimeters, 'S2 mm'];
+      return [data.suspension.shock2actuationInches.toPrecision(2), 'S2 in'];
     case 'FRONT_BRAKE_PRESSURE':
       return [data.brakes.frontBrakePressurePsi, 'FB psi'];
     case 'REAR_BRAKE_PRESSURE':

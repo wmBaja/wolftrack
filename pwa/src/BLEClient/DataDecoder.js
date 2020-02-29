@@ -1,4 +1,4 @@
-import { NEUTRAL_MAGNETISM_VALUE, MAX_FUEL_CAPACITY, MAGICAL_CONSTANT_FOR_SPEED } from './DEFAULT_DATA.js';
+import { MAX_ANALOG_VALUE, NEUTRAL_MAGNETISM_VALUE, MAX_FUEL_CAPACITY, MAGICAL_CONSTANT_FOR_SPEED, MAX_LIN_POT_ACTUATION_IN } from './DEFAULT_DATA.js';
 
 const FUEL_EMA_WEIGHT = 0.1;
 
@@ -97,8 +97,8 @@ export default class DataDecoder {
   // TODO need to implement
   static calculateSuspensionData(sensorReading1, sensorReading2) {
     return {
-      shock1actuationMillimeters: sensorReading1,
-      shock2actuationMillimeters: sensorReading2,
+      shock1actuationInches: MAX_LIN_POT_ACTUATION_IN - (sensorReading1 / MAX_ANALOG_VALUE) * MAX_LIN_POT_ACTUATION_IN,
+      shock2actuationInches: MAX_LIN_POT_ACTUATION_IN - (sensorReading2 / MAX_ANALOG_VALUE) * MAX_LIN_POT_ACTUATION_IN,
     };
   }
 }
