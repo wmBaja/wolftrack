@@ -17,6 +17,9 @@ network={
 With the above configuration, the Pi should automatically connect to any Wifi network that has an ssid of "mynetwork" and a password of "password".
 
 Then reconfigure the interface by running `wpa_cli -i wlan0 reconfigure`.
+
+Now you should be able to start a hotspot with the SSID and password you set above.  Once the Pi connects to the hotspot, however, you may not know its IP address so you can't SSH into it.  On Android phones, you can start a local Linux terminal (since Android is based on Linux) with the Termius app and you use the [`ip neigh` command](http://man7.org/linux/man-pages/man8/ip-neighbour.8.html) to get a list of devices of the network and their IP addresses.  If there is only one IP address listed, then that is the Raspberry Pi.  If multiple are listed, then you may have to try several.
+
 ### 3. Update all packages
 1. Update the package listings for the Pi by running `sudo apt-get update`.
 2. Upgrade all packages by running `sudo apt-get upgrade`.
