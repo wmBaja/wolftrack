@@ -7,6 +7,8 @@ import time
 
 # The baud rate for the serial connection to the Arduino
 BAUD_RATE = 115200
+# the interval on which random data will be generated
+RANDOM_DATA_GENERATION_INTERVAL = 0.1
 
 class ArduinoPoller(SensorPoller):
   """
@@ -64,8 +66,10 @@ class ArduinoPoller(SensorPoller):
       # return intArr[0]
       return byteArr
     else:
-      time.sleep(1)
-      return self.generateRandomByteList(8)
+      time.sleep(RANDOM_DATA_GENERATION_INTERVAL)
+      data = self.generateRandomByteList(8)
+      # print(data)
+      return data
 
   def generateRandomByteList(self, num16BitUints):
     """
