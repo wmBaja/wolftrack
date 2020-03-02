@@ -1,5 +1,4 @@
-import React,{useState} from 'react';
-import { DEFAULT_DATA } from '../BLEClient/DEFAULT_DATA';
+import React from 'react';
 import Graph from "./Graph/Graph.js"
 
 function ObserverDisplay() {

@@ -1,6 +1,6 @@
 import React, { useContext } from 'react';
 
-import SettingsContext from '../../Settings/SettingsContext.js';
+import SettingsContext from '../../../utilities/Settings/SettingsContext.js';
 
 import './PureInfoDisplay.css';
 

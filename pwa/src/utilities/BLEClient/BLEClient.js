@@ -1,6 +1,6 @@
-import { DEFAULT_DATA } from './DEFAULT_DATA.js';
-import DataDecoder from './DataDecoder.js';
-import DataGenerator from './DataGenerator.js';
+import { DEFAULT_DATA } from '../DataProtocol/DEFAULT_DATA.js';
+import DataDecoder from '../DataProtocol/DataDecoder.js';
+import DataGenerator from '../DataProtocol/DataGenerator.js';
 
 // the interval on which random data is generated for a simulated connection (ms)
 const SIMULATION_INTERVAL = 200;

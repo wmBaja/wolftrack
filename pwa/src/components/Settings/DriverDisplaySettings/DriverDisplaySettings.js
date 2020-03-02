@@ -5,8 +5,8 @@ import Checkbox from 'muicss/lib/react/checkbox';
 
 // import './DriverDisplaySettings.css';
 
-import SettingsContext from '../SettingsContext.js';
-import { POSSIBLE_SETTINGS } from '../DEFAULT_SETTINGS.js';
+import SettingsContext from '../../../utilities/Settings/SettingsContext.js';
+import { POSSIBLE_SETTINGS } from '../../../utilities/Settings/DEFAULT_SETTINGS.js';
 
 function DriverDisplaySettings() {
   const [settings, setSettings] = useContext(SettingsContext);
