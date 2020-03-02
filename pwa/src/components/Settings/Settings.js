@@ -6,9 +6,9 @@ import Button from 'muicss/lib/react/button';
 import './Settings.css';
 
 import DriverDisplaySettings from './DriverDisplaySettings/DriverDisplaySettings.js';
-import BLEClientContext from '../BLEClient/BLEClientContext.js';
+import BLEClientContext from '../../utilities/BLEClient/BLEClientContext.js';
 
-import FirebaseStatus from '../common/FirebaseStatus.js';
+import FirebaseStatus from '../common/FirebaseStatus/FirebaseStatus.js';
 
 function Settings(props) {
   const { currentDisplay, setCurrentDisplay, toggleSettingsPage } = props;

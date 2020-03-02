@@ -3,10 +3,10 @@ import Button from 'muicss/lib/react/button';
 
 import './DriverDisplay.css';
 import PureInfoDisplay from './PureInfoDisplay/PureInfoDisplay.js';
-import BLEClientContext from '../BLEClient/BLEClientContext.js';
-import { DEFAULT_DATA } from '../BLEClient/DEFAULT_DATA.js';
+import BLEClientContext from '../../utilities/BLEClient/BLEClientContext.js';
+import { DEFAULT_DATA } from '../../utilities/DataProtocol/DEFAULT_DATA.js';
 
-import FirebaseStatus from '../common/FirebaseStatus.js';
+import FirebaseStatus from '../common/FirebaseStatus/FirebaseStatus.js';
 
 function DriverDisplay() {
   const [data, setData] = useState(DEFAULT_DATA);

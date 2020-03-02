@@ -1,5 +1,5 @@
 import React,{useState} from 'react';
-import { DEFAULT_DATA } from '../BLEClient/DEFAULT_DATA';
+import { DEFAULT_DATA } from '../../utilities/DataProtocol/DEFAULT_DATA.js';
 import Graph from "./Graph/Graph.js"
 
 function ObserverDisplay() {

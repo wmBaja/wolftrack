@@ -1,20 +1,21 @@
 import React, { useState, useEffect } from 'react';
 
 import './App.css';
-import settingsImg from './img/settings.svg';
+import settingsImg from './assets/settings.svg';
 
-import DriverDisplay from './DriverDisplay/DriverDisplay.js';
-import ObserverDisplay from './ObserverDisplay/ObserverDisplay.js';
+import DriverDisplay from './components/DriverDisplay/DriverDisplay.js';
+import ObserverDisplay from './components/ObserverDisplay/ObserverDisplay.js';
 
-import Settings from './Settings/Settings.js';
-import SettingsContext from './Settings/SettingsContext.js';
-import { DEFAULT_SETTINGS } from './Settings/DEFAULT_SETTINGS.js';
+import Settings from './components/Settings/Settings.js';
 
-import BLEClientContext from './BLEClient/BLEClientContext.js';
-import BLEClient from './BLEClient/BLEClient.js';
+import SettingsContext from './utilities/Settings/SettingsContext.js';
+import { DEFAULT_SETTINGS } from './utilities/Settings/DEFAULT_SETTINGS.js';
 
-import FirebaseClientContext from './FirebaseClient/FirebaseClientContext.js';
-import FirebaseClient from './FirebaseClient/FirebaseClient.js';
+import BLEClientContext from './utilities/BLEClient/BLEClientContext.js';
+import BLEClient from './utilities/BLEClient/BLEClient.js';
+
+import FirebaseClientContext from './utilities/FirebaseClient/FirebaseClientContext.js';
+import FirebaseClient from './utilities/FirebaseClient/FirebaseClient.js';
 
 import Button from 'muicss/lib/react/button';
 

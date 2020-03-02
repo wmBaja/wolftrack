@@ -3,9 +3,9 @@ import React, { useState, useContext, useEffect } from 'react';
 import Panel from 'muicss/lib/react/panel';
 import Button from 'muicss/lib/react/button';
 
-import SignIn from './SignIn.js';
+import SignIn from './SignIn/SignIn.js';
 
-import FirebaseClientContext from '../FirebaseClient/FirebaseClientContext.js';
+import FirebaseClientContext from '../../../utilities/FirebaseClient/FirebaseClientContext.js';
 
 import './FirebaseStatus.css';
 
