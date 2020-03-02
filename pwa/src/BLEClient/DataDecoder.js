@@ -42,6 +42,7 @@ export default class DataDecoder {
     const shockActuationReading2 = twoByteInts[7];
 
     return {
+      rawData,
       fuel: DataDecoder.calculateFuelData(fuelHallEffectReading, curRemainingEMALiters),
       drivetrain: DataDecoder.calculateDrivetrainData(engineRPM, cvtRPM, cvtThermistorReading),
       brakes: DataDecoder.calculateBrakesData(brakePressureReading1, brakePressureReading2),

@@ -18,6 +18,7 @@ const MAGICAL_CONSTANT_FOR_SPEED = WHEEL_CIRCUMFERENCE_FT / GEARBOX_RATIO * FPM_
 const MAX_LIN_POT_ACTUATION_IN = 6;
 
 const DEFAULT_DATA = {
+  rawData: new DataView(new ArrayBuffer()),
   fuel: {
     remainingLiters: MAX_DETECTABLE_FUEL_CAPACITY,
     remainingEMALiters: MAX_DETECTABLE_FUEL_CAPACITY,

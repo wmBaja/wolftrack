@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 import './App.css';
 import settingsImg from './img/settings.svg';
@@ -27,6 +27,19 @@ function App() {
   // UI state
   const [showSettings, setShowSettings] = useState(false);
   const [currentDisplay, setCurrentDisplay] = useState('driverDisplay');
+
+  function onData(data) {
+    firebaseClient.addNewDataPoint(data);
+  }
+
+  // register/unregister the FirebaseClient with the BLEClient
+  useEffect(() => {
+    bleClient.register(onData);
+    return () => {
+      bleClient.unregister(onData);
+    };
+  // eslint-disable-next-line
+  }, []);
 
   function toggleSettingsPage() {
     console.log(showSettings ? 'Exiting settings' : 'Going to settings');

@@ -2,6 +2,9 @@ import { DEFAULT_DATA } from './DEFAULT_DATA.js';
 import DataDecoder from './DataDecoder.js';
 import DataGenerator from './DataGenerator.js';
 
+// the interval on which random data is generated for a simulated connection (ms)
+const SIMULATION_INTERVAL = 200;
+
 export default class BLEClient {
   constructor() {
     this.connected = false;
@@ -53,7 +56,7 @@ export default class BLEClient {
       const generatedData = DataGenerator.generateRandomData(this.currentData);
       this._callCallbacks(generatedData);
     };
-    this.simulationIntervalId = setInterval(simulate, 1000);
+    this.simulationIntervalId = setInterval(simulate, SIMULATION_INTERVAL);
   }
 
   _endSimulation() {
