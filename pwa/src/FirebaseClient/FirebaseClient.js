@@ -7,10 +7,8 @@ firebase.initializeApp(firebaseConfig);
 
 // the rate at which documents are uploaded
 const UPLOAD_INTERVAL = 3000;
-// the approximate time between data points
-const DATA_POINT_INTERVAL = 200;
 // the name of the collection to upload data to
-const DATA_COLLECTION_ID = 'd';
+const DATA_COLLECTION_ID = 'z';
 
 export default class FirebaseClient {
   constructor() {
@@ -83,9 +81,14 @@ export default class FirebaseClient {
   async _upload() {
     console.log('Attempting upload...');
     if (!this.isSignedIn()) {
+      console.log('Upload aborted. No user is signed in.');
       return;
     }
     const doc = this._buildDocument();
+    if (!doc) {
+      console.log('Upload aborted. There is no data to upload.');
+      return;
+    }
     const success = await this._uploadNewDocument(doc);
     console.log(success ? 'Upload successful.' : 'Upload failed.');
   }
@@ -146,11 +149,12 @@ export default class FirebaseClient {
    * @param {object} data data in the format that the DataDecoder produces
    */
   addNewDataPoint(data) {
-    if (data.rawData.byteLength !== 16) {
-      console.log('Non-protocol number of bytes in data array: ' + data.rawData.byteLength);
-      console.log('Undefined behavior expected...');
-    }
     const sensorDataView = data.rawData;
+    if (sensorDataView.byteLength !== 16) {
+      console.log('Non-protocol number of bytes in data array: ' + data.rawData.byteLength);
+      console.log('The data point will not be added.');
+      return;
+    }
     const geoCoordinate = {lat: 35.789799, lon: -78.699365}; // TODO once geolocation is implemented, change this to be the actual geo coordinate
 
     // construct the data point's array buffer
