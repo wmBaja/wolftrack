@@ -2,7 +2,7 @@
 Everything in this folder is related to the code that runs on the Arduino on the Baja vehicle.
 
 ## Arduino Profiling
-An easy way to find out how fast your Arduino loop runs is to add some simple profiling code.
+An easy way to find out how fast your Arduino (or other microcontroller) loop runs is to add some simple profiling code.
 Add the following code outside of and before the loop (global variables):
 ```
 // REMOVE: ONLY FOR PROFILING
@@ -18,7 +18,9 @@ if (timePassed > 5000000 && !profilingDone) {
   Serial.println("\nTime passed (microseconds): ");
   Serial.print(timePassed);
   Serial.println("\nLoop count: ");
-  Serial.println(loopCount);
+  Serial.print(loopCount);
+  Serial.println("\nLoops per second: ");
+  Serial.println(loopCount / (timePassed / 1000000));
   profilingDone = true;
 }
 ```
