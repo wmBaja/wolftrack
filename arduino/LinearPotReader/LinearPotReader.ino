@@ -14,8 +14,8 @@ void loop() {
   unsigned long curTime = millis();
   if (curTime > nextUpdateTime) {
     // read the input on analog pin 0:
-    int sensorValue = analogRead(A0); // range: 0 - 1023
-    double actuationIn = 6 - (sensorValue / 1023.0) * 6; // range: 0 - 6
+    int sensorValue = analogRead(34); // range: 0 - 4095
+    double actuationIn = 6 - (sensorValue / 4095.0) * 6; // range: 0 - 6
     Serial.println(actuationIn);
 
     nextUpdateTime = curTime + UPDATE_INTERVAL;
