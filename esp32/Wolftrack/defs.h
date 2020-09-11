@@ -8,8 +8,6 @@
 #define BAUD_RATE 115200
 // amount of time between transmissions to RPi (in ms)
 #define TRANSMISSION_INTERVAL 1000
-// the size of the data packet sent to the RPi
-#define DATA_PACKET_SIZE 18
 
 // pin for engine rpm reading
 #define ENGINE_RPM_PIN 2
