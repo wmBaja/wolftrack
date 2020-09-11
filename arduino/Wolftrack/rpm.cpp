@@ -84,7 +84,7 @@ void updateRPMs() {
   // if it's time to update the RPMs
   if (curTime > nextRPMUpdateTime) {
     //////UPDATE ENGINE RPM
-    if (numSparks > 0) { // prevent divByZero errors
+    if (numSparks > 0) {
       // calculate the average spark interval
       unsigned long avgSparkInterval = sparkIntervalSum / numSparks; // could increase accuracy by using floating point ops
 
@@ -96,7 +96,7 @@ void updateRPMs() {
     sparkIntervalSum = 0;
 
     /////////UPDATE CVT SEC RPM
-    if (numMagPasses > 0) { // prevent divByZero errors
+    if (numMagPasses > 0) {
       // calculate the average magnet pass interval
       unsigned long avgMagPassInterval = magPassIntervalSum / numMagPasses; // could increase accuracy by using floating point ops
 

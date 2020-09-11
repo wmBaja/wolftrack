@@ -7,7 +7,7 @@
 // the baud rate for the serial connection
 #define BAUD_RATE 115200
 // amount of time between transmissions to RPi (in ms)
-#define TRANSMISSION_INTERVAL 100
+#define TRANSMISSION_INTERVAL 1000
 // the size of the data packet sent to the RPi
 #define DATA_PACKET_SIZE 18
 
@@ -17,17 +17,17 @@
 #define CVT_SEC_RPM_PIN 3
 
 // pin for hall effect fuel gauge reading
-#define FUEL_HALL_EFFECT_PIN A0
+#define FUEL_HALL_EFFECT_PIN 36
 // pin for reading CVT temperature
-#define CVT_TEMP_PIN A1
+#define CVT_TEMP_PIN 39
 // pin for reading brake 1 pressure
-#define BRAKE_PRESSURE_1_PIN A2
+#define BRAKE_PRESSURE_1_PIN 32
 // pin for reading brake 2 pressure
-#define BRAKE_PRESSURE_2_PIN A3
+#define BRAKE_PRESSURE_2_PIN 33
 // pin for reading shock 1 actuation
-#define SHOCK_ACTUATION_1_PIN A4
+#define SHOCK_ACTUATION_1_PIN 34
 // pin for reading shock 2 actuation
-#define SHOCK_ACTUATION_2_PIN A5
+#define SHOCK_ACTUATION_2_PIN 35
 
 // current time in milliseconds
 extern unsigned long curTime;
