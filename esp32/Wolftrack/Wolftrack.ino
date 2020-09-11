@@ -1,5 +1,7 @@
 #include <Arduino.h>
 #include <stdlib.h>
+
+#include "config.h"
 #include "defs.h"
 #include "rpm.h"
 
@@ -149,9 +151,10 @@ void setup() {
 
 }
 
-// REMOVE: ONLY FOR PROFILING
+#if _ENABLE_PERFORMANCE_PROFILING
 bool profilingDone = false;
 unsigned long loopCount = 0;
+#endif
 
 void loop() {
   curTime = millis();
@@ -195,7 +198,7 @@ void loop() {
     nextTransmissionTime = curTime + TRANSMISSION_INTERVAL;
   }
 
-  // REMOVE: ONLY FOR PROFILING
+#if _ENABLE_PERFORMANCE_PROFILING
   loopCount++;
   unsigned long timePassed = micros();
   if (timePassed > 5000000 && !profilingDone) {
@@ -207,4 +210,5 @@ void loop() {
     Serial.println(loopCount / (timePassed / 1000000));
     profilingDone = true;
   }
+#endif
 }
