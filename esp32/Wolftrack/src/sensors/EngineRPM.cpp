@@ -1,7 +1,7 @@
 #include <Arduino.h>
 
 #include "EngineRPM.h"
-#include "../../defs.h"
+#include "../../config.h"
 
 // amount of time between RPM updates (in ms)
 #define RPM_UPDATE_INTERVAL 1000
@@ -49,6 +49,8 @@ void EngineRPM::checkForSparks() {
  * Updates the engine RPM;
  */
 void EngineRPM::updateRPM() {
+  unsigned long curTime = millis();
+
   // if it's time to update the RPM
   if (curTime > this->nextUpdateTime) {
     if (this->numSparks > 0) { // if there have been sparks

@@ -6,7 +6,6 @@
 #include <BLE2902.h>
 
 #include "config.h"
-#include "defs.h"
 #include "src/sensors/EngineRPM.h"
 #include "src/sensors/CVTSecRPM.h"
 

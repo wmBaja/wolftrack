@@ -1,7 +1,7 @@
 #include <Arduino.h>
 
 #include "CVTSecRPM.h"
-#include "../../defs.h"
+#include "../../config.h"
 
 // amount of time between RPM updates (in ms)
 #define RPM_UPDATE_INTERVAL 1000
@@ -49,6 +49,8 @@ void CVTSecRPM::checkForMagPasses() {
  * Updates the CVT secondary RPM;
  */
 void CVTSecRPM::updateRPM() {
+  unsigned long curTime = millis();
+
   // if it's time to update the RPM
   if (curTime > this->nextUpdateTime) {
     if (this->numMagPasses > 0) { // if there have been sparks
