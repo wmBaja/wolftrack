@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <BLEDevice.h>
 #include <BLEServer.h>
 #include <BLEUtils.h>
@@ -32,9 +33,6 @@ class MyServerCallbacks: public BLEServerCallbacks {
   }
 };
 
-////---------------TIME-------------------
-// the current time (in ms)
-unsigned long curTime = 0;
 // the time at which the next data packet should be sent to the RPi
 unsigned long nextTransmissionTime = 0;
 
@@ -50,9 +48,8 @@ void setup() {
   engineRPMSensor = new EngineRPM(ENGINE_RPM_PIN);
   cvtSecRPMSensor = new CVTSecRPM(CVT_SEC_RPM_PIN);
 
-  // time variable initialization
-  curTime = millis();
-  nextTransmissionTime = curTime + TRANSMISSION_INTERVAL;
+  // initialize first transmission time
+  nextTransmissionTime = millis() + TRANSMISSION_INTERVAL;
 
   // BLE Stuff
   // Create the BLE Device
@@ -93,7 +90,7 @@ unsigned long loopCount = 0;
 #endif
 
 void loop() {
-  curTime = millis();
+  unsigned long curTime = millis();
 
   // call the loop() method for each sensor
   // engineRPMSensor->loop()
