@@ -1,3 +1,5 @@
+#include <stdbool.h>
+
 class CVTSecRPM {
     // the digital pin that the RPM sensor is connected to
     int pin;
