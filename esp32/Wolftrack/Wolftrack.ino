@@ -5,6 +5,8 @@
 #include "defs.h"
 #include "rpm.h"
 
+#include "src/sensors/EngineRPM.h"
+#include "src/sensors/CVTSecRPM.h"
 
 #include <BLEDevice.h>
 #include <BLEServer.h>
@@ -38,16 +40,10 @@ class MyServerCallbacks: public BLEServerCallbacks {
 unsigned long curTime = 0;
 // the time at which the next data packet should be sent to the RPi
 unsigned long nextTransmissionTime = 0;
-// the next time to calculate the RPM (engine and secondary) (in ms)
-unsigned long nextRPMUpdateTime = 0;
 
-////----------------ENGINE RPM---------------------------
-// the most recently calculated engine RPM
-int engineRPM = 0;
-
-////----------------CVT SEC RPM---------------------------
-// the most recently calculated CVT secondary RPM
-int cvtSecRPM = 0;
+////---------------SENSORS----------------
+EngineRPM engineRPMSensor = NULL;
+CVTSecRPM cvtSecRPMSensor = NULL;
 
 #define ANALOG_READ_OFFSET 25
 
@@ -101,14 +97,13 @@ void setup() {
   // start serial connection
   Serial.begin(BAUD_RATE);
 
-  // digital pin setup
-  pinMode(ENGINE_RPM_PIN, INPUT);
-  pinMode(CVT_SEC_RPM_PIN, INPUT);
+  // initialize sensor classes
+  engineRPMSensor = EngineRPM(ENGINE_RPM_PIN);
+  cvtSecRPMSensor = CVTSecRPM(CVT_SEC_RPM_PIN);
 
   // time variable initialization
   curTime = millis();
   nextTransmissionTime = curTime + TRANSMISSION_INTERVAL;
-  nextRPMUpdateTime = curTime + RPM_UPDATE_INTERVAL;
 
   nextFuelUpdateTime = curTime + FUEL_UPDATE_INTERVAL;
   nextCvtTempUpdateTime = curTime + CVT_TEMP_UPDATE_INTERVAL + ANALOG_READ_OFFSET;
@@ -159,17 +154,16 @@ unsigned long loopCount = 0;
 void loop() {
   curTime = millis();
 
-  // // update RPMs
-  // checkForSparks();
-  // checkForMagPasses();
-  // updateRPMs();
+  // call the loop() method for each sensor
+  // engineRPMSensor.loop()
+  // cvtSecRPMSensor.loop()
 
   // // update analog values
   // updateAnalogValues();
 
   fuel = random(1024);
-  engineRPM = random(1000, 4000);
-  cvtSecRPM = engineRPM / (random(26) / 10.0 * 0.9);
+  int engineRPM = random(1000, 4000);
+  int cvtSecRPM = engineRPM / (random(26) / 10.0 * 0.9);
   cvtTemp = random(1024);
   brake1 = random(1024);
   brake2 = random(1024);
