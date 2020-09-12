@@ -1,17 +1,15 @@
 #include <Arduino.h>
 #include <stdlib.h>
-
-#include "config.h"
-#include "defs.h"
-#include "rpm.h"
-
-#include "src/sensors/EngineRPM.h"
-#include "src/sensors/CVTSecRPM.h"
-
 #include <BLEDevice.h>
 #include <BLEServer.h>
 #include <BLEUtils.h>
 #include <BLE2902.h>
+
+#include "config.h"
+#include "defs.h"
+#include "src/sensors/EngineRPM.h"
+#include "src/sensors/CVTSecRPM.h"
+
 
 ////---------------BLE------------
 BLEServer* pServer = NULL;
@@ -42,76 +40,20 @@ unsigned long curTime = 0;
 unsigned long nextTransmissionTime = 0;
 
 ////---------------SENSORS----------------
-EngineRPM engineRPMSensor = NULL;
-CVTSecRPM cvtSecRPMSensor = NULL;
-
-#define ANALOG_READ_OFFSET 25
-
-#define FUEL_UPDATE_INTERVAL 5000
-#define CVT_TEMP_UPDATE_INTERVAL 1000
-#define BRAKE1_UPDATE_INTERVAL 100
-#define BRAKE2_UPDATE_INTERVAL 100
-#define SHOCK1_UPDATE_INTERVAL 100
-#define SHOCK2_UPDATE_INTERVAL 100
-
-int fuel = 0;
-// the next time to calculate the fuel level (in ms)
-unsigned long nextFuelUpdateTime = 0;
-int cvtTemp = 0;
-// the next time to calculate the CVT temp (in ms)
-unsigned long nextCvtTempUpdateTime = 0;
-int brake1 = 0;
-// the next time to calculate the brake pressure 1 (in ms)
-unsigned long nextBrake1UpdateTime = 0;
-int brake2 = 0;
-// the next time to calculate the brake pressure 2 (in ms)
-unsigned long nextBrake2UpdateTime = 0;
-int shock1 = 0;
-// the next time to calculate the shock actuation 1 (in ms)
-unsigned long nextShock1UpdateTime = 0;
-int shock2 = 0;
-// the next time to calculate the shock actuation 2 (in ms)
-unsigned long nextShock2UpdateTime = 0;
-
-void updateAnalogValue(int analogPin, unsigned long *nextUpdateTimePtr, int updateInterval, int *valuePtr) {
-  // if it's time to update
-  if (curTime > *nextUpdateTimePtr) {
-    // read the value
-    *valuePtr = analogRead(analogPin);
-    // calculate the next update time
-    *nextUpdateTimePtr = curTime + updateInterval;
-  }
-}
-
-void updateAnalogValues() {
-  updateAnalogValue(FUEL_HALL_EFFECT_PIN, &nextFuelUpdateTime, FUEL_UPDATE_INTERVAL, &fuel);
-  updateAnalogValue(CVT_TEMP_PIN, &nextCvtTempUpdateTime, CVT_TEMP_UPDATE_INTERVAL, &cvtTemp);
-  updateAnalogValue(BRAKE_PRESSURE_1_PIN, &nextBrake1UpdateTime, BRAKE1_UPDATE_INTERVAL, &brake1);
-  updateAnalogValue(BRAKE_PRESSURE_2_PIN, &nextBrake2UpdateTime, BRAKE2_UPDATE_INTERVAL, &brake2);
-  updateAnalogValue(SHOCK_ACTUATION_1_PIN, &nextShock1UpdateTime, SHOCK1_UPDATE_INTERVAL, &shock1);
-  updateAnalogValue(SHOCK_ACTUATION_2_PIN, &nextShock2UpdateTime, SHOCK2_UPDATE_INTERVAL, &shock2);
-}
-
+EngineRPM* engineRPMSensor = NULL;
+CVTSecRPM* cvtSecRPMSensor = NULL;
 
 void setup() {
   // start serial connection
   Serial.begin(BAUD_RATE);
 
   // initialize sensor classes
-  engineRPMSensor = EngineRPM(ENGINE_RPM_PIN);
-  cvtSecRPMSensor = CVTSecRPM(CVT_SEC_RPM_PIN);
+  engineRPMSensor = new EngineRPM(ENGINE_RPM_PIN);
+  cvtSecRPMSensor = new CVTSecRPM(CVT_SEC_RPM_PIN);
 
   // time variable initialization
   curTime = millis();
   nextTransmissionTime = curTime + TRANSMISSION_INTERVAL;
-
-  nextFuelUpdateTime = curTime + FUEL_UPDATE_INTERVAL;
-  nextCvtTempUpdateTime = curTime + CVT_TEMP_UPDATE_INTERVAL + ANALOG_READ_OFFSET;
-  nextBrake1UpdateTime = curTime + BRAKE1_UPDATE_INTERVAL + ANALOG_READ_OFFSET * 2;
-  nextBrake2UpdateTime = curTime + BRAKE2_UPDATE_INTERVAL + ANALOG_READ_OFFSET * 3;
-  nextShock1UpdateTime = curTime + SHOCK1_UPDATE_INTERVAL + ANALOG_READ_OFFSET * 4;
-  nextShock2UpdateTime = curTime + SHOCK2_UPDATE_INTERVAL + ANALOG_READ_OFFSET * 5;
-
 
   // BLE Stuff
   // Create the BLE Device
@@ -155,23 +97,23 @@ void loop() {
   curTime = millis();
 
   // call the loop() method for each sensor
-  // engineRPMSensor.loop()
-  // cvtSecRPMSensor.loop()
-
-  // // update analog values
-  // updateAnalogValues();
-
-  fuel = random(1024);
-  int engineRPM = random(1000, 4000);
-  int cvtSecRPM = engineRPM / (random(26) / 10.0 * 0.9);
-  cvtTemp = random(1024);
-  brake1 = random(1024);
-  brake2 = random(1024);
-  shock1 = random(1024);
-  shock2 = random(1024);
+  // engineRPMSensor->loop()
+  // cvtSecRPMSensor->loop()
 
   // if it's time to transmit and there's a BLE connection
   if (curTime > nextTransmissionTime && deviceConnected) {
+    // get sensor values
+    // int engineRPM = engineRPMSensor->getValue();
+    // int cvtSecRPM = cvtSecRPMSensor->getValue();
+    int fuel = random(1024);
+    int engineRPM = random(1000, 4000);
+    int cvtSecRPM = engineRPM / (random(26) / 10.0 * 0.9);
+    int cvtTemp = random(1024);
+    int brake1 = random(1024);
+    int brake2 = random(1024);
+    int shock1 = random(1024);
+    int shock2 = random(1024);
+
     // build the data packet
     byte arr[] = {
       highByte(fuel), lowByte(fuel),           // fuel
