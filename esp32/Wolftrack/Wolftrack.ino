@@ -1,37 +1,17 @@
 #include <Arduino.h>
 #include <stdlib.h>
 #include <stdbool.h>
-#include <BLEDevice.h>
-#include <BLEServer.h>
-#include <BLEUtils.h>
-#include <BLE2902.h>
 
 #include "config.h"
+#include "src/ble/BLEModule.h"
 #include "src/sensors/EngineRPM.h"
 #include "src/sensors/CVTSecRPM.h"
 
-
-////---------------BLE------------
-BLEServer* pServer = NULL;
-BLECharacteristic* pCharacteristic = NULL;
-bool deviceConnected = false;
-
-class MyServerCallbacks: public BLEServerCallbacks {
-  void onConnect(BLEServer* pServer) {
-    deviceConnected = true;
-  };
-
-  void onDisconnect(BLEServer* pServer) {
-    deviceConnected = false;
-
-    // restart advertising
-    delay(500); // the bluetooth stack needs a bit of time to get things ready
-    pServer->startAdvertising();
-  }
-};
-
 // the time at which the next data packet should be sent to the RPi
 unsigned long nextTransmissionTime = 0;
+
+////---------------BLE--------------------
+BLEModule* bleModule = NULL;
 
 ////---------------SENSORS----------------
 EngineRPM* engineRPMSensor = NULL;
@@ -48,37 +28,8 @@ void setup() {
   // initialize first transmission time
   nextTransmissionTime = millis() + TRANSMISSION_INTERVAL;
 
-  // BLE Stuff
-  // Create the BLE Device
-  BLEDevice::init("NCSU Wolftrack");
-
-  // Create the BLE Server
-  pServer = BLEDevice::createServer();
-  pServer->setCallbacks(new MyServerCallbacks());
-
-  // Create the BLE Service
-  BLEService *pService = pServer->createService(SERVICE_UUID);
-
-  // Create a BLE Characteristic
-  pCharacteristic = pService->createCharacteristic(
-                      CHARACTERISTIC_UUID,
-                      BLECharacteristic::PROPERTY_READ   |
-                      BLECharacteristic::PROPERTY_NOTIFY
-                    );
-
-  // Create a BLE Descriptor
-  pCharacteristic->addDescriptor(new BLE2902());
-
-  // Start the service
-  pService->start();
-
-  // Start advertising
-  BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
-  pAdvertising->addServiceUUID(SERVICE_UUID);
-  pAdvertising->setScanResponse(false);
-  pAdvertising->setMinPreferred(0x0);  // set value to 0x00 to not advertise this parameter
-  BLEDevice::startAdvertising();
-
+  // initialize BLE
+  bleModule = new BLEModule();
 }
 
 #if _ENABLE_PERFORMANCE_PROFILING
@@ -94,7 +45,7 @@ void loop() {
   // cvtSecRPMSensor->loop()
 
   // if it's time to transmit and there's a BLE connection
-  if (curTime > nextTransmissionTime && deviceConnected) {
+  if (curTime > nextTransmissionTime && bleModule->isDeviceConnected()) {
     // get sensor values
     // int engineRPM = engineRPMSensor->getValue();
     // int cvtSecRPM = cvtSecRPMSensor->getValue();
@@ -120,8 +71,7 @@ void loop() {
     };
 
     // update the GATT characteristic and notify client
-    pCharacteristic->setValue((uint8_t*) arr, sizeof(arr));
-    pCharacteristic->notify();
+    bleModule->updateAndNotify((uint8_t*) arr, sizeof(arr));
 
     // calculate the next transmission time
     nextTransmissionTime = curTime + TRANSMISSION_INTERVAL;
