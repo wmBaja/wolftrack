@@ -4,8 +4,12 @@
 
 #include "config.h"
 #include "src/ble/BLEModule.h"
+#include "src/sensors/Fuel.h"
 #include "src/sensors/EngineRPM.h"
 #include "src/sensors/CVTSecRPM.h"
+#include "src/sensors/CVTTemperature.h"
+#include "src/sensors/BrakePressure.h"
+#include "src/sensors/ShockCompression.h"
 
 // the time at which the next data packet should be sent to the RPi
 unsigned long nextTransmissionTime = 0;
@@ -14,16 +18,28 @@ unsigned long nextTransmissionTime = 0;
 BLEModule* bleModule = NULL;
 
 ////---------------SENSORS----------------
+Fuel* fuelSensor = NULL;
 EngineRPM* engineRPMSensor = NULL;
 CVTSecRPM* cvtSecRPMSensor = NULL;
+CVTTemperature* cvtTempSensor = NULL;
+BrakePressure* brakeSensor1 = NULL;
+BrakePressure* brakeSensor2 = NULL;
+ShockCompression* shockSensor1 = NULL;
+ShockCompression* shockSensor2 = NULL;
 
 void setup() {
   // start serial connection
   Serial.begin(BAUD_RATE);
 
   // initialize sensor classes
+  fuelSensor = new Fuel();
   engineRPMSensor = new EngineRPM(ENGINE_RPM_PIN);
   cvtSecRPMSensor = new CVTSecRPM(CVT_SEC_RPM_PIN);
+  cvtTempSensor = new CVTTemperature();
+  brakeSensor1 = new BrakePressure();
+  brakeSensor2 = new BrakePressure();
+  shockSensor1 = new ShockCompression();
+  shockSensor2 = new ShockCompression();
 
   // initialize first transmission time
   nextTransmissionTime = millis() + TRANSMISSION_INTERVAL;
@@ -41,22 +57,26 @@ void loop() {
   unsigned long curTime = millis();
 
   // call the loop() method for each sensor
-  // engineRPMSensor->loop()
-  // cvtSecRPMSensor->loop()
+  fuelSensor->loop();
+  engineRPMSensor->loop();
+  cvtSecRPMSensor->loop();
+  cvtTempSensor->loop();
+  brakeSensor1->loop();
+  brakeSensor2->loop();
+  shockSensor1->loop();
+  shockSensor2->loop();
 
   // if it's time to transmit and there's a BLE connection
   if (curTime > nextTransmissionTime && bleModule->isDeviceConnected()) {
     // get sensor values
-    // int engineRPM = engineRPMSensor->getValue();
-    // int cvtSecRPM = cvtSecRPMSensor->getValue();
-    int fuel = random(1024);
-    int engineRPM = random(1000, 4000);
-    int cvtSecRPM = engineRPM / (random(26) / 10.0 * 0.9);
-    int cvtTemp = random(1024);
-    int brake1 = random(1024);
-    int brake2 = random(1024);
-    int shock1 = random(1024);
-    int shock2 = random(1024);
+    int fuel = fuelSensor->getValue();
+    int engineRPM = engineRPMSensor->getValue();
+    int cvtSecRPM = cvtSecRPMSensor->getValue();
+    int cvtTemp = cvtTempSensor->getValue();
+    int brake1 = brakeSensor1->getValue();
+    int brake2 = brakeSensor2->getValue();
+    int shock1 = shockSensor1->getValue();
+    int shock2 = shockSensor2->getValue();
 
     // build the data packet
     byte arr[] = {
