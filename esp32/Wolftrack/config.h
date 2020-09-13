@@ -34,3 +34,8 @@
 #define SHOCK_ACTUATION_1_PIN 34
 // pin for reading shock 2 actuation
 #define SHOCK_ACTUATION_2_PIN 35
+
+// BLE service UUID
+#define SERVICE_UUID        "12345678-1234-5678-1234-56789abcdef0"
+// BLE characteristic UUID
+#define CHARACTERISTIC_UUID "12345678-1234-5678-1234-56789abcdef1"
