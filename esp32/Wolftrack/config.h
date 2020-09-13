@@ -4,7 +4,9 @@
  */
 
 // whether or not to enable performance profiling
-#define _ENABLE_PERFORMANCE_PROFILING 0
+#define _ENABLE_PERFORMANCE_PROFILING 1
+// whether or not to generate random values for sensor readings
+#define _GENERATE_RANDOM_VALUES 0
 
 // number of milliseconds in a second
 #define MILLIS_IN_SEC 1000
