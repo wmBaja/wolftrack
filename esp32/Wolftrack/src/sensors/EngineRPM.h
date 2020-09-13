@@ -1,6 +1,11 @@
+#ifndef _ENGINE_RPM_H
+#define _ENGINE_RPM_H
+
 #include <stdbool.h>
 
-class EngineRPM {
+#include "Sensor.h"
+
+class EngineRPM: public Sensor {
     // the digital pin that the RPM sensor is connected to
     int pin;
     // whether or not the engine is currently sparking
@@ -23,3 +28,5 @@ class EngineRPM {
     void checkForSparks();
     void updateRPM();
 };
+
+#endif

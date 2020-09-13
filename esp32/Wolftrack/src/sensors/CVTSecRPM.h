@@ -1,6 +1,11 @@
+#ifndef _CVT_SEC_RPM_H
+#define _CVT_SEC_RPM_H
+
 #include <stdbool.h>
 
-class CVTSecRPM {
+#include "Sensor.h"
+
+class CVTSecRPM: public Sensor {
     // the digital pin that the RPM sensor is connected to
     int pin;
     // whether or not the shaft's magnet is currently passing
@@ -23,3 +28,5 @@ class CVTSecRPM {
     void checkForMagPasses();
     void updateRPM();
 };
+
+#endif
