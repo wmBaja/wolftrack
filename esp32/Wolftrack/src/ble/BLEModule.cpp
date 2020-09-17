@@ -52,7 +52,7 @@ Callbacks::Callbacks(bool* deviceConnected) {
 
 void Callbacks::onConnect(BLEServer* pServer) {
   *deviceConnected = true;
-};
+}
 
 void Callbacks::onDisconnect(BLEServer* pServer) {
   *deviceConnected = false;
