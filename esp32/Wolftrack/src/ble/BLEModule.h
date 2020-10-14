@@ -1,8 +1,13 @@
+#ifndef _BLE_MODULE_H
+#define _BLE_MODULE_H
+
 #include <stdbool.h>
 #include <BLEDevice.h>
 #include <BLEServer.h>
 #include <BLEUtils.h>
 #include <BLE2902.h>
+
+#include "DataPacket.h"
 
 class BLEModule {
     BLEServer* pServer;
@@ -11,7 +16,7 @@ class BLEModule {
     bool deviceConnected;
   public:
     BLEModule();
-    void updateAndNotify(uint8_t*,size_t);
+    void update(DataPacket*);
     bool isDeviceConnected();
 };
 
@@ -22,3 +27,5 @@ class Callbacks: public BLEServerCallbacks {
     void onConnect(BLEServer*);
     void onDisconnect(BLEServer*);
 };
+
+#endif

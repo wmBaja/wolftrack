@@ -37,7 +37,9 @@ BLEModule::BLEModule() {
   BLEDevice::startAdvertising();
 }
 
-void BLEModule::updateAndNotify(uint8_t* arr, size_t size) {
+void BLEModule::update(DataPacket* dataPacket) {
+  uint8_t arr[MAX_BYTES_IN_PACKET];
+  size_t size = dataPacket->toByteArray(arr);
   this->pCharacteristic->setValue(arr, size);
   this->pCharacteristic->notify();
 }

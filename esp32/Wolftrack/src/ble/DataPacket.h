@@ -15,12 +15,10 @@ class DataPacket {
     std::bitset<MAX_BITS_IN_PACKET> bits;
     // the number of bits 
     size_t numBitsUsed;
-    // an array of bytes that the bitset can be converted into
-    uint8_t byteArray[MAX_BYTES_IN_PACKET];
   public:
     DataPacket();
     void addValue(unsigned int, size_t);
-    uint8_t* toByteArray(size_t*);
+    size_t toByteArray(uint8_t*);
 };
 
 #endif
