@@ -1,6 +1,7 @@
 # wolftrack
-Keep track of the Wolfpack...on the track ;)
+Wolftrack is a hardware and software system used for real-time data acquistion and display for the North Carolina State University SAE Baja motorsports team.
 
+Wolftrack is designed to be used with two specific pieces of hardware: an ESP32 microcontroller and a modern Android smartphone.
 
 ## Working with ESP32
 The steps below assume that you are using the HiLetgo ESP-WROOM-32 ESP32 ESP-32S Development Board that you can purchase on Amazon [here](https://www.amazon.com/dp/B0718T232Z).  If you're working with a different board, then these instructions may be slightly different.
