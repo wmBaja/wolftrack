@@ -49,7 +49,8 @@ void setup() {
 }
 
 #if _ENABLE_PERFORMANCE_PROFILING
-bool profilingDone = false;
+#define PROFILING_REPORT_INTERVAL 5000000
+unsigned long nextProfilingReportTime = PROFILING_REPORT_INTERVAL;
 unsigned long loopCount = 0;
 #endif
 
@@ -99,15 +100,18 @@ void loop() {
 
 #if _ENABLE_PERFORMANCE_PROFILING
   loopCount++;
-  unsigned long timePassed = micros();
-  if (timePassed > 5000000 && !profilingDone) {
+  unsigned long curMicroTime = micros();
+  if (curMicroTime > nextProfilingReportTime) {
+    unsigned long timePassed = curMicroTime - nextProfilingReportTime;
     Serial.println("\nTime passed (microseconds): ");
     Serial.print(timePassed);
     Serial.println("\nLoop count: ");
     Serial.print(loopCount);
     Serial.println("\nLoops per second: ");
     Serial.println(loopCount / (timePassed / 1000000));
-    profilingDone = true;
+
+    loopCount = 0;
+    nextProfilingReportTime = curMicroTime + PROFILING_REPORT_INTERVAL;
   }
 #endif
 }
