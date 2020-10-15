@@ -17,6 +17,7 @@ class CompetitionSensorGroup: public SensorGroup {
     BrakePressure brakeSensor1;
     BrakePressure brakeSensor2;
   public:
+    CompetitionSensorGroup();
     void loop();
     void buildDataPacket(DataPacket*);
 };
