@@ -6,16 +6,23 @@
 // amount of time between RPM updates (in ms)
 #define RPM_UPDATE_INTERVAL 1000
 
-EngineRPM::EngineRPM(int pin) {
+EngineRPM::EngineRPM(int pin):
+  pin(pin),                      // NOTE: this is called a member intialization list
+  sparking(false),
+  lastSparkTime(0),
+  numSparks(0),
+  sparkIntervalSum(0),
+  engineRPM(0),
+  nextUpdateTime(0)
+{
   pinMode(pin, INPUT);
-  this->pin = pin;
-  this->sparking = false;
-  this->lastSparkTime = 0;
-  this->numSparks = 0;
-  this->sparkIntervalSum = 0;
-  this->engineRPM = 0;
-  this->nextUpdateTime = 0;
 }
+
+// default constructor which just delegates to the int constructor and
+// passes the engine RPM pin from the config file
+EngineRPM::EngineRPM():
+  EngineRPM::EngineRPM(ENGINE_RPM_PIN) // NOTE: this is called a member intialization list
+{}
 
 /**
  * Checks whether or not the engine is sparking;

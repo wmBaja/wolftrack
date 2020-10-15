@@ -3,9 +3,9 @@
 #include "BrakePressure.h"
 #include "../../config.h"
 
-BrakePressure::BrakePressure() {
-  this->brakePressure = 0;
-}
+BrakePressure::BrakePressure():
+  brakePressure(0)
+{}
 
 void BrakePressure::loop() {
 #if _GENERATE_RANDOM_VALUES

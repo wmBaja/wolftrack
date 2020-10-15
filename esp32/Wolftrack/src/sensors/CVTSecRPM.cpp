@@ -6,16 +6,23 @@
 // amount of time between RPM updates (in ms)
 #define RPM_UPDATE_INTERVAL 1000
 
-CVTSecRPM::CVTSecRPM(int pin) {
+CVTSecRPM::CVTSecRPM(int pin):
+  pin(pin),                      // NOTE: this is called a member intialization list
+  magIsPassing(false),
+  lastMagPassTime(0),
+  numMagPasses(0),
+  magPassIntervalSum(0),
+  cvtSecRPM(0),
+  nextUpdateTime(0)
+{
   pinMode(pin, INPUT);
-  this->pin = pin;
-  this->magIsPassing = false;
-  this->lastMagPassTime = 0;
-  this->numMagPasses = 0;
-  this->magPassIntervalSum = 0;
-  this->cvtSecRPM = 0;
-  this->nextUpdateTime = 0;
 }
+
+// default constructor which just delegates to the int constructor and
+// passes the CVT secondary RPM pin from the config file
+CVTSecRPM::CVTSecRPM():
+  CVTSecRPM::CVTSecRPM(CVT_SEC_RPM_PIN) // NOTE: this is called a member intialization list
+{}
 
 /**
  * Checks whether or not the shaft's magnet is passing;

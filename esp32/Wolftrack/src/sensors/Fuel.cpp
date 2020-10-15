@@ -3,9 +3,9 @@
 #include "Fuel.h"
 #include "../../config.h"
 
-Fuel::Fuel() {
-  this->fuel = 0;
-}
+Fuel::Fuel():
+  fuel(0)
+{}
 
 void Fuel::loop() {
 #if _GENERATE_RANDOM_VALUES

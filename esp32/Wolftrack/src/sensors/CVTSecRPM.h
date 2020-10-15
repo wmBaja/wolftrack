@@ -21,6 +21,7 @@ class CVTSecRPM: public Sensor {
     // the next time to calculate the RPM (in ms)
     unsigned long nextUpdateTime;
   public:
+    CVTSecRPM();
     CVTSecRPM(int);
     void loop();
     int getValue();

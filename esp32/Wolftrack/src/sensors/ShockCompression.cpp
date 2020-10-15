@@ -3,9 +3,9 @@
 #include "ShockCompression.h"
 #include "../../config.h"
 
-ShockCompression::ShockCompression() {
-  this->shockCompression = 0;
-}
+ShockCompression::ShockCompression():
+  shockCompression(0)
+{}
 
 void ShockCompression::loop() {
 #if _GENERATE_RANDOM_VALUES

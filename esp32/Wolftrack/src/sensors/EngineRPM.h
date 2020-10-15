@@ -21,6 +21,7 @@ class EngineRPM: public Sensor {
     // the next time to calculate the RPM (in ms)
     unsigned long nextUpdateTime;
   public:
+    EngineRPM();
     EngineRPM(int);
     void loop();
     int getValue();

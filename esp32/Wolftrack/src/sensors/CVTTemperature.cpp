@@ -3,9 +3,9 @@
 #include "CVTTemperature.h"
 #include "../../config.h"
 
-CVTTemperature::CVTTemperature() {
-  this->cvtTemp = 0;
-}
+CVTTemperature::CVTTemperature():
+  cvtTemp(0)
+{}
 
 void CVTTemperature::loop() {
 #if _GENERATE_RANDOM_VALUES
