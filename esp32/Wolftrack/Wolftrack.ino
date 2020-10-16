@@ -17,8 +17,11 @@ BLEModule bleModule;
 SensorGroup* sensorGroup;
 
 void setup() {
+
+#if TESTING
   // start serial connection
   Serial.begin(BAUD_RATE);
+#endif
 
   // initialize sensor group
   sensorGroup = new CompetitionSensorGroup();
@@ -30,7 +33,7 @@ void setup() {
   bleModule = BLEModule();
 }
 
-#if _ENABLE_PERFORMANCE_PROFILING
+#if ENABLE_PERFORMANCE_PROFILING
 #define PROFILING_REPORT_INTERVAL 5000000
 unsigned long nextProfilingReportTime = PROFILING_REPORT_INTERVAL;
 unsigned long loopCount = 0;
@@ -39,7 +42,7 @@ unsigned long loopCount = 0;
 void loop() {
   unsigned long curTime = millis();
 
-  // call the loop() method for each sensor
+  // run sensor code
   sensorGroup->loop();
 
   // if it's time to transmit and there's a BLE connection
@@ -55,7 +58,7 @@ void loop() {
     nextTransmissionTime = curTime + TRANSMISSION_INTERVAL;
   }
 
-#if _ENABLE_PERFORMANCE_PROFILING
+#if ENABLE_PERFORMANCE_PROFILING
   loopCount++;
   unsigned long curMicroTime = micros();
   if (curMicroTime > nextProfilingReportTime) {

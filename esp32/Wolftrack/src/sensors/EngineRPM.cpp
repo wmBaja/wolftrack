@@ -77,7 +77,7 @@ void EngineRPM::updateRPM() {
 }
 
 void EngineRPM::loop() {
-#if _GENERATE_RANDOM_VALUES
+#if GENERATE_RANDOM_VALUES
   this->engineRPM = random(1000, 4000);
 #else
   this->checkForSparks();

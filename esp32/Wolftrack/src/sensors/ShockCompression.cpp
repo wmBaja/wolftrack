@@ -8,7 +8,7 @@ ShockCompression::ShockCompression():
 {}
 
 void ShockCompression::loop() {
-#if _GENERATE_RANDOM_VALUES
+#if GENERATE_RANDOM_VALUES
   this->shockCompression = random(1024);
 #else
   // TODO need to implement
