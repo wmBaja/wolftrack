@@ -9,10 +9,10 @@ BrakePressure::BrakePressure():
 
 void BrakePressure::loop() {
 #if GENERATE_RANDOM_VALUES
-  this->brakePressure = random(1024);
+  this->brakePressure = random(2000);
 #else
   // TODO need to implement
-  this->brakePressure = random(1024);
+  this->brakePressure = random(2000);
 #endif
 }
 

@@ -9,10 +9,10 @@ CVTTemperature::CVTTemperature():
 
 void CVTTemperature::loop() {
 #if GENERATE_RANDOM_VALUES
-  this->cvtTemp = random(1024);
+  this->cvtTemp = random(255);
 #else
   // TODO need to implement
-  this->cvtTemp = random(1024);
+  this->cvtTemp = random(255);
 #endif
 }
 

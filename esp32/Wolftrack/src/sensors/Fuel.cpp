@@ -9,10 +9,10 @@ Fuel::Fuel():
 
 void Fuel::loop() {
 #if GENERATE_RANDOM_VALUES
-  this->fuel = random(1024);
+  this->fuel = random(100);
 #else
   // TODO need to implement
-  this->fuel = random(1024);
+  this->fuel = random(100);
 #endif
 }
 
