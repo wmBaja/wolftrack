@@ -3,6 +3,13 @@ Everything in this folder is related to the client that runs on the mobile devic
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
+## Deploying to Firebase Hosting
+1. Make sure you have the Firebase CLI installed on your machine by running `npm install -g firebase-tools`. (You need to already have installed Node.js.)
+2. Make sure you are logged in by running `firebase login`.
+3. Make sure you are in the "pwa" directory and run `npm run build` to build a production version of the web app.
+4. Then run `firebase deploy --only hosting` to deploy the build to Firebase Hosting.
+
+
 ## Available Scripts
 
 In the project directory, you can run:
