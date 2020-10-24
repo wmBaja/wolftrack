@@ -7,6 +7,10 @@
 #include "BLEModule.h"
 #include "../../config.h"
 
+// NOTE: If you construct this outside of the setup() method in the main .ino
+// file, then the ESP32 will continously turn off and back on.
+// NOTE: C++ will automatically call the default constructor when declaring
+// a global variable with a class (like BLEModule) as its type.
 BLEModule::BLEModule() {
   this->deviceConnected = false;
 
