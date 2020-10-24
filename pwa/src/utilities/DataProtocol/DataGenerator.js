@@ -1,41 +1,38 @@
 import DataDecoder from './DataDecoder.js';
 
+//import { COMPETITION_PACKET_DEFINITION } from './PACKET_DEFINITIONS.js';
+
 export default class DataGenerator {
   static generateRandomData(currentData) {
-    // create an ArrayBuffer with a size in bytes
-    const buffer = new ArrayBuffer(16);
-
-    // create a DataView
-    const dataView = new DataView(buffer);
-
     // generate random values for the integers
-    // 1. fuel gauge Hall-effect sensor reading
-    const fuelHallEffectReading = Math.round(Math.random() * 1024);
+    // 1. fuel sensor reading
+    const fuelReading = Math.round(Math.random() * 100);
     // 2. engine RPM
     const engineRPM = Math.round(Math.random() * 3000 + 1000);
     // 3. CVT secondary RPM
     const secRPM = Math.round(engineRPM / (Math.random() * 2.6 + 0.9));
-    // 4. CVT thermistor reading
-    const cvtThermistorReading = Math.round(Math.random() * 1024);
+    // 4. CVT temperature reading
+    const cvtTempReading = Math.round(Math.random() * 255);
     // 5. brake pressure sensor 1 reading
-    const brakePressureReading1 = Math.round(Math.random() * 1024);
+    const brakePressureReading1 = Math.round(Math.random() * 2000);
     // 6. brake pressure sensor 2 reading
-    const brakePressureReading2 = Math.round(Math.random() * 1024);
-    // 7. shock actuation sensor 1 reading
-    const shockActuationReading1 = Math.round(Math.random() * 1024);
-    // 8. shock actuation sensor 2 reading
-    const shockActuationReading2 = Math.round(Math.random() * 1024);
+    const brakePressureReading2 = Math.round(Math.random() * 2000);
 
-    // set the values in the DataView
-    dataView.setUint16(0, fuelHallEffectReading);
-    dataView.setUint16(2, engineRPM);
-    dataView.setUint16(4, secRPM);
-    dataView.setUint16(6, cvtThermistorReading);
-    dataView.setUint16(8, brakePressureReading1);
-    dataView.setUint16(10, brakePressureReading2);
-    dataView.setUint16(12, shockActuationReading1);
-    dataView.setUint16(14, shockActuationReading2);
+    const sensors = {
+      fuel: fuelReading,
+      engine_rpm: engineRPM,
+      cvt_rpm: secRPM,
+      cvt_temp: cvtTempReading,
+      front_brake_pressure: brakePressureReading1,
+      rear_brake_pressure: brakePressureReading2,
+    };
 
-    return DataDecoder.decodeData(dataView, currentData);
+    return {
+      sensorRawValues: sensors,
+      fuel: DataDecoder.calculateFuelData(sensors.fuel, currentData.fuel.remainingEMALiters),
+      drivetrain: DataDecoder.calculateDrivetrainData(sensors.engine_rpm, sensors.cvt_rpm, sensors.cvt_temp),
+      brakes: DataDecoder.calculateBrakesData(sensors.front_brake_pressure, sensors.rear_brake_pressure),
+      // suspension: DataDecoder.calculateSuspensionData(shockActuationReading1, shockActuationReading2),
+    };
   }
 }

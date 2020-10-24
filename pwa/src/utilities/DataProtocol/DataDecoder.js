@@ -1,68 +1,68 @@
-import { MAX_ANALOG_VALUE, NEUTRAL_MAGNETISM_VALUE, MAX_FUEL_CAPACITY, MAGICAL_CONSTANT_FOR_SPEED, MAX_LIN_POT_ACTUATION_IN } from './DEFAULT_DATA.js';
+import { MAX_ANALOG_VALUE, MAX_FUEL_CAPACITY, MAGICAL_CONSTANT_FOR_SPEED,
+  MAX_LIN_POT_ACTUATION_IN } from './DEFAULT_DATA.js';
+
+import { COMPETITION_PACKET_DEFINITION } from './PACKET_DEFINITIONS.js';
 
 const FUEL_EMA_WEIGHT = 0.1;
 
+const BIT_MASKS = [
+  0b11111111, 0b01111111, 0b00111111, 0b00011111,
+  0b00001111, 0b00000111, 0b00000011, 0b00000001
+];
+
 export default class DataDecoder {
-  static decodeData(rawData, currentData) {
-    if (rawData.byteLength !== 16) {
-      console.log('Non-protocol number of bytes in data array: ' + rawData.byteLength);
-      console.log('Undefined behavior expected...');
-    }
-    const curRemainingEMALiters = currentData.fuel.remainingEMALiters;
-    // const hexReps = [];
-    const twoByteInts = [];
-    for (let i = 0; i < rawData.byteLength; i++) {
-      // hexReps.push(('0' + rawData.getUint8(i).toString(16)).slice(-2));
-      if (i % 2 === 0) {
-        twoByteInts.push(rawData.getUint16(i));
+  static extractSensorReadings(byteArray, packetDefinition) {
+    const values = {};
+  
+    let bitOffset = 0;
+    for (let {valueName, bitLength} of packetDefinition) {
+      let value = 0;
+
+      // extract the bits for this value from the byte array
+      let bitsLeftToExtract = bitLength;
+      let curByteIdx = Math.floor(bitOffset / 8);
+      let nextBitInCurByteToExtractIdx = bitOffset % 8;
+      while (bitsLeftToExtract > 0) {
+        const numBitsToExtractFromCurByte = Math.min(8 - nextBitInCurByteToExtractIdx, bitsLeftToExtract);
+        // pull the needed bits out of the current byte
+        const curByte = byteArray[curByteIdx];
+        let extractedBits = curByte & BIT_MASKS[nextBitInCurByteToExtractIdx];
+        // shift out any extra bits that weren't needed on the least significant side
+        extractedBits = extractedBits >>> (8 - (nextBitInCurByteToExtractIdx + numBitsToExtractFromCurByte));
+        // shift the value left to fit the new bits
+        value = value << numBitsToExtractFromCurByte;
+        // OR in the new bits
+        value = value | extractedBits;
+        // decrement the bits left to extract
+        bitsLeftToExtract -= numBitsToExtractFromCurByte;
+        // then go to the next byte
+        curByteIdx++;
+        nextBitInCurByteToExtractIdx = 0;
       }
+
+      values[valueName] = value; // add the value to the dict of values
+      bitOffset += bitLength; // update the bit offset into the byte array
     }
-    // console.log('HexRep: ' + hexReps.join(' '));
-    // console.log('Uint16: ' + twoByteInts.join(' '));
+    return values;
+  }
 
-    /*
-    The data protocol specifies that the array of 8 16-bit integers correspond to:
-    1. fuel gauge Hall-effect sensor reading
-    2. engine RPM
-    3. CVT RPM
-    4. CVT thermistor reading
-    5. brake pressure sensor 1 reading
-    6. brake pressure sensor 2 reading
-    7. shock actuation sensor 1 reading
-    8. shock actuation sensor 2 reading
-    */
+  static decodeData(rawData, currentData) {
+    const byteArray = new Uint8Array(rawData.buffer);
 
-    const fuelHallEffectReading = twoByteInts[0];
-    const engineRPM = twoByteInts[1];
-    const cvtRPM = twoByteInts[2];
-    const cvtThermistorReading = twoByteInts[3];
-    const brakePressureReading1 = twoByteInts[4];
-    const brakePressureReading2 = twoByteInts[5];
-    const shockActuationReading1 = twoByteInts[6];
-    const shockActuationReading2 = twoByteInts[7];
+    const sensors = DataDecoder.extractSensorReadings(byteArray, COMPETITION_PACKET_DEFINITION);
 
     return {
       rawData,
-      fuel: DataDecoder.calculateFuelData(fuelHallEffectReading, curRemainingEMALiters),
-      drivetrain: DataDecoder.calculateDrivetrainData(engineRPM, cvtRPM, cvtThermistorReading),
-      brakes: DataDecoder.calculateBrakesData(brakePressureReading1, brakePressureReading2),
-      suspension: DataDecoder.calculateSuspensionData(shockActuationReading1, shockActuationReading2),
+      fuel: DataDecoder.calculateFuelData(sensors.fuel, currentData.fuel.remainingEMALiters),
+      drivetrain: DataDecoder.calculateDrivetrainData(sensors.engine_rpm, sensors.cvt_rpm, sensors.cvt_temp),
+      brakes: DataDecoder.calculateBrakesData(sensors.front_brake_pressure, sensors.rear_brake_pressure),
+      // suspension: DataDecoder.calculateSuspensionData(shockActuationReading1, shockActuationReading2),
     };
   }
 
-  static _calcRemainingLiters(distFromCenterValue) {
-    return (distFromCenterValue / 513) * MAX_FUEL_CAPACITY;
-  }
-
-  static _calcRemainingEMALiters(curAvg, newVal) {
-    return FUEL_EMA_WEIGHT * newVal + (1 - FUEL_EMA_WEIGHT) * curAvg;
-  }
-
   static calculateFuelData(sensorReading, curRemainingEMALiters) {
-    const distFromCenterValue = Math.abs(sensorReading - NEUTRAL_MAGNETISM_VALUE);
-
-    const remainingLiters = DataDecoder._calcRemainingLiters(distFromCenterValue);
-    const remainingEMALiters = DataDecoder._calcRemainingEMALiters(curRemainingEMALiters, remainingLiters);
+    const remainingLiters = sensorReading / 100 * MAX_FUEL_CAPACITY;
+    const remainingEMALiters = FUEL_EMA_WEIGHT * remainingLiters + (1 - FUEL_EMA_WEIGHT) * curRemainingEMALiters;
     const remainingEMAPercentage = remainingEMALiters / MAX_FUEL_CAPACITY;
 
     return {
