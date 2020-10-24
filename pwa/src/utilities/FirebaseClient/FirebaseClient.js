@@ -149,6 +149,7 @@ export default class FirebaseClient {
    * @param {object} data data in the format that the DataDecoder produces
    */
   addNewDataPoint(data) {
+    return;
     const sensorDataView = data.rawData;
     if (sensorDataView.byteLength !== 16) {
       console.log('Non-protocol number of bytes in data array: ' + data.rawData.byteLength);
