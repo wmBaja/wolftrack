@@ -78,7 +78,7 @@ void CVTSecRPM::updateRPM() {
 
 void CVTSecRPM::loop() {
 #if GENERATE_RANDOM_VALUES
-  this->cvtSecRPM = random(1000, 4000) / (random(26) / 10.0 * 0.9);
+  this->cvtSecRPM = random(500, 4500);
 #else
   this->checkForMagPasses();
   this->updateRPM();
