@@ -10,6 +10,17 @@ const BIT_MASKS = [
   0b00001111, 0b00000111, 0b00000011, 0b00000001
 ];
 
+/**
+ * Converts a buffer into hex values.
+ * @param {*} buffer the buffer to convert to hex
+ * @return {string} hex values as a string
+ */
+// function bufToHex(buffer) {
+//   return [...new Uint8Array(buffer)]
+//       .map(b => b.toString(16).padStart(2, '0'))
+//       .join(' ');
+// }
+
 export default class DataDecoder {
   static extractSensorReadings(byteArray, packetDefinition) {
     const values = {};
@@ -54,7 +65,7 @@ export default class DataDecoder {
     return {
       rawData,
       fuel: DataDecoder.calculateFuelData(sensors.fuel, currentData.fuel.remainingEMALiters),
-      drivetrain: DataDecoder.calculateDrivetrainData(sensors.engine_rpm, sensors.cvt_rpm, sensors.cvt_temp),
+      drivetrain: DataDecoder.calculateDrivetrainData(sensors.engine_rpm, sensors.cvt_sec_rpm, sensors.cvt_temp),
       brakes: DataDecoder.calculateBrakesData(sensors.front_brake_pressure, sensors.rear_brake_pressure),
       // suspension: DataDecoder.calculateSuspensionData(shockActuationReading1, shockActuationReading2),
     };
