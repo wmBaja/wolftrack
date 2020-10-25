@@ -38,7 +38,7 @@ function getValueAndUnitFor(typeOfValue, data) {
     case 'FRONT_BRAKE_PRESSURE':
       return [data.brakes.frontBrakePressurePsi, 'FB psi'];
     case 'REAR_BRAKE_PRESSURE':
-      return [data.brakes.frontBrakePressurePsi, 'RB psi'];
+      return [data.brakes.rearBrakePressurePsi, 'RB psi'];
     default:
       return ['ERROR', 'ERROR'];
   }
