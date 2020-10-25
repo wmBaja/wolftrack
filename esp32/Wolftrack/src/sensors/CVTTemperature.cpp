@@ -4,15 +4,27 @@
 #include "../../config.h"
 
 CVTTemperature::CVTTemperature():
-  cvtTemp(0)
+  cvtTemp(0),
+  oneWire(CVT_TEMP_PIN),
+  sensors(&oneWire),
+  nextReadTime(0)
 {}
 
 void CVTTemperature::loop() {
 #if GENERATE_RANDOM_VALUES
   this->cvtTemp = random(255);
 #else
-  // TODO need to implement
-  this->cvtTemp = random(255);
+  unsigned long curTime = millis();
+
+  if (curTime > this->nextReadTime) {
+    sensors.requestTemperatures();
+    float temperatureF = sensors.getTempFByIndex(0);
+    this->cvtTemp = (int) temperatureF;
+
+    // calculate the next read time
+    this->nextReadTime = curTime + READ_INTERVAL;
+  }
+
 #endif
 }
 
