@@ -79,6 +79,7 @@ export default class FirebaseClient {
 
 ///////// FIRESTORE OPERATIONS ////////
   async _upload() {
+    return;
     console.log('Attempting upload...');
     if (!this.isSignedIn()) {
       console.log('Upload aborted. No user is signed in.');
