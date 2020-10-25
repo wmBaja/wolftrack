@@ -39,8 +39,7 @@ void DataPacket::addValue(unsigned int value, size_t numBitsNeeded) {
 uint8_t getNthByteFromRight(std::bitset<MAX_BITS_IN_PACKET> bits, size_t n) {
   uint8_t nthByteFromRight = 0;
   for (int i = 0; i < BITS_IN_BYTE; i++) {
-    nthByteFromRight <<= 1; // shift left one bit
-    nthByteFromRight |= bits[n * BITS_IN_BYTE + i]; // set the rightmost bit to the appropriate bit in the bitset
+    nthByteFromRight |= (bits[n * BITS_IN_BYTE + i] << i); // set the i-th (from the right) bit to the appropriate bit in the bitset
   }
   return nthByteFromRight;
 }
@@ -68,7 +67,8 @@ size_t DataPacket::toByteArray(uint8_t* arr) {
   for (int i = 0; i < numBytesUsed; i++) {
     /* transfer the i-th byte (from the right) in the bitset to the i-th byte
     (from the right) in the byte array */
-    arr[numBytesUsed - i - 1] = getNthByteFromRight(this->bits, i);
+    size_t n = numBytesUsed - i - 1;
+    arr[i] =  getNthByteFromRight(this->bits, n);
   }
 
   return numBytesUsed;
