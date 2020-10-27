@@ -2,13 +2,16 @@
 #include "../../../config.h"
 
 CompetitionSensorGroup::CompetitionSensorGroup():
-  fuelSensor(),
+  adc(),
+  fuelSensor(&adc, FUEL_HALL_EFFECT_CHANNEL),
   engineRPMSensor(ENGINE_RPM_PIN),
   cvtSecRPMSensor(CVT_SEC_RPM_PIN),
   cvtTempSensor(),
-  brakeSensor1(),
-  brakeSensor2()
-{}
+  brakeSensor1(&adc, FRONT_BRAKE_PRESSURE_CHANNEL),
+  brakeSensor2(&adc, REAR_BRAKE_PRESSURE_CHANNEL)
+{
+  adc.begin(MCP3008_SPI_CS, MCP3008_SPI_MOSI, MCP3008_SPI_MISO, MCP3008_SPI_SCLK);
+}
 
 void CompetitionSensorGroup::loop() {
   fuelSensor.loop();

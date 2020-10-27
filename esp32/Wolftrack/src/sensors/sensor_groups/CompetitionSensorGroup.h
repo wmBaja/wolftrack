@@ -1,8 +1,9 @@
 #ifndef _COMP_SENSOR_GROUP_H
 #define _COMP_SENSOR_GROUP_H
 
-#include "SensorGroup.h"
+#include <MCP3XXX.h>
 
+#include "SensorGroup.h"
 #include "../Fuel.h"
 #include "../EngineRPM.h"
 #include "../CVTSecRPM.h"
@@ -10,6 +11,7 @@
 #include "../BrakePressure.h"
 
 class CompetitionSensorGroup: public SensorGroup {
+    MCP3008 adc;
     Fuel fuelSensor;
     EngineRPM engineRPMSensor;
     CVTSecRPM cvtSecRPMSensor;
