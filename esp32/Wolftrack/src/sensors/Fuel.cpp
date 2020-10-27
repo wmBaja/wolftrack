@@ -12,21 +12,31 @@
 #define LOWEST_MAGNETISM_VALUE 16
 #define HIGHEST_MAGNETISM_VALUE 623
 
-Fuel::Fuel():
-  fuel(0)
+Fuel::Fuel(MCP3008* adc, uint8_t adcChannel):
+  adc(adc),
+  adcChannel(adcChannel),
+  fuel(0),
+  nextReadTime(0)
 {}
 
 void Fuel::loop() {
 #if GENERATE_RANDOM_VALUES
   this->fuel = random(100);
 #else
-  // TODO need to implement
-  int voltageValue = 0;
+  unsigned long curTime = millis();
 
-  int distFromCenterValue = std::abs(voltageValue - NEUTRAL_MAGNETISM_VALUE);
+  if (curTime > this->nextReadTime) {
+    // TODO implement fuel calculation
+    uint32_t analogValue = this->adc->analogRead(this->adcChannel);
+    // int distFromCenterValue = std::abs(voltageValue - NEUTRAL_MAGNETISM_VALUE);
+    // double remainingLiters = (distFromCenterValue / 513) * MAX_FUEL_CAPACITY;
+    // this->fuel = remainingLiters / MAX_FUEL_CAPACITY;
+    this->fuel = (analogValue / 1023.0) * 100;
 
-  double remainingLiters = (distFromCenterValue / 513) * MAX_FUEL_CAPACITY;
-  this->fuel = remainingLiters / MAX_FUEL_CAPACITY;
+    // calculate the next read time
+    this->nextReadTime = curTime + READ_INTERVAL;
+  }
+
 #endif
 }
 
