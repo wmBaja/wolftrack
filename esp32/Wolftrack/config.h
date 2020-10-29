@@ -6,7 +6,6 @@
  * the microcontroller code behaves.
  */
 
-
 //////////////////////////////////////////////////////// Testing Electronics System ///////////////
 // whether or not to enable performance profiling
 #define ENABLE_PERFORMANCE_PROFILING 1
@@ -17,7 +16,6 @@
 // the baud rate for the serial connection
 #define BAUD_RATE 115200
 
-
 //////////////////////////////////////////////////////// Physical Constants ///////////////
 // number of milliseconds in a second
 #define MILLIS_IN_SEC 1000
@@ -25,7 +23,6 @@
 #define SECS_IN_MIN 60
 // number of microseconds in a minute
 #define MICROS_IN_MIN 60000000
-
 
 //////////////////////////////////////////////////////// Bluetooth Low Energy ///////////////
 // BLE device name
@@ -36,7 +33,6 @@
 #define CHARACTERISTIC_UUID "12345678-1234-5678-1234-56789abcdef1"
 // amount of time between data notifications over BLE (in ms)
 #define TRANSMISSION_INTERVAL 1000
-
 
 //////////////////////////////////////////////////////// ESP32 Pin Definitions ///////////////
 // SPI Master Out Slave In (MOSI)
@@ -83,7 +79,6 @@
 // IR Lap Timer Signal
 #define IR_LAP_TIMER_PIN 15
 
-
 //////////////////////////////////////////////////////// MCP3008 Channel Definitions ///////////////
 // Fuel Hall-Effect Sensor Output
 #define FUEL_HALL_EFFECT_CHANNEL 0
@@ -95,7 +90,6 @@
 #define SHOCK_1_COMPRESSION_CHANNEL 3
 // Shock 2 Linear Potentiometer Output
 #define SHOCK_2_COMPRESSION_CHANNEL 4
-
 
 //////////////////////////////////////////////////////// Data Protocol ///////////////
 // the number of bits needed to represent fuel data
@@ -110,7 +104,5 @@
 #define BRAKE_PRESSURE_DATA_BITS 11
 // the number of bits needed to represent lap timer data
 #define IR_LAP_TIMER_DATA_BITS 1
-
-
 
 #endif

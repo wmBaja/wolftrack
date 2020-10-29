@@ -11,7 +11,8 @@
 // file, then the ESP32 will continously turn off and back on.
 // NOTE: C++ will automatically call the default constructor when declaring
 // a global variable with a class (like BLEModule) as its type.
-BLEModule::BLEModule() {
+BLEModule::BLEModule()
+{
   this->deviceConnected = false;
 
   // Create the BLE Device
@@ -23,10 +24,9 @@ BLEModule::BLEModule() {
   this->pService = this->pServer->createService(SERVICE_UUID);
   // Create a BLE Characteristic
   this->pCharacteristic = this->pService->createCharacteristic(
-                      CHARACTERISTIC_UUID,
-                      BLECharacteristic::PROPERTY_READ   |
-                      BLECharacteristic::PROPERTY_NOTIFY
-                    );
+      CHARACTERISTIC_UUID,
+      BLECharacteristic::PROPERTY_READ |
+          BLECharacteristic::PROPERTY_NOTIFY);
   // Create a BLE Descriptor
   this->pCharacteristic->addDescriptor(new BLE2902());
 
@@ -34,33 +34,38 @@ BLEModule::BLEModule() {
   this->pService->start();
 
   // Start advertising
-  BLEAdvertising* pAdvertising = BLEDevice::getAdvertising();
+  BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
   pAdvertising->addServiceUUID(SERVICE_UUID);
   pAdvertising->setScanResponse(false);
-  pAdvertising->setMinPreferred(0x0);  // set value to 0x00 to not advertise this parameter
+  pAdvertising->setMinPreferred(0x0); // set value to 0x00 to not advertise this parameter
   BLEDevice::startAdvertising();
 }
 
-void BLEModule::update(DataPacket* dataPacket) {
+void BLEModule::update(DataPacket *dataPacket)
+{
   uint8_t arr[MAX_BYTES_IN_PACKET];
   size_t size = dataPacket->toByteArray(arr);
   this->pCharacteristic->setValue(arr, size);
   this->pCharacteristic->notify();
 }
 
-bool BLEModule::isDeviceConnected() {
+bool BLEModule::isDeviceConnected()
+{
   return this->deviceConnected;
 }
 
-Callbacks::Callbacks(bool* deviceConnected) {
+Callbacks::Callbacks(bool *deviceConnected)
+{
   this->deviceConnected = deviceConnected;
 }
 
-void Callbacks::onConnect(BLEServer* pServer) {
+void Callbacks::onConnect(BLEServer *pServer)
+{
   *deviceConnected = true;
 }
 
-void Callbacks::onDisconnect(BLEServer* pServer) {
+void Callbacks::onDisconnect(BLEServer *pServer)
+{
   *deviceConnected = false;
 
   // restart advertising

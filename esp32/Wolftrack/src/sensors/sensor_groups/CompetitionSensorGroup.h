@@ -10,18 +10,20 @@
 #include "../CVTTemperature.h"
 #include "../BrakePressure.h"
 
-class CompetitionSensorGroup: public SensorGroup {
-    MCP3008 adc;
-    Fuel fuelSensor;
-    EngineRPM engineRPMSensor;
-    CVTSecRPM cvtSecRPMSensor;
-    CVTTemperature cvtTempSensor;
-    BrakePressure brakeSensor1;
-    BrakePressure brakeSensor2;
-  public:
-    CompetitionSensorGroup();
-    void loop();
-    void buildDataPacket(DataPacket*);
+class CompetitionSensorGroup : public SensorGroup
+{
+  MCP3008 adc;
+  Fuel fuelSensor;
+  EngineRPM engineRPMSensor;
+  CVTSecRPM cvtSecRPMSensor;
+  CVTTemperature cvtTempSensor;
+  BrakePressure brakeSensor1;
+  BrakePressure brakeSensor2;
+
+public:
+  CompetitionSensorGroup();
+  void loop();
+  void buildDataPacket(DataPacket *);
 };
 
 #endif

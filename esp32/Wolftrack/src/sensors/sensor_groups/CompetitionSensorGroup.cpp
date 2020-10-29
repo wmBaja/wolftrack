@@ -1,19 +1,19 @@
 #include "CompetitionSensorGroup.h"
 #include "../../../config.h"
 
-CompetitionSensorGroup::CompetitionSensorGroup():
-  adc(),
-  fuelSensor(&adc, FUEL_HALL_EFFECT_CHANNEL),
-  engineRPMSensor(ENGINE_RPM_PIN),
-  cvtSecRPMSensor(CVT_SEC_RPM_PIN),
-  cvtTempSensor(),
-  brakeSensor1(&adc, FRONT_BRAKE_PRESSURE_CHANNEL),
-  brakeSensor2(&adc, REAR_BRAKE_PRESSURE_CHANNEL)
+CompetitionSensorGroup::CompetitionSensorGroup() : adc(),
+                                                   fuelSensor(&adc, FUEL_HALL_EFFECT_CHANNEL),
+                                                   engineRPMSensor(ENGINE_RPM_PIN),
+                                                   cvtSecRPMSensor(CVT_SEC_RPM_PIN),
+                                                   cvtTempSensor(),
+                                                   brakeSensor1(&adc, FRONT_BRAKE_PRESSURE_CHANNEL),
+                                                   brakeSensor2(&adc, REAR_BRAKE_PRESSURE_CHANNEL)
 {
   adc.begin(MCP3008_SPI_CS, MCP3008_SPI_MOSI, MCP3008_SPI_MISO, MCP3008_SPI_SCLK);
 }
 
-void CompetitionSensorGroup::loop() {
+void CompetitionSensorGroup::loop()
+{
   fuelSensor.loop();
   engineRPMSensor.loop();
   cvtSecRPMSensor.loop();
@@ -22,7 +22,8 @@ void CompetitionSensorGroup::loop() {
   brakeSensor2.loop();
 }
 
-void CompetitionSensorGroup::buildDataPacket(DataPacket* dataPacket) {
+void CompetitionSensorGroup::buildDataPacket(DataPacket *dataPacket)
+{
   *dataPacket = DataPacket();
 
   // add fuel data to the packet

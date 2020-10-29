@@ -1,6 +1,7 @@
 #include "DataPacket.h"
 
-DataPacket::DataPacket() {
+DataPacket::DataPacket()
+{
   this->bits = std::bitset<MAX_BITS_IN_PACKET>{0};
   this->numBitsUsed = 0;
 }
@@ -11,8 +12,10 @@ DataPacket::DataPacket() {
  * @param numBitsNeeded the number of rightmost bits of value to add to the
  *    data packet
  */
-void DataPacket::addValue(unsigned int value, size_t numBitsNeeded) {
-  if (this->numBitsUsed + numBitsNeeded > MAX_BITS_IN_PACKET) {
+void DataPacket::addValue(unsigned int value, size_t numBitsNeeded)
+{
+  if (this->numBitsUsed + numBitsNeeded > MAX_BITS_IN_PACKET)
+  {
     throw; // should not happen as long as clients don't add too many bits
   }
 
@@ -21,7 +24,8 @@ void DataPacket::addValue(unsigned int value, size_t numBitsNeeded) {
 
   // iterate through the value's bits while setting them in the packet's bits
   unsigned int mask = 0x1;
-  for (int i = 0; i < numBitsNeeded; i++) {
+  for (int i = 0; i < numBitsNeeded; i++)
+  {
     bool bit = value & mask;
     this->bits[i] = bit;
     mask <<= 1; // shift the mask 1 bit to the left
@@ -36,9 +40,11 @@ void DataPacket::addValue(unsigned int value, size_t numBitsNeeded) {
  * @param n the index of the byte (from the right) in the bitset you want to get
  * @return the n-th byte from the right in the given bitset
  */
-uint8_t getNthByteFromRight(std::bitset<MAX_BITS_IN_PACKET> bits, size_t n) {
+uint8_t getNthByteFromRight(std::bitset<MAX_BITS_IN_PACKET> bits, size_t n)
+{
   uint8_t nthByteFromRight = 0;
-  for (int i = 0; i < BITS_IN_BYTE; i++) {
+  for (int i = 0; i < BITS_IN_BYTE; i++)
+  {
     nthByteFromRight |= (bits[n * BITS_IN_BYTE + i] << i); // set the i-th (from the right) bit to the appropriate bit in the bitset
   }
   return nthByteFromRight;
@@ -49,12 +55,14 @@ uint8_t getNthByteFromRight(std::bitset<MAX_BITS_IN_PACKET> bits, size_t n) {
  * DataPacket's state. Do NOT use the DataPacket after this method is
  * called.
  */
-size_t DataPacket::toByteArray(uint8_t* arr) {
+size_t DataPacket::toByteArray(uint8_t *arr)
+{
   // figure out the number of bytes used in the packet (AKA the array size)
   size_t numFullBytesUsed = this->numBitsUsed / BITS_IN_BYTE;
   size_t numExtraBitsUsed = this->numBitsUsed % BITS_IN_BYTE;
   size_t numBytesUsed = numFullBytesUsed;
-  if (numExtraBitsUsed > 0) {
+  if (numExtraBitsUsed > 0)
+  {
     numBytesUsed += 1;
   }
   // calculate the number of bits needed to fill out the last byte
@@ -64,11 +72,12 @@ size_t DataPacket::toByteArray(uint8_t* arr) {
   this->bits = this->bits << numPaddingBitsNeeded;
 
   // place the bits into the byte array
-  for (int i = 0; i < numBytesUsed; i++) {
+  for (int i = 0; i < numBytesUsed; i++)
+  {
     /* transfer the i-th byte (from the right) in the bitset to the i-th byte
     (from the right) in the byte array */
     size_t n = numBytesUsed - i - 1;
-    arr[i] =  getNthByteFromRight(this->bits, n);
+    arr[i] = getNthByteFromRight(this->bits, n);
   }
 
   return numBytesUsed;

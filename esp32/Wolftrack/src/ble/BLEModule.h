@@ -9,23 +9,27 @@
 
 #include "DataPacket.h"
 
-class BLEModule {
-    BLEServer* pServer;
-    BLEService* pService;
-    BLECharacteristic* pCharacteristic;
-    bool deviceConnected;
-  public:
-    BLEModule();
-    void update(DataPacket*);
-    bool isDeviceConnected();
+class BLEModule
+{
+  BLEServer *pServer;
+  BLEService *pService;
+  BLECharacteristic *pCharacteristic;
+  bool deviceConnected;
+
+public:
+  BLEModule();
+  void update(DataPacket *);
+  bool isDeviceConnected();
 };
 
-class Callbacks: public BLEServerCallbacks {
-    bool* deviceConnected;
-  public:
-    Callbacks(bool*);
-    void onConnect(BLEServer*);
-    void onDisconnect(BLEServer*);
+class Callbacks : public BLEServerCallbacks
+{
+  bool *deviceConnected;
+
+public:
+  Callbacks(bool *);
+  void onConnect(BLEServer *);
+  void onDisconnect(BLEServer *);
 };
 
 #endif

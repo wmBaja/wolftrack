@@ -6,34 +6,36 @@
 // amount of time between RPM updates (in ms)
 #define RPM_UPDATE_INTERVAL 1000
 
-EngineRPM::EngineRPM(int pin):
-  pin(pin),                      // NOTE: this is called a member intialization list
-  sparking(false),
-  lastSparkTime(0),
-  numSparks(0),
-  sparkIntervalSum(0),
-  engineRPM(0),
-  nextUpdateTime(0)
+EngineRPM::EngineRPM(int pin) : pin(pin), // NOTE: this is called a member intialization list
+                                sparking(false),
+                                lastSparkTime(0),
+                                numSparks(0),
+                                sparkIntervalSum(0),
+                                engineRPM(0),
+                                nextUpdateTime(0)
 {
   pinMode(pin, INPUT);
 }
 
 // default constructor which just delegates to the int constructor and
 // passes the engine RPM pin from the config file
-EngineRPM::EngineRPM():
-  EngineRPM::EngineRPM(ENGINE_RPM_PIN) // NOTE: this is called a member intialization list
-{}
+EngineRPM::EngineRPM() : EngineRPM::EngineRPM(ENGINE_RPM_PIN) // NOTE: this is called a member intialization list
+{
+}
 
 /**
  * Checks whether or not the engine is sparking;
  */
-void EngineRPM::checkForSparks() {
+void EngineRPM::checkForSparks()
+{
   int pinState = digitalRead(this->pin);
 
   // if the pin is high
-  if (pinState) {
+  if (pinState)
+  {
     // if the engine is not considered sparking
-    if (!this->sparking) {
+    if (!this->sparking)
+    {
       // then this is a new spark
       this->numSparks++;
       // and now we need to consider the engine as sparking
@@ -46,7 +48,9 @@ void EngineRPM::checkForSparks() {
       // update the last spark time to be this time
       this->lastSparkTime = curTimeMicros;
     }
-  } else { // else the pin is low
+  }
+  else
+  { // else the pin is low
     // thus the engine is not sparking
     this->sparking = false;
   }
@@ -55,12 +59,15 @@ void EngineRPM::checkForSparks() {
 /**
  * Updates the engine RPM;
  */
-void EngineRPM::updateRPM() {
+void EngineRPM::updateRPM()
+{
   unsigned long curTime = millis();
 
   // if it's time to update the RPM
-  if (curTime > this->nextUpdateTime) {
-    if (this->numSparks > 0) { // if there have been sparks
+  if (curTime > this->nextUpdateTime)
+  {
+    if (this->numSparks > 0)
+    { // if there have been sparks
       // calculate the average spark interval
       unsigned long avgSparkInterval = this->sparkIntervalSum / this->numSparks; // could increase accuracy by using floating point ops
 
@@ -76,7 +83,8 @@ void EngineRPM::updateRPM() {
   }
 }
 
-void EngineRPM::loop() {
+void EngineRPM::loop()
+{
 #if GENERATE_RANDOM_VALUES
   this->engineRPM = random(1000, 4000);
 #else
@@ -85,6 +93,7 @@ void EngineRPM::loop() {
 #endif
 }
 
-int EngineRPM::getValue() {
+int EngineRPM::getValue()
+{
   return this->engineRPM;
 }

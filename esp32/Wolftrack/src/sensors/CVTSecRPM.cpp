@@ -6,34 +6,36 @@
 // amount of time between RPM updates (in ms)
 #define RPM_UPDATE_INTERVAL 1000
 
-CVTSecRPM::CVTSecRPM(int pin):
-  pin(pin),                      // NOTE: this is called a member intialization list
-  magIsPassing(false),
-  lastMagPassTime(0),
-  numMagPasses(0),
-  magPassIntervalSum(0),
-  cvtSecRPM(0),
-  nextUpdateTime(0)
+CVTSecRPM::CVTSecRPM(int pin) : pin(pin), // NOTE: this is called a member intialization list
+                                magIsPassing(false),
+                                lastMagPassTime(0),
+                                numMagPasses(0),
+                                magPassIntervalSum(0),
+                                cvtSecRPM(0),
+                                nextUpdateTime(0)
 {
   pinMode(pin, INPUT);
 }
 
 // default constructor which just delegates to the int constructor and
 // passes the CVT secondary RPM pin from the config file
-CVTSecRPM::CVTSecRPM():
-  CVTSecRPM::CVTSecRPM(CVT_SEC_RPM_PIN) // NOTE: this is called a member intialization list
-{}
+CVTSecRPM::CVTSecRPM() : CVTSecRPM::CVTSecRPM(CVT_SEC_RPM_PIN) // NOTE: this is called a member intialization list
+{
+}
 
 /**
  * Checks whether or not the shaft's magnet is passing;
  */
-void CVTSecRPM::checkForMagPasses() {
+void CVTSecRPM::checkForMagPasses()
+{
   int pinState = digitalRead(this->pin);
 
   // if the pin is high
-  if (pinState) {
+  if (pinState)
+  {
     // if the shaft's magnet is not currently considered passing
-    if (!this->magIsPassing) {
+    if (!this->magIsPassing)
+    {
       // then this is a new magnet pass
       this->numMagPasses++;
       // and now we need to consider the shaft's magnet as passing
@@ -46,7 +48,9 @@ void CVTSecRPM::checkForMagPasses() {
       // update the last magnet pass time to be this time
       this->lastMagPassTime = curTimeMicros;
     }
-  } else { // else the pin is low
+  }
+  else
+  { // else the pin is low
     // thus the shaft's magnet is not passing
     this->magIsPassing = false;
   }
@@ -55,12 +59,15 @@ void CVTSecRPM::checkForMagPasses() {
 /**
  * Updates the CVT secondary RPM;
  */
-void CVTSecRPM::updateRPM() {
+void CVTSecRPM::updateRPM()
+{
   unsigned long curTime = millis();
 
   // if it's time to update the RPM
-  if (curTime > this->nextUpdateTime) {
-    if (this->numMagPasses > 0) { // if there have been sparks
+  if (curTime > this->nextUpdateTime)
+  {
+    if (this->numMagPasses > 0)
+    { // if there have been sparks
       // calculate the average magnet pass interval
       unsigned long avgMagPassInterval = this->magPassIntervalSum / this->numMagPasses; // could increase accuracy by using floating point ops
 
@@ -76,7 +83,8 @@ void CVTSecRPM::updateRPM() {
   }
 }
 
-void CVTSecRPM::loop() {
+void CVTSecRPM::loop()
+{
 #if GENERATE_RANDOM_VALUES
   this->cvtSecRPM = random(500, 4500);
 #else
@@ -85,6 +93,7 @@ void CVTSecRPM::loop() {
 #endif
 }
 
-int CVTSecRPM::getValue() {
+int CVTSecRPM::getValue()
+{
   return this->cvtSecRPM;
 }

@@ -9,17 +9,19 @@
 // amount of time between sensor reads
 #define READ_INTERVAL 5000
 
-class Fuel: public Sensor {
-    MCP3008* adc;
-    uint8_t adcChannel;
-    // the most recently calculated fuel
-    int fuel;
-    // the time at which to read a new value from the sensor
-    unsigned long nextReadTime;
-  public:
-    Fuel(MCP3008*, uint8_t);
-    void loop();
-    int getValue();
+class Fuel : public Sensor
+{
+  MCP3008 *adc;
+  uint8_t adcChannel;
+  // the most recently calculated fuel
+  int fuel;
+  // the time at which to read a new value from the sensor
+  unsigned long nextReadTime;
+
+public:
+  Fuel(MCP3008 *, uint8_t);
+  void loop();
+  int getValue();
 };
 
 #endif

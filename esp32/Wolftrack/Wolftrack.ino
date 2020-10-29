@@ -11,12 +11,13 @@
 unsigned long nextTransmissionTime = 0;
 
 ////---------------BLE--------------------
-BLEModule* bleModule;
+BLEModule *bleModule;
 
 ////---------------SENSORS----------------
-SensorGroup* sensorGroup;
+SensorGroup *sensorGroup;
 
-void setup() {
+void setup()
+{
 
 #if TESTING
   // start serial connection
@@ -40,14 +41,16 @@ unsigned long nextProfilingReportTime = PROFILING_REPORT_INTERVAL;
 unsigned long loopCount = 0;
 #endif
 
-void loop() {
+void loop()
+{
   unsigned long curTime = millis();
 
   // run sensor code
   sensorGroup->loop();
 
   // if it's time to transmit and there's a BLE connection
-  if (curTime > nextTransmissionTime && bleModule->isDeviceConnected()) {
+  if (curTime > nextTransmissionTime && bleModule->isDeviceConnected())
+  {
     // build the data packet
     DataPacket dataPacket;
     sensorGroup->buildDataPacket(&dataPacket);
@@ -62,14 +65,15 @@ void loop() {
 #if ENABLE_PERFORMANCE_PROFILING
   loopCount++;
   unsigned long curMicroTime = micros();
-  if (curMicroTime > nextProfilingReportTime) {
+  if (curMicroTime > nextProfilingReportTime)
+  {
     unsigned long timePassed = curMicroTime - nextProfilingReportTime + PROFILING_REPORT_INTERVAL;
     Serial.println("\nTime passed (microseconds): ");
     Serial.print(timePassed);
     Serial.println("\nLoop count: ");
     Serial.print(loopCount);
     Serial.println("\nLoops per second: ");
-    Serial.println((int) (loopCount / (timePassed / 1000000.0)));
+    Serial.println((int)(loopCount / (timePassed / 1000000.0)));
 
     loopCount = 0;
     nextProfilingReportTime = curMicroTime + PROFILING_REPORT_INTERVAL;
