@@ -8,3 +8,7 @@ jobs:
               echo "Test!"
               echo "Hello,"
               echo "World!"
+  test2:
+    runs-on: ['self-hosted']
+    steps:
+      - run: echo "This is stage 2!"
