@@ -5,7 +5,7 @@
 #include "config.h"
 #include "src/ble/BLEModule.h"
 #include "src/sensors/sensor_groups/SensorGroup.h"
-#include "src/sensors/sensor_groups/CompetitionSensorGroup.h"
+#include "src/sensors/sensor_groups/Busco2020_12SensorGroup.h"
 
 // the time at which the next data packet should be sent over BLE
 unsigned long nextTransmissionTime = 0;
@@ -25,7 +25,7 @@ void setup() {
 #endif
 
   // initialize sensor group
-  sensorGroup = new CompetitionSensorGroup();
+  sensorGroup = new Busco2020_12SensorGroup();
 
   // initialize first transmission time
   nextTransmissionTime = millis() + TRANSMISSION_INTERVAL;
