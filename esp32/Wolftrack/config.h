@@ -25,6 +25,8 @@
 #define SECS_IN_MIN 60
 // number of microseconds in a minute
 #define MICROS_IN_MIN 60000000
+// acceleration of gravity in m/s^2 
+#define GRAVITY_MS2 9.80665
 
 
 //////////////////////////////////////////////////////// Bluetooth Low Energy ///////////////
@@ -116,13 +118,14 @@ to connect other SPI devices along with the MCP3008. */
 #define FRONT_BRAKE_PRESSURE_CHANNEL 1
 // Rear Brakes Transducer Output
 #define REAR_BRAKE_PRESSURE_CHANNEL 2
-// Shock 1 Linear Potentiometer Output
-#define SHOCK_1_COMPRESSION_CHANNEL 3
-// Shock 2 Linear Potentiometer Output
-#define SHOCK_2_COMPRESSION_CHANNEL 4
+// Front Left Shock Linear Potentiometer Output
+#define FL_SHOCK_COMPRESSION_CHANNEL 3
+// Front Right Shock Linear Potentiometer Output
+#define FR_SHOCK_COMPRESSION_CHANNEL 4
 
 
 //////////////////////////////////////////////////////// Data Protocol ///////////////
+/////////////////////////// Bits needed for each data type ///////////////
 // the number of bits needed to represent fuel data
 #define FUEL_DATA_BITS 7
 // the number of bits needed to represent engine RPM data
@@ -136,10 +139,16 @@ to connect other SPI devices along with the MCP3008. */
 // the number of bits needed to represent lap timer data
 #define IR_LAP_TIMER_DATA_BITS 1
 // the number of bits needed to represent accelerometer data
-#define ACCEL_DATA_BITS 11
+#define ACCELERATION_DATA_BITS 11
 // the number of bits needed to represent shock compression data
 #define SHOCK_COMPRESSION_DATA_BITS 10
 
+/////////////////////////// Values needed for mapping from real value ranges to integer value ranges ///////////////
+#define ACCEL_REAL_START -8 * GRAVITY_MS2
+#define ACCEL_REAL_END 8 * GRAVITY_MS2
+#define ACCEL_INT_START 0
+#define ACCEL_INT_END 2048
+#define ACCEL_INT_REAL_RATIO (ACCEL_INT_END - ACCEL_INT_START) / (ACCEL_REAL_END - ACCEL_REAL_START)
 
 
 #endif
