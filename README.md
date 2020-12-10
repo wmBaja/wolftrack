@@ -13,6 +13,13 @@ The steps below assume that you are using the HiLetgo ESP-WROOM-32 ESP32 ESP-32S
 4. Now go to Tools > Boards > Boards Manager...
 5. Search for "esp32" and install the package called "esp32 by Espressif Systems".
 
+### Install libraries
+1. Go to Tools > Manage Libraries...
+2. Install MCP3XXX by Christopher Baker
+3. Install OneWire by Jim Studt, Tom Pollard, Robin James, Glenn Trewitt, etc
+4. Install DallasTemperature by Miles Burton, Tim Newsome, Guil Barros, Rob Tillart
+5. Install Adafruit MPU6050 by Adafruit
+
 ### Test connecting and uploading to the ESP32
 1. Connect your ESP32 to your computer with a USB cable.
 2. Go to Tools > Board and select "Node32s".  Quite a few of these board selections should work with the HiLetgo board (like the "DOIT ESP32 DEVKIT V1"), but Node32s is the one that others have recommended on the Amazon page for the HiLetgo board.
