@@ -18,9 +18,12 @@ void ShockCompression::loop() {
 
   if (curTime > this->nextReadTime) {
     uint32_t sensorValue = this->adc->analogRead(this->adcChannel);
-    double actuationIn = 6 - (sensorValue / 1023.0) * 6; // range: 0 - 6
-    // TODO implement conversion from real value to integer value
-    this->shockCompression = (int) actuationIn;
+    // real value in inches
+    // double actuationIn = 6 - (sensorValue / 1023.0) * 6; // range: 0 - 6
+
+    // the integer value is really just the digital reading from the ADC
+    // since the ADC only returns values between 0-1023
+    this->shockCompression = sensorValue;
 
     // calculate the next read time
     this->nextReadTime = curTime + READ_INTERVAL;
