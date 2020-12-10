@@ -8,13 +8,13 @@ MCP3008 adc;
 #define UPDATE_INTERVAL 10
 
 // SPI Master Out Slave In (MOSI)
-#define SPI_MOSI 23
+#define MCP3008_SPI_MOSI 25
 // SPI Master In Slave Out (MISO)
-#define SPI_MISO 19
+#define MCP3008_SPI_MISO 33
 // SPI Clock (SCLK)
-#define SPI_SCLK 18
+#define MCP3008_SPI_SCLK 32
 // MCP3008 SPI Chip Select
-#define MCP3008_SPI_CS 17
+#define MCP3008_SPI_CS 26
 
 unsigned long nextUpdateTime;
 
@@ -27,7 +27,7 @@ void setup() {
 
   // Software SPI (specify all, use any available digital pins)
   // (cs, mosi, miso, sck);
-  adc.begin(MCP3008_SPI_CS, SPI_MOSI, SPI_MISO, SPI_SCLK);
+  adc.begin(MCP3008_SPI_CS, MCP3008_SPI_MOSI, MCP3008_SPI_MISO, MCP3008_SPI_SCLK);
 }
 
 void loop() {
