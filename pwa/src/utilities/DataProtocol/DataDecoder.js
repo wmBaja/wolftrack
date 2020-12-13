@@ -1,7 +1,9 @@
 import { MAX_ANALOG_VALUE, MAX_FUEL_CAPACITY, MAGICAL_CONSTANT_FOR_SPEED,
   MAX_LIN_POT_ACTUATION_IN } from './DEFAULT_DATA.js';
 
-import { COMPETITION_PACKET_DEFINITION } from './PACKET_DEFINITIONS.js';
+import { BUSCO_2020_12_PACKET_DEFINITION } from './PACKET_DEFINITIONS.js';
+import { ACCEL_REAL_START, ACCEL_INT_START, ACCEL_REAL_INT_RATIO } from './REAL_INT_RANGE_MAPPINGS.js';
+import { mapRangeToRangeWithRatio } from '../utils.js';
 
 const FUEL_EMA_WEIGHT = 0.1;
 
@@ -60,14 +62,18 @@ export default class DataDecoder {
   static decodeData(rawData, currentData) {
     const byteArray = new Uint8Array(rawData.buffer);
 
-    const sensors = DataDecoder.extractSensorReadings(byteArray, COMPETITION_PACKET_DEFINITION);
+    const sensors = DataDecoder.extractSensorReadings(byteArray, BUSCO_2020_12_PACKET_DEFINITION);
 
     return {
       rawData,
       fuel: DataDecoder.calculateFuelData(sensors.fuel, currentData.fuel.remainingEMALiters),
       drivetrain: DataDecoder.calculateDrivetrainData(sensors.engine_rpm, sensors.cvt_sec_rpm, sensors.cvt_temp),
       brakes: DataDecoder.calculateBrakesData(sensors.front_brake_pressure, sensors.rear_brake_pressure),
-      // suspension: DataDecoder.calculateSuspensionData(shockActuationReading1, shockActuationReading2),
+      suspension: DataDecoder.calculateSuspensionData(
+        sensors.fl_shock_compression, sensors.fr_shock_compression,
+        sensors.rl_shock_compression, sensors.rr_shock_compression
+      ),
+      acceleration: DataDecoder.calculateAccelerationData(sensors),
     };
   }
 
@@ -112,5 +118,19 @@ export default class DataDecoder {
       shock1actuationInches: MAX_LIN_POT_ACTUATION_IN - (sensorReading1 / MAX_ANALOG_VALUE) * MAX_LIN_POT_ACTUATION_IN,
       shock2actuationInches: MAX_LIN_POT_ACTUATION_IN - (sensorReading2 / MAX_ANALOG_VALUE) * MAX_LIN_POT_ACTUATION_IN,
     };
+  }
+
+  static calculateAccelerationData(sensors) {
+    const data = {};
+    if (sensors.x_accel) {
+      data.xAccelms2 = mapRangeToRangeWithRatio(ACCEL_INT_START, ACCEL_REAL_START, ACCEL_REAL_INT_RATIO, sensors.x_accel);
+    }
+    if (sensors.y_accel) {
+      data.yAccelms2 = mapRangeToRangeWithRatio(ACCEL_INT_START, ACCEL_REAL_START, ACCEL_REAL_INT_RATIO, sensors.y_accel);
+    }
+    if (sensors.z_accel) {
+      data.zAccelms2 = mapRangeToRangeWithRatio(ACCEL_INT_START, ACCEL_REAL_START, ACCEL_REAL_INT_RATIO, sensors.z_accel);
+    }
+    return data;
   }
 }

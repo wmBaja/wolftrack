@@ -44,7 +44,7 @@ export default class BLEClient {
    * @param {object} data the data to pass to each callback
    */
   _callCallbacks(data) {
-    console.log('Updating data', data);
+    // console.log('Updating data', data);
     this.currentData = data;
     this._callbacks.forEach((cb) => {
       cb(data);

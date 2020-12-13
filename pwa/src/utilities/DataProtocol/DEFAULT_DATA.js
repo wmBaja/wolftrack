@@ -39,6 +39,11 @@ const DEFAULT_DATA = {
     shock1actuationInches: 0,
     shock2actuationInches: 0,
   },
+  acceleration: {
+    xAccelms2: 0,
+    yAccelms2: 0,
+    zAccelms2: 0,
+  }
 };
 
 export { DEFAULT_DATA, MAX_ANALOG_VALUE, MAX_FUEL_CAPACITY, MAX_DETECTABLE_FUEL_CAPACITY,

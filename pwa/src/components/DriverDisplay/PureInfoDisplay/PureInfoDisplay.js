@@ -29,8 +29,12 @@ function getValueAndUnitFor(typeOfValue, data) {
       return [data.drivetrain.cvtRatio.toPrecision(2), 'CVT Ratio'];
     case 'CVT_TEMPERATURE':
       return [data.drivetrain.cvtTemperatureCelsius, 'Temp C'];
-    case 'ACCELERATION':
-      return [0, 'G'];
+    case 'ACCELERATION_X':
+      return [data.acceleration.xAccelms2.toPrecision(2), 'X m/s^2'];
+    case 'ACCELERATION_Y':
+      return [data.acceleration.yAccelms2.toPrecision(2), 'Y m/s^2'];
+    case 'ACCELERATION_Z':
+      return [data.acceleration.zAccelms2.toPrecision(2), 'Z m/s^2'];
     case 'SHOCK_ACTUATION_1':
       return [data.suspension.shock1actuationInches.toPrecision(2), 'S1 in'];
     case 'SHOCK_ACTUATION_2':
