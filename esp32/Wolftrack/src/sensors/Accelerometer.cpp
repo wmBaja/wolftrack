@@ -3,11 +3,11 @@
 #include <Adafruit_Sensor.h>
 #include <Wire.h>
 
-#include "Acceleromter.h"
+#include "Accelerometer.h"
 #include "../../config.h"
 #include "../utils.h"
 
-Acceleromter::Acceleromter():
+Accelerometer::Accelerometer():
   mpu(),
   xAccel(0),
   yAccel(0),
@@ -20,7 +20,7 @@ Acceleromter::Acceleromter():
   mpu.setFilterBandwidth(MPU6050_BAND_260_HZ);
 }
 
-void Acceleromter::loop() {
+void Accelerometer::loop() {
 #if GENERATE_RANDOM_VALUES
   this->xAccel = random(2048);
   this->yAccel = random(2048);
@@ -38,9 +38,9 @@ void Acceleromter::loop() {
     float zAccelms2 = a.acceleration.z;
 
     // map the accels to the int value range
-    this->xAccel = mapRangeToRangeWithRatio(ACCEL_REAL_RANGE_START, ACCEL_INT_RANGE_START, ACCEL_INT_REAL_RATIO, xAccelms2);
-    this->yAccel = mapRangeToRangeWithRatio(ACCEL_REAL_RANGE_START, ACCEL_INT_RANGE_START, ACCEL_INT_REAL_RATIO, yAccelms2);
-    this->zAccel = mapRangeToRangeWithRatio(ACCEL_REAL_RANGE_START, ACCEL_INT_RANGE_START, ACCEL_INT_REAL_RATIO, zAccelms2);
+    this->xAccel = mapRangeToRangeWithRatio(ACCEL_REAL_START, ACCEL_INT_START, ACCEL_INT_REAL_RATIO, xAccelms2);
+    this->yAccel = mapRangeToRangeWithRatio(ACCEL_REAL_START, ACCEL_INT_START, ACCEL_INT_REAL_RATIO, yAccelms2);
+    this->zAccel = mapRangeToRangeWithRatio(ACCEL_REAL_START, ACCEL_INT_START, ACCEL_INT_REAL_RATIO, zAccelms2);
 
     // calculate the next read time
     this->nextReadTime = curTime + READ_INTERVAL;
@@ -48,19 +48,19 @@ void Acceleromter::loop() {
 #endif
 }
 
-int Acceleromter::getValue() {
+int Accelerometer::getValue() {
   // NOTE: this should not be used; use getXAccel, getYAccel, and getZAccel
   return 0;
 }
 
-int Acceleromter::getXAccel() {
+int Accelerometer::getXAccel() {
   return this->xAccel;
 }
 
-int Acceleromter::getYAccel() {
+int Accelerometer::getYAccel() {
   return this->yAccel;
 }
 
-int Acceleromter::getZAccel() {
+int Accelerometer::getZAccel() {
   return this->zAccel;
 }
