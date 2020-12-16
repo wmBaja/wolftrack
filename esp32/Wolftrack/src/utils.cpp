@@ -1,5 +1,6 @@
-#ifndef _UTILS_H
-#define _UTILS_H
+
+#include <math.h>
+
 
 namespace utils {
   /**
@@ -13,7 +14,9 @@ namespace utils {
    * @param input the input value
    * @return the output value
    */
-  double mapRangeToRangeWithRatio(double inStart, double outStart, double ratio, double input);
+  double mapRangeToRangeWithRatio(double inStart, double outStart, double ratio, double input) {
+    return outStart + round(ratio * (input - inStart));
+  }
 
   /**
    * Maps an input value from a certain range of values to an output value in a
@@ -25,8 +28,11 @@ namespace utils {
    * @param input the input value
    * @return the output value
    */
-  double mapRangeToRange(double inStart, double inEnd, double outStart, double outEnd, double input);
+  double mapRangeToRange(double inStart, double inEnd, double outStart, double outEnd, double input) {
+    double inputRange = inEnd - inStart;
+    double outputRange = outEnd - outStart;
+    double ratio = outputRange / inputRange;
+    return mapRangeToRangeWithRatio(inStart, outStart, ratio, input);
+    // return outStart + (outputRange / inputRange) * (input - inStart);
+  }
 }
-
-
-#endif

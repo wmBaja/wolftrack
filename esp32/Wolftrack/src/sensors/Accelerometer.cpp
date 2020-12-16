@@ -38,9 +38,9 @@ void Accelerometer::loop() {
     float zAccelms2 = a.acceleration.z;
 
     // map the accels to the int value range
-    this->xAccel = mapRangeToRangeWithRatio(ACCEL_REAL_START, ACCEL_INT_START, ACCEL_INT_REAL_RATIO, xAccelms2);
-    this->yAccel = mapRangeToRangeWithRatio(ACCEL_REAL_START, ACCEL_INT_START, ACCEL_INT_REAL_RATIO, yAccelms2);
-    this->zAccel = mapRangeToRangeWithRatio(ACCEL_REAL_START, ACCEL_INT_START, ACCEL_INT_REAL_RATIO, zAccelms2);
+    this->xAccel = utils::mapRangeToRangeWithRatio(ACCEL_REAL_START, ACCEL_INT_START, ACCEL_INT_REAL_RATIO, xAccelms2);
+    this->yAccel = utils::mapRangeToRangeWithRatio(ACCEL_REAL_START, ACCEL_INT_START, ACCEL_INT_REAL_RATIO, yAccelms2);
+    this->zAccel = utils::mapRangeToRangeWithRatio(ACCEL_REAL_START, ACCEL_INT_START, ACCEL_INT_REAL_RATIO, zAccelms2);
 
     // calculate the next read time
     this->nextReadTime = curTime + READ_INTERVAL;

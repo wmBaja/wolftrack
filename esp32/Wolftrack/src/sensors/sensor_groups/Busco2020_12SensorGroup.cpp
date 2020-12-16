@@ -12,6 +12,7 @@ Busco2020_12SensorGroup::Busco2020_12SensorGroup():
 
 void Busco2020_12SensorGroup::loop() {
   accelerometer.loop();
+  shockCompression.loop();
   frontBrakeSensor.loop();
 }
 

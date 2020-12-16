@@ -2,6 +2,7 @@
 
 #include "BrakePressure.h"
 #include "../../config.h"
+#include "../utils.h"
 
 BrakePressure::BrakePressure(MCP3008* adc, uint8_t adcChannel):
   adc(adc),
@@ -18,8 +19,7 @@ void BrakePressure::loop() {
 
   if (curTime > this->nextReadTime) {
     uint32_t analogValue = this->adc->analogRead(this->adcChannel);
-    this->brakePressure = (analogValue / 1023.0) * 2000; // range: 0 - 2000
-
+    this->brakePressure = utils::mapRangeToRange(0, 1024, 0, 2000, analogValue);
     // calculate the next read time
     this->nextReadTime = curTime + READ_INTERVAL;
   }
