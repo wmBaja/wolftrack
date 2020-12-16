@@ -18,7 +18,7 @@ SDModule::SDModule() {
 
   // generate a random name for the data file
   long fileNum = random(9999999);
-  sprintf(this->curDataFileName, "/data_%d.txt\n", fileNum);
+  sprintf(this->curDataFileName, "/data_%d.wolftrack\n", fileNum);
 
   // add the file name to the list of names in the order file
   this->addCurDataFileNameToOrderFile();
