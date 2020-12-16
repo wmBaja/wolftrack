@@ -40,6 +40,13 @@
 #define TRANSMISSION_INTERVAL 1000
 
 
+//////////////////////////////////////////////////////// SD Card ///////////////
+// File that keeps track of the order in which data files are created
+#define ORDER_FILE "/order.txt"
+// amount of time between data points on SD card
+#define SD_WRITE_INTERVAL 10
+
+
 //////////////////////////////////////////////////////// ESP32 Pin Definitions ///////////////
 /////////////////////////// Hardware defined SPI protocol pins ///////////////
 // Hardware defined SPI Master Out Slave In (MOSI)

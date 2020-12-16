@@ -4,14 +4,20 @@
 
 #include "config.h"
 #include "src/ble/BLEModule.h"
+#include "src/sd/SDModule.h"
 #include "src/sensors/sensor_groups/SensorGroup.h"
 #include "src/sensors/sensor_groups/Busco2020_12SensorGroup.h"
 
-// the time at which the next data packet should be sent over BLE
-unsigned long nextTransmissionTime = 0;
 
 ////---------------BLE--------------------
 BLEModule* bleModule;
+// the time at which the next data packet should be sent over BLE
+unsigned long nextTransmissionTime = 0;
+
+////---------------SD---------------------
+SDModule* sdModule;
+// the time at which the next data packet should be written to the SD card
+unsigned long nextSDWriteTime = 0;
 
 ////---------------SENSORS----------------
 SensorGroup* sensorGroup;
@@ -32,6 +38,9 @@ void setup() {
 
   // initialize BLE
   bleModule = new BLEModule();
+
+  // initialize SD
+  sdModule = new SDModule();
 }
 
 #if ENABLE_PERFORMANCE_PROFILING
@@ -42,6 +51,7 @@ unsigned long loopCount = 0;
 
 void loop() {
   unsigned long curTime = millis();
+  DataPacket dataPacket;
 
   // run sensor code
   sensorGroup->loop();
@@ -49,7 +59,6 @@ void loop() {
   // if it's time to transmit and there's a BLE connection
   if (curTime > nextTransmissionTime && bleModule->isDeviceConnected()) {
     // build the data packet
-    DataPacket dataPacket;
     sensorGroup->buildDataPacket(&dataPacket);
 
     // update the GATT characteristic and notify client
@@ -57,6 +66,17 @@ void loop() {
 
     // calculate the next transmission time
     nextTransmissionTime = curTime + TRANSMISSION_INTERVAL;
+  }
+
+  // if it's time to write to the SD card and a card is connnected
+  if (curTime > nextSDWriteTime && sdModule->isCardConnected()) {
+    // build the data packet
+    sensorGroup->buildDataPacket(&dataPacket);
+
+    // buffer the write to the SD card
+    sdModule->write(&dataPacket);
+
+    nextSDWriteTime = curTime + SD_WRITE_INTERVAL;
   }
 
 #if ENABLE_PERFORMANCE_PROFILING
