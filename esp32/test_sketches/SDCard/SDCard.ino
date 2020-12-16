@@ -9,6 +9,11 @@ File data;
 // SD Card SPI Chip Select
 #define SD_CARD_SPI_CS 5
 
+#define ROOT_PATH "/"
+
+
+char stringBuf[256];
+
 void setup() {
   Serial.begin(BAUD_RATE);
 
@@ -18,12 +23,48 @@ void setup() {
     return;    // init failed
   }
 
-  SD.remove("/data.txt");
+//  listDir(SD, "/", 2);
 
-  appendFile(SD, "/data.txt", "henlo big boi\n");
-  readFile(SD, "/data.txt");
+//  deleteAllFiles();
 
+//  appendFile(SD, "/data1.txt", "henlo big boi\n");
+//  appendFile(SD, "/data2.txt", "henlo big boi\n");
+//  appendFile(SD, "/data3.txt", "henlo big boi\n");
+//  appendFile(SD, "/data4.txt", "henlo big boi\n");
+//  readFile(SD, "/data1.txt");
+//
   testFileIO(SD, "/data.txt");
+}
+
+void listDir(fs::FS &fs, const char * dirname, uint8_t levels){
+    Serial.printf("Listing directory: %s\n", dirname);
+
+    File root = fs.open(dirname);
+    if(!root){
+        Serial.println("Failed to open directory");
+        return;
+    }
+    if(!root.isDirectory()){
+        Serial.println("Not a directory");
+        return;
+    }
+
+    File file = root.openNextFile();
+    while(file){
+        if(file.isDirectory()){
+            Serial.print("  DIR : ");
+            Serial.println(file.name());
+            if(levels){
+                listDir(fs, file.name(), levels -1);
+            }
+        } else {
+            Serial.print("  FILE: ");
+            Serial.print(file.name());
+            Serial.print("  SIZE: ");
+            Serial.println(file.size());
+        }
+        file = root.openNextFile();
+    }
 }
 
 // Write to the SD card
@@ -48,7 +89,7 @@ void readFile(fs::FS &fs, const char * path){
     return;
   }
   
-  Serial.printf("Read from file %s: ", path);
+  Serial.printf("Read from file %s:\n", path);
   while(file.available()){
     Serial.write(file.read());
   }
@@ -80,7 +121,7 @@ void testFileIO(fs::FS &fs, const char * path) {
     Serial.println("Failed to open file for reading");
   }
 
-  file = fs.open(path, FILE_WRITE);
+  file = fs.open(path, FILE_APPEND);
   if (!file) {
     Serial.println("Failed to open file for writing");
     return;
@@ -88,12 +129,73 @@ void testFileIO(fs::FS &fs, const char * path) {
 
   size_t i;
   start = millis();
-  for (i = 0; i < 10; i++) {
+  for (i = 0; i < 4; i++) {
     file.write(buf, 512);
   }
   end = millis() - start;
-  Serial.printf("%u bytes written for %u ms\n", 10 * 512, end);
+  Serial.printf("%u bytes written for %u ms\n", 4 * 512, end);
   file.close();
+}
+
+void deleteAllFiles() {
+  File root;
+
+  root = SD.open(ROOT_PATH);
+  delay(2000);
+
+  rm(root, ROOT_PATH);
+}
+
+void rm(File dir, String tempPath) {
+  while(true) {
+    File entry =  dir.openNextFile();
+    String localPath;
+
+    Serial.println("");
+    if (entry) {
+      if ( entry.isDirectory() )
+      {
+        localPath = tempPath + entry.name() + ROOT_PATH + '\0';
+        char folderBuf[localPath.length()];
+        localPath.toCharArray(folderBuf, localPath.length() );
+        rm(entry, folderBuf);
+
+
+        if( SD.rmdir( folderBuf ) )
+        {
+          Serial.print("Deleted folder ");
+          Serial.println(folderBuf);
+        } 
+        else
+        {
+          Serial.print("Unable to delete folder ");
+          Serial.println(folderBuf);
+        }
+      } 
+      else
+      {
+        localPath = tempPath + entry.name() + '\0';
+        char charBuf[localPath.length()];
+        localPath.toCharArray(charBuf, localPath.length() );
+
+        if( SD.remove( charBuf ) )
+        {
+          Serial.print("Deleted ");
+          Serial.println(localPath);
+        } 
+        else
+        {
+          Serial.print("Failed to delete ");
+          Serial.println(localPath);
+        }
+
+      }
+    } 
+    else {
+      // break out of recursion
+      break;
+    }
+  }
 }
 
 void loop() {}
