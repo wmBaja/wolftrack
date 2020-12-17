@@ -19,6 +19,7 @@ The steps below assume that you are using the HiLetgo ESP-WROOM-32 ESP32 ESP-32S
 3. Install OneWire by Jim Studt, Tom Pollard, Robin James, Glenn Trewitt, etc
 4. Install DallasTemperature by Miles Burton, Tim Newsome, Guil Barros, Rob Tillart
 5. Install Adafruit MPU6050 by Adafruit
+6. Install HX711 Arduino Library by Bogdan Necula, Andreas Motl
 
 ### Test connecting and uploading to the ESP32
 1. Connect your ESP32 to your computer with a USB cable.
