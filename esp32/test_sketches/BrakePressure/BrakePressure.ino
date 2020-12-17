@@ -5,16 +5,16 @@ MCP3008 adc;
 // the baud rate for the serial connection
 #define BAUD_RATE 115200
 // amount of time between updates (in ms)
-#define UPDATE_INTERVAL 50
+#define UPDATE_INTERVAL 10
 
 // SPI Master Out Slave In (MOSI)
-#define SPI_MOSI 23
+#define MCP3008_SPI_MOSI 25
 // SPI Master In Slave Out (MISO)
-#define SPI_MISO 19
+#define MCP3008_SPI_MISO 33
 // SPI Clock (SCLK)
-#define SPI_SCLK 18
+#define MCP3008_SPI_SCLK 32
 // MCP3008 SPI Chip Select
-#define MCP3008_SPI_CS 17
+#define MCP3008_SPI_CS 26
 
 // Front Brakes Transducer Output
 #define FRONT_BRAKE_PRESSURE_CHANNEL 1
@@ -30,15 +30,17 @@ void setup() {
 
   // Software SPI (specify all, use any available digital pins)
   // (cs, mosi, miso, sck);
-  adc.begin(MCP3008_SPI_CS, SPI_MOSI, SPI_MISO, SPI_SCLK);
+  adc.begin(MCP3008_SPI_CS, MCP3008_SPI_MOSI, MCP3008_SPI_MISO, MCP3008_SPI_SCLK);
 }
 
 void loop() {
   unsigned long curTime = millis();
   if (curTime > nextUpdateTime) {
     uint32_t sensorValue = adc.analogRead(FRONT_BRAKE_PRESSURE_CHANNEL);
-    Serial.println(sensorValue);
     double psi = (sensorValue / 1023.0) * 2000; // range: 0 - 2000
+
+    Serial.print(sensorValue);
+    Serial.print(" | ");
     Serial.println(psi);
 
     nextUpdateTime = curTime + UPDATE_INTERVAL;
