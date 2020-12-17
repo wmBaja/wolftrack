@@ -109,7 +109,7 @@ to connect other SPI devices along with the MCP3008. */
 
 /////////////////////////// Misc. digital pins ///////////////
 // Engine RPM Signal
-#define ENGINE_RPM_PIN 0
+#define ENGINE_RPM_PIN 16
 // CVT Secondary RPM Signal
 #define CVT_SEC_RPM_PIN 2
 // CVT Temperature One Wire Bus
