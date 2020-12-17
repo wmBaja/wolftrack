@@ -18,7 +18,7 @@ SDModule::SDModule() {
 
   // generate a random name for the data file
   long fileNum = random(9999999);
-  sprintf(this->curDataFileName, "/data_%d.wolftrack\n", fileNum);
+  sprintf(this->curDataFileName, "/%d_busco_2020_12.wolftrack", fileNum);
 
   // add the file name to the list of names in the order file
   this->addCurDataFileNameToOrderFile();
@@ -45,7 +45,7 @@ void SDModule::write(DataPacket* dataPacket) {
 
   if (this->bufferSize > (MAX_WRITE_BUFFER_SIZE - MAX_BYTES_IN_PACKET)) {
     // write the buffer to the data file
-    File file = fs.open(this->curDataFileName, FILE_APPEND);
+    File file = SD.open(this->curDataFileName, FILE_APPEND);
     if (!file) {
       Serial.println("Failed to open file for writing");
       return;
