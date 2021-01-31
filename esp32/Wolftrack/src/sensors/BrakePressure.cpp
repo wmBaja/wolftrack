@@ -29,3 +29,7 @@ void BrakePressure::loop() {
 int BrakePressure::getValue() {
   return this->brakePressure;
 }
+
+int BrakePressure::getDataBits() {
+  return BRAKE_PRESSURE_DATA_BITS;
+}

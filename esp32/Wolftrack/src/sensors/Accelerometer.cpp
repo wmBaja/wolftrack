@@ -64,3 +64,7 @@ int Accelerometer::getYAccel() {
 int Accelerometer::getZAccel() {
   return this->zAccel;
 }
+
+int Accelerometer::getDataBits() {
+  return ACCELERATION_DATA_BITS
+}

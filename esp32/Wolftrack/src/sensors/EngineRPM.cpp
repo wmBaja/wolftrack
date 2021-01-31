@@ -88,3 +88,7 @@ void EngineRPM::loop() {
 int EngineRPM::getValue() {
   return this->engineRPM;
 }
+
+int EngineRPM::getDataBits() {
+  return ENGINE_RPM_DATA_BITS;
+}

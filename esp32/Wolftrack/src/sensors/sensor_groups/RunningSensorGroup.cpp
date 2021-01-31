@@ -1,5 +1,6 @@
 #include "RunningSensorGroup.h"
 #include "../../../config.h"
+#include <iostream>
 
 
 RunningSensorGroup::RunningSensorGroup() : adc(), sensorArray(){
@@ -15,7 +16,12 @@ void RunningSensorGroup::loop() {
     }
 }
 void buildDataPacket(DataPacket * datapacket) {
-
+    *dataPacket = DataPacket();
+    for (int i = 0; i < sensorArray; i++) {
+        if (sensorArray[i] != NULL) {
+            dataPacket->addValue(sensorArray[i].getValue(), sensorArray[i].getDataBits());
+        }
+    }
 }
 void RunningSensorGroup::initDefaultSensorArray() {
     sensorArray[1] = new Fuel(&adc, FUEL_HALL_EFFECT_CHANNEL);
@@ -34,7 +40,8 @@ void RunningSensorGroup::initCustomSensorArray(Sensor * inputArr, int arrLength)
             throw(arrLength)
         }
     } catch(arrLength) {
-        cout << "Too many sensors! The maximum amount is" << MAX_SENSORS << "and you have " << arrLength << "!"
+        std::cout << "Too many sensors! The maximum amount is" << MAX_SENSORS;
+        std::cout << arrLength << " sensors found";
     }
     for(int i = 0; i < arrLength; i++) {
         sensorArray[i] = inputArr[i];
