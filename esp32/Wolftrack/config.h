@@ -117,6 +117,13 @@ to connect other SPI devices along with the MCP3008. */
 // IR Lap Timer Signal
 #define IR_LAP_TIMER_PIN 15
 
+// HX711 Data Pin (cannot be used while using CVT secondary RPM and CVT temp)
+#define HX711_DATA 4
+// HX711 Clock Pin (cannot be used while using CVT secondary RPM and CVT temp)
+#define HX711_CLK 2
+// HX711 Calibration Factor
+#define HX711_CALIBRATION_FACTOR 10
+
 
 //////////////////////////////////////////////////////// MCP3008 Channel Definitions ///////////////
 // Fuel Hall-Effect Sensor Output
@@ -149,6 +156,8 @@ to connect other SPI devices along with the MCP3008. */
 #define ACCELERATION_DATA_BITS 11
 // the number of bits needed to represent shock compression data
 #define SHOCK_COMPRESSION_DATA_BITS 10
+// the number of bits needed to represent strain data
+#define STRAIN_DATA_BITS 16
 
 /////////////////////////// Values needed for mapping from real value ranges to integer value ranges ///////////////
 #define ACCEL_REAL_START -8 * GRAVITY_MS2
