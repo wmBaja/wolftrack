@@ -4,6 +4,7 @@
   "private": true,
   "dependencies": {
     "dygraphs": "^2.1.0",
+    "file-saver": "^2.0.5",
     "firebase": "^7.8.0",
     "immutable": "^4.0.0-rc.12",
     "muicss": "^0.10.0",
@@ -12,7 +13,8 @@
     "react-map-gl": "^5.0.7",
     "react-router-dom": "^5.1.2",
     "react-scripts": "3.0.1",
-    "socket.io-client": "^2.2.0"
+    "socket.io-client": "^2.2.0",
+    "streamsaver": "^2.0.5"
   },
   "scripts": {
     "start": "react-scripts start",

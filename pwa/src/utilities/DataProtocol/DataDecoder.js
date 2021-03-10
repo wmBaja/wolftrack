@@ -59,14 +59,14 @@ export default class DataDecoder {
     return values;
   }
 
-  static decodeData(rawData, currentData) {
-    const byteArray = new Uint8Array(rawData.buffer);
+  static decodeData(rawData, currentData, rawDataBufferByteOffset, rawDataBufferLength) {
+    const byteArray = new Uint8Array(rawData.buffer, rawDataBufferByteOffset, rawDataBufferLength);
 
     const sensors = DataDecoder.extractSensorReadings(byteArray, BUSCO_2020_12_PACKET_DEFINITION);
 
     return {
       rawData,
-      fuel: DataDecoder.calculateFuelData(sensors.fuel, currentData.fuel.remainingEMALiters),
+      fuel: DataDecoder.calculateFuelData(sensors.fuel, currentData),
       drivetrain: DataDecoder.calculateDrivetrainData(sensors.engine_rpm, sensors.cvt_sec_rpm, sensors.cvt_temp),
       brakes: DataDecoder.calculateBrakesData(sensors.front_brake_pressure, sensors.rear_brake_pressure),
       suspension: DataDecoder.calculateSuspensionData(
@@ -77,7 +77,12 @@ export default class DataDecoder {
     };
   }
 
-  static calculateFuelData(sensorReading, curRemainingEMALiters) {
+  static calculateFuelData(sensorReading, curData) {
+    let curRemainingEMALiters = 0;
+    if (curData && curData.fuel) {
+      curRemainingEMALiters = curData.fuel.remainingEMALiters;
+    }
+
     const remainingLiters = sensorReading / 100 * MAX_FUEL_CAPACITY;
     const remainingEMALiters = FUEL_EMA_WEIGHT * remainingLiters + (1 - FUEL_EMA_WEIGHT) * curRemainingEMALiters;
     const remainingEMAPercentage = remainingEMALiters / MAX_FUEL_CAPACITY;
@@ -122,13 +127,13 @@ export default class DataDecoder {
 
   static calculateAccelerationData(sensors) {
     const data = {};
-    if (sensors.x_accel) {
+    if (!isNaN(sensors.x_accel)) {
       data.xAccelms2 = mapRangeToRangeWithRatio(ACCEL_INT_START, ACCEL_REAL_START, ACCEL_REAL_INT_RATIO, sensors.x_accel);
     }
-    if (sensors.y_accel) {
+    if (!isNaN(sensors.y_accel)) {
       data.yAccelms2 = mapRangeToRangeWithRatio(ACCEL_INT_START, ACCEL_REAL_START, ACCEL_REAL_INT_RATIO, sensors.y_accel);
     }
-    if (sensors.z_accel) {
+    if (!isNaN(sensors.z_accel)) {
       data.zAccelms2 = mapRangeToRangeWithRatio(ACCEL_INT_START, ACCEL_REAL_START, ACCEL_REAL_INT_RATIO, sensors.z_accel);
     }
     return data;
