@@ -22,6 +22,8 @@ class Accelerometer: public Sensor {
     Accelerometer();
     void loop();
     int getValue();
+	int getMoreValues();
+	int getDataBits();
     int getXAccel();
     int getYAccel();
     int getZAccel();

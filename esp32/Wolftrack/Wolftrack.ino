@@ -6,8 +6,8 @@
 #include "src/ble/BLEModule.h"
 #include "src/sd/SDModule.h"
 #include "src/sensors/sensor_groups/SensorGroup.h"
-#include "src/sensors/sensor_groups/Busco2020_12SensorGroup.h"
-
+#include "src/sensors/sensor_groups/ModularSensorGroup.h"
+#include "src/utils.h"
 
 ////---------------BLE--------------------
 BLEModule* bleModule;
@@ -31,7 +31,7 @@ void setup() {
 #endif
 
   // initialize sensor group
-  sensorGroup = new Busco2020_12SensorGroup();
+  sensorGroup = new ModularSensorGroup();
 
   // initialize first transmission time
   nextTransmissionTime = millis() + TRANSMISSION_INTERVAL;
@@ -57,7 +57,7 @@ void loop() {
   sensorGroup->loop();
 
   // if it's time to transmit and there's a BLE connection
-  if (curTime > nextTransmissionTime && bleModule->isDeviceConnected() && !sensorGroup->getStopValue()) {
+  if (curTime > nextTransmissionTime && bleModule->isDeviceConnected()) {
     // build the data packet
     sensorGroup->buildDataPacket(&dataPacket);
 
@@ -69,7 +69,7 @@ void loop() {
   }
 
   // if it's time to write to the SD card and a card is connnected
-  if (curTime > nextSDWriteTime && sdModule->isCardConnected() && !sensorGroup->getStopValue()) {
+  if (curTime > nextSDWriteTime && sdModule->isCardConnected() && !utils::isSDWriteEnabled()) {
     // build the data packet
     sensorGroup->buildDataPacket(&dataPacket);
 
@@ -90,10 +90,11 @@ void loop() {
     Serial.print(loopCount);
     Serial.println("\nLoops per second: ");
     Serial.println((int) (loopCount / (timePassed / 1000000.0)));
-    Serial.println("\nOperation Stopped? ");
-    if (sensorGroup->getStopValue() == 1) { Serial.println("True"); }
-    else { Serial.println("False"); }
-
+    if (utils::isSDWriteEnabled() == 1) { Serial.println("SD Card Write Disabled"); }
+    else { Serial.println("SD Card Write Enabled"); }
+    if (bleModule->isDeviceConnected() == 1) { Serial.println("Bluetooth is connected"); }
+    else { Serial.println("Bluetooth is not connected"); }
+    
     loopCount = 0;
     nextProfilingReportTime = curMicroTime + PROFILING_REPORT_INTERVAL;
   }

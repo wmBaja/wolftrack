@@ -20,6 +20,8 @@ class Fuel: public Sensor {
     Fuel(MCP3008*, uint8_t);
     void loop();
     int getValue();
+	int getMoreValues();
+	int getDataBits();
 };
 
 #endif

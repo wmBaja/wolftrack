@@ -53,6 +53,15 @@ int Accelerometer::getValue() {
   return 0;
 }
 
+// Return non-zero value when alternate getValue functions should be used
+int Accelerometer::getMoreValues() {
+	return IS_ACCELEROMETER;
+}
+
+int Accelerometer::getDataBits() {
+	return ACCELERATION_DATA_BITS;
+}
+
 int Accelerometer::getXAccel() {
   return this->xAccel;
 }

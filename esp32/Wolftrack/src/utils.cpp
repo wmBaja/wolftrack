@@ -1,6 +1,6 @@
-
 #include <math.h>
-
+#include <Arduino.h>
+#include "../config.h"
 
 namespace utils {
   /**
@@ -34,5 +34,12 @@ namespace utils {
     double ratio = outputRange / inputRange;
     return mapRangeToRangeWithRatio(inStart, outStart, ratio, input);
     // return outStart + (outputRange / inputRange) * (input - inStart);
+  }
+
+  int isSDWriteEnabled() {
+	if (digitalRead(STOP_OP_PIN) == HIGH) {
+		return 1;
+	}
+	return 0;
   }
 }

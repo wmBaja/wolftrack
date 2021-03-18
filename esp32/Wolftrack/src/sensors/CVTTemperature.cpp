@@ -31,3 +31,11 @@ void CVTTemperature::loop() {
 int CVTTemperature::getValue() {
   return this->cvtTemp;
 }
+
+int CVTTemperature::getMoreValues() {
+	return GENERIC_VALUE;
+}
+
+int CVTTemperature::getDataBits() {
+	return CVT_TEMP_DATA_BITS;
+}

@@ -88,3 +88,11 @@ void CVTSecRPM::loop() {
 int CVTSecRPM::getValue() {
   return this->cvtSecRPM;
 }
+
+int CVTSecRPM::getMoreValues() {
+	return GENERIC_VALUE;
+}
+
+int CVTSecRPM::getDataBits() {
+	return CVT_SEC_DATA_BITS;
+}

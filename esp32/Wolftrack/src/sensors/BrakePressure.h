@@ -20,6 +20,8 @@ class BrakePressure: public Sensor {
     BrakePressure(MCP3008*, uint8_t);
     void loop();
     int getValue();
+	int getMoreValues();
+	int getDataBits();
 };
 
 #endif

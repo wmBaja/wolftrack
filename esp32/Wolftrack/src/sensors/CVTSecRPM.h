@@ -25,6 +25,8 @@ class CVTSecRPM: public Sensor {
     CVTSecRPM(int);
     void loop();
     int getValue();
+	int getMoreValues();
+	int getDataBits();
   private:
     void checkForMagPasses();
     void updateRPM();

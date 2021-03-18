@@ -7,19 +7,18 @@
 #include "../BrakePressure.h"
 #include "../ShockCompression.h"
 #include "../Accelerometer.h"
-#include "../StopOp.h"
+#include "../CVTTemperature.h"
 
 class Busco2020_12SensorGroup: public SensorGroup {
     MCP3008 adc;
     Accelerometer accelerometer;
     ShockCompression shockCompression;
+	CVTTemperature cvtTempSensor;
     BrakePressure frontBrakeSensor;
-	StopOp stopOp;
   public:
     Busco2020_12SensorGroup();
     void loop();
     void buildDataPacket(DataPacket*);
-	int getStopValue();
 };
 
 #endif

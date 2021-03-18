@@ -43,3 +43,11 @@ void Fuel::loop() {
 int Fuel::getValue() {
   return this->fuel;
 }
+
+int Fuel::getMoreValues() {
+	return GENERIC_VALUE;
+}
+
+int Fuel::getDataBits() {
+	return FUEL_DATA_BITS;
+}

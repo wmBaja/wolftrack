@@ -23,6 +23,8 @@ class CVTTemperature: public Sensor {
     CVTTemperature();
     void loop();
     int getValue();
+	int getMoreValues();
+	int getDataBits();
 };
 
 #endif

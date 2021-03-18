@@ -11,7 +11,7 @@
 // whether or not to enable performance profiling
 #define ENABLE_PERFORMANCE_PROFILING 1
 // whether or not to generate random values for sensor readings
-#define GENERATE_RANDOM_VALUES 0
+#define GENERATE_RANDOM_VALUES 1
 // whether or not the electronics system is being tested
 #define TESTING (ENABLE_PERFORMANCE_PROFILING || GENERATE_RANDOM_VALUES)
 // the baud rate for the serial connection
@@ -46,6 +46,26 @@
 // amount of time between data points on SD card
 #define SD_WRITE_INTERVAL 10
 
+
+//////////////////////////////////////////////////////// Default Sensor Profile //////////////
+// Define the default sensor profile here, valid sensors include:
+// "accelerometer"
+// "front_brake"
+// "rear_brake"
+// "fuel"
+// "engine_rpm"
+// "cvt_sec_rpm"
+// "cvt_temp"
+// "front_left_shock"
+// "front_right_shock"
+#define DEFAULT_SENSOR_GROUP {"accelerometer", "front_brake", "cvt_temp"}
+
+
+//////////////////////////////////////////////////////// Sensor Class getValue Status ////////
+// Generic - single getValue function
+#define GENERIC_VALUE 0
+// Accelerometer - has getXAccel, getYAccel, getZAccel
+#define IS_ACCELEROMETER 1
 
 //////////////////////////////////////////////////////// ESP32 Pin Definitions ///////////////
 /////////////////////////// Hardware defined SPI protocol pins ///////////////

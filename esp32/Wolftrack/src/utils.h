@@ -26,7 +26,11 @@ namespace utils {
    * @return the output value
    */
   double mapRangeToRange(double inStart, double inEnd, double outStart, double outEnd, double input);
+  
+  /**
+   * Returns whether the SD write switch has been disabled, return 1 when switch is closed, 0 when switch is open.
+   */
+  int isSDWriteEnabled();
 }
-
 
 #endif

@@ -34,3 +34,11 @@ void ShockCompression::loop() {
 int ShockCompression::getValue() {
   return this->shockCompression;
 }
+
+int ShockCompression::getMoreValues() {
+	return GENERIC_VALUE;
+}
+
+int ShockCompression::getDataBits() {
+	return SHOCK_COMPRESSION_DATA_BITS;
+}
