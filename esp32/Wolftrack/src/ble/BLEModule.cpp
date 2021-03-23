@@ -13,22 +13,31 @@
 // a global variable with a class (like BLEModule) as its type.
 BLEModule::BLEModule() {
   this->deviceConnected = false;
+  this->sensorGroup = nullptr;
 
   // Create the BLE Device
   BLEDevice::init(BLE_DEVICE_NAME);
   // Create the BLE Server
   this->pServer = BLEDevice::createServer();
-  this->pServer->setCallbacks(new Callbacks(&this->deviceConnected));
+  this->pServer->setCallbacks(new ServerCallbacks(&this->deviceConnected));
   // Create the BLE Service
   this->pService = this->pServer->createService(SERVICE_UUID);
   // Create a BLE Characteristic
   this->pCharacteristic = this->pService->createCharacteristic(
-                      CHARACTERISTIC_UUID,
+                      PACKET_CHARACTERISTIC_UUID,
                       BLECharacteristic::PROPERTY_READ   |
                       BLECharacteristic::PROPERTY_NOTIFY
                     );
   // Create a BLE Descriptor
   this->pCharacteristic->addDescriptor(new BLE2902());
+
+ this->rCharacteristic = this->pService->createCharacteristic(
+					  PROFILE_CHARACTERISTIC_UUID,
+                      BLECharacteristic::PROPERTY_READ   |
+                      BLECharacteristic::PROPERTY_NOTIFY |
+                      BLECharacteristic::PROPERTY_WRITE
+                    );
+  this->rCharacteristic->addDescriptor(new BLE2902());
 
   // Start the service
   this->pService->start();
@@ -48,22 +57,38 @@ void BLEModule::update(DataPacket* dataPacket) {
   this->pCharacteristic->notify();
 }
 
+void BLEModule::setSensorGroup(ModularSensorGroup* sensorGroup) {
+	this->sensorGroup = sensorGroup;
+	rCharacteristic->setCallbacks(new CharacteristicCallbacks(sensorGroup));
+}
+
 bool BLEModule::isDeviceConnected() {
   return this->deviceConnected;
 }
 
-Callbacks::Callbacks(bool* deviceConnected) {
+ServerCallbacks::ServerCallbacks(bool* deviceConnected) {
   this->deviceConnected = deviceConnected;
 }
 
-void Callbacks::onConnect(BLEServer* pServer) {
+void ServerCallbacks::onConnect(BLEServer* pServer) {
   *deviceConnected = true;
 }
 
-void Callbacks::onDisconnect(BLEServer* pServer) {
+void ServerCallbacks::onDisconnect(BLEServer* pServer) {
   *deviceConnected = false;
 
   // restart advertising
   delay(500); // the bluetooth stack needs a bit of time to get things ready
   pServer->startAdvertising();
+}
+
+CharacteristicCallbacks::CharacteristicCallbacks(ModularSensorGroup* sensorGroup) {
+	this->sensorGroup = sensorGroup;
+}
+
+void CharacteristicCallbacks::onWrite(BLECharacteristic* characteristic) {
+	if (this->sensorGroup != nullptr) {
+		std::string data = characteristic->getValue();
+		//TODO - handle 	this->sensorGroup->reinit(data);
+	}
 }

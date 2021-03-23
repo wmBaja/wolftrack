@@ -34,8 +34,10 @@
 #define BLE_DEVICE_NAME "NCSU Wolftrack"
 // BLE service UUID
 #define SERVICE_UUID "12345678-1234-5678-1234-56789abcdef0"
-// BLE characteristic UUID
-#define CHARACTERISTIC_UUID "12345678-1234-5678-1234-56789abcdef1"
+// BLE packet characteristic UUID
+#define PACKET_CHARACTERISTIC_UUID "12345678-1234-5678-1234-56789abcdef1"
+// BLE profile characteristic UUID
+#define PROFILE_CHARACTERISTIC_UUID "12345678-1234-5678-1234-56789abcdef2"
 // amount of time between data notifications over BLE (in ms)
 #define TRANSMISSION_INTERVAL 1000
 
