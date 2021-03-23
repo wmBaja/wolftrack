@@ -3,6 +3,7 @@ import Button from 'muicss/lib/react/button';
 
 import './DriverDisplay.css';
 import PureInfoDisplay from './PureInfoDisplay/PureInfoDisplay.js';
+import SensorProfileModule from './SensorProfileList.js'
 import BLEClientContext from '../../utilities/BLEClient/BLEClientContext.js';
 import { DEFAULT_DATA } from '../../utilities/DataProtocol/DEFAULT_DATA.js';
 
@@ -10,7 +11,7 @@ import FirebaseStatus from '../common/FirebaseStatus/FirebaseStatus.js';
 
 function DriverDisplay() {
   const [data, setData] = useState(DEFAULT_DATA);
-
+  var displayProfileList = false;
   // BLE state
   const bleClient = useContext(BLEClientContext);
   const [bleConnected, setBleConnected] = useState(bleClient.connected);
@@ -34,6 +35,8 @@ function DriverDisplay() {
     }
   }
 
+
+  
   return (
     <div className='DriverDisplay'>
       {bleConnected ?
@@ -48,6 +51,11 @@ function DriverDisplay() {
         <Button variant='raised' className='DriverDisplay-simulate-btn' onClick={() => connectToVehicle(true)}>
           Simulate connection
         </Button>
+        <br/>
+        
+        <SensorProfileModule state = {false}></SensorProfileModule>
+  
+        
       </div>}
     </div>
   );

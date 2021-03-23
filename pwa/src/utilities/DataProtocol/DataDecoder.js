@@ -61,7 +61,7 @@ export default class DataDecoder {
 
   static decodeData(rawData, currentData) {
     const byteArray = new Uint8Array(rawData.buffer);
-
+    // Issue
     const sensors = DataDecoder.extractSensorReadings(byteArray, BUSCO_2020_12_PACKET_DEFINITION);
 
     return {

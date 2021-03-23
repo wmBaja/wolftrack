@@ -11,7 +11,7 @@
     "react-dom": "^16.8.6",
     "react-map-gl": "^5.0.7",
     "react-router-dom": "^5.1.2",
-    "react-scripts": "3.0.1",
+    "react-scripts": "^3.4.4",
     "socket.io-client": "^2.2.0"
   },
   "scripts": {
@@ -19,9 +19,6 @@
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
-  },
-  "eslintConfig": {
-    "extends": "react-app"
   },
   "browserslist": {
     "production": [
