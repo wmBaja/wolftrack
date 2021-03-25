@@ -10,16 +10,6 @@ export default class SensorProfile {
     {valueName: 'cvt_temperature', bitLength: 8, running: false},
     {valueName: 'cvt_sec_rpm', bitLength: 13, running: false},
   ];
-  seralize = () => {
-    let binString = "";
-    this.sensors.forEach(element => {
-      if(element.running){
-        binString.concat("1");
-      } else {
-        binString.concat("0");
-      }
-    });
-    return binString;
-  }
+  
 
 }
