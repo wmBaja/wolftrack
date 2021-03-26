@@ -47,7 +47,7 @@ function Settings(props) {
   }
   
   let divStyle = {
-    width: "300px", margin:"auto", border: "dotted red 3px"
+    width: "300px", border: "dotted red 3px"
   }
   let checkStyle = {
     display: "flex", width: "200px", margin:"10px"
@@ -103,8 +103,11 @@ function Settings(props) {
           'Switch to Driver Display'}
         </Button>
       </div>
+      <div style = {divStyle}>
+        <h2 style = {checkStyle}>Sensor Profile Configuration</h2>
         {checkBoxList}
         <Button variant='raised' onClick={() => submitData()}>Add Sensors</Button>
+      </div>
 
       <DriverDisplaySettings />
 
