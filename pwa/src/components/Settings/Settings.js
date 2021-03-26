@@ -16,7 +16,8 @@ import SensorProfile from "../../utilities/DataProtocol/Profile"
 function Settings(props) {
   const { currentDisplay, setCurrentDisplay, toggleSettingsPage } = props;
 
-  const state = {showList: false, profile: new SensorProfile()}
+  var profile = new SensorProfile()
+
   // BLE state
   const bleClient = useContext(BLEClientContext);
   const [bleConnected, setBleConnected] = useState(bleClient.connected);
@@ -37,9 +38,10 @@ function Settings(props) {
     toggleSettingsPage();
   }
 
-
-  let updateCheckBox = (sensor) => {
-    sensor.running = !sensor.running
+  let handleChange = (e, sensor) =>{
+    let isChecked = e.target.checked
+    sensor.running = isChecked
+    
   }
   
   let divStyle = {
@@ -49,23 +51,30 @@ function Settings(props) {
     display: "flex", width: "200px", margin:"10px"
   }
 
-  let checkBoxList = state.profile.sensors.map((sensor) => {
-    return (<Checkbox style={checkStyle} value = {sensor.valueName} label = {sensor.valueName} key = {sensor.valueName} onClick={() => updateCheckBox(sensor)}/>
+  let checkBoxList = profile.sensors.map((sensor) => {
+    return (<Checkbox style={checkStyle} value = {sensor.running} label = {sensor.valueName} key = {sensor.valueName} onChange = {e => handleChange(e, sensor)}/>
   )});
 
   let submitData = () =>{
-    let bitString = 0b0;
-    state.profile.sensors.forEach(sensor => {
+    console.log(profile.sensors);
+    let b = new ArrayBuffer(20);
+    var longInt32View = new Uint32Array(b);
+    let int32 = 0b0;
+    profile.sensors.forEach(sensor => {
+
       if(sensor.running){
-        bitString += 0b1
+        
+        int32+=0b1;
+
       }
-      bitString *= 0b10
-      bitString <<= 0;
-      sensor.running = false;
+      int32 = int32<<1;
+
+
     });
+    console.log(int32);
     
-    console.log(bitString);
-    bleClient.writeData(bitString);
+    
+    //bleClient.writeData(bitString);
   }
 
 
