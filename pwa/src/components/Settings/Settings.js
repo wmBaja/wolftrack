@@ -16,7 +16,9 @@ import SensorProfile from "../../utilities/DataProtocol/Profile"
 function Settings(props) {
   const { currentDisplay, setCurrentDisplay, toggleSettingsPage } = props;
 
-  var profile = new SensorProfile()
+  var profile = new SensorProfile();
+
+  
 
   // BLE state
   const bleClient = useContext(BLEClientContext);
@@ -60,11 +62,13 @@ function Settings(props) {
     let b = new ArrayBuffer(20);
     var longInt32View = new Uint32Array(b);
     let int32 = 0b0;
+    var includeExport = [];
     profile.sensors.forEach(sensor => {
 
       if(sensor.running){
         
         int32+=0b1;
+        includeExport.add(sensor);
 
       }
       int32 = int32<<1;
@@ -73,7 +77,7 @@ function Settings(props) {
     });
     console.log(int32);
     
-    
+    bleClient.setSensorProfile(includeExport);
     //bleClient.writeData(bitString);
   }
 

@@ -1,5 +1,6 @@
 import DataDecoder from './DataDecoder.js';
 
+
 //import { COMPETITION_PACKET_DEFINITION } from './PACKET_DEFINITIONS.js';
 
 export default class DataGenerator {

@@ -12,8 +12,11 @@ export default class BLEClient {
     this._callbacks = [];
     this.currentData = DEFAULT_DATA;
     this.profileCharacteristic = 1;
+    this.sensorProfile = 0;
   }
-
+  setSensorProfile(sensorProfile){
+    this.sensorProfile = sensorProfile;
+  }
   /**
    * Registers the given callback so that it is called when new data arrives.
    * @param {func} callback the callback function to register
@@ -67,8 +70,11 @@ export default class BLEClient {
   async _startConnection() {
     const handleNotifications = (event) => {
       const rawIncomingData = event.target.value;
-      const decodedData = DataDecoder.decodeData(rawIncomingData, this.currentData);
-      this._callCallbacks(decodedData);
+      if(this.sensorProfile != 0){
+        const decodedData = DataDecoder.decodeData(rawIncomingData, this.currentData, this.sensorProfile);
+        this._callCallbacks(decodedData);
+      }
+      
     };
 
     try {

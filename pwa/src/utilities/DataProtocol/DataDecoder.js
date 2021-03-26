@@ -4,6 +4,7 @@ import { MAX_ANALOG_VALUE, MAX_FUEL_CAPACITY, MAGICAL_CONSTANT_FOR_SPEED,
 import { BUSCO_2020_12_PACKET_DEFINITION } from './PACKET_DEFINITIONS.js';
 import { ACCEL_REAL_START, ACCEL_INT_START, ACCEL_REAL_INT_RATIO } from './REAL_INT_RANGE_MAPPINGS.js';
 import { mapRangeToRangeWithRatio } from '../utils.js';
+import Settings from '../../components/Settings/Settings';
 
 const FUEL_EMA_WEIGHT = 0.1;
 
@@ -24,9 +25,11 @@ const BIT_MASKS = [
 // }
 
 export default class DataDecoder {
+  
+
   static extractSensorReadings(byteArray, packetDefinition) {
     const values = {};
-  
+
     let bitOffset = 0;
     for (let {valueName, bitLength} of packetDefinition) {
       let value = 0;
@@ -59,10 +62,10 @@ export default class DataDecoder {
     return values;
   }
 
-  static decodeData(rawData, currentData) {
+  static decodeData(rawData, currentData, sensorProfile) {
     const byteArray = new Uint8Array(rawData.buffer);
     // Issue
-    const sensors = DataDecoder.extractSensorReadings(byteArray, BUSCO_2020_12_PACKET_DEFINITION);
+    const sensors = DataDecoder.extractSensorReadings(byteArray, sensorProfile);
 
     return {
       rawData,
