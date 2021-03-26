@@ -89,8 +89,10 @@ CharacteristicCallbacks::CharacteristicCallbacks(ModularSensorGroup* sensorGroup
 
 void CharacteristicCallbacks::onWrite(BLECharacteristic* characteristic) {
 	if (this->sensorGroup != nullptr) {
-		uint8_t* data = characteristic->getData();
+		uint32_t* data = (uint32_t*)characteristic->getData();
 		Serial.println(data[0]);
 		//TODO - handle 	this->sensorGroup->reinit(data);
+		this->sensorGroup->processData(*data);
+
 	}
 }

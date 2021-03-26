@@ -23,6 +23,7 @@ class ModularSensorGroup: public SensorGroup {
 		void reinit(std::vector<Sensor*> newSensorList);
 		std::vector<Sensor*> strToVec(std::vector<std::string>);
 		void buildDataPacket(DataPacket*);
+		void processData(uint32_t data);
 };
 
 #endif

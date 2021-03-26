@@ -71,3 +71,18 @@ void ModularSensorGroup::buildDataPacket(DataPacket* dataPacket) {
 	}
 }
 
+void ModularSensorGroup::processData(uint32_t data) {
+	uint32_t mask = 0b1;
+	std::vector<std::string> newSensorList;
+	std::string sensorOrderedList[]  = {"cvt_sec_rpm", "cvt_temp", "fuel", "engine_rpm", "front_brake", "front_left_shock", "accelerometer"};
+	size_t len = sizeof(sensorOrderedList)/sizeof(sensorOrderedList[0]);
+	for (size_t i = 0; i < len; i++) {
+		data = data >> 1;
+		uint32_t state = data & mask;
+		if (state == 1) {
+			newSensorList.push_back(sensorOrderedList[i]);
+		}
+	}
+	this->reinit(this->strToVec(newSensorList));
+	return;
+}
