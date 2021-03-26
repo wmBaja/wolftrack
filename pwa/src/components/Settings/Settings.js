@@ -58,7 +58,6 @@ function Settings(props) {
   )});
 
   let submitData = () =>{
-    console.log(profile.sensors);
     let b = new ArrayBuffer(20);
     var longInt32View = new Uint32Array(b);
     let int32 = 0b0;
@@ -68,14 +67,14 @@ function Settings(props) {
       if(sensor.running){
         
         int32+=0b1;
-        includeExport.add(sensor);
+        includeExport.push(sensor);
 
       }
       int32 = int32<<1;
 
 
     });
-    console.log(int32);
+    console.log(includeExport);
     
     bleClient.setSensorProfile(includeExport);
     //bleClient.writeData(bitString);
