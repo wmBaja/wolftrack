@@ -20,7 +20,7 @@ SDModule* sdModule;
 unsigned long nextSDWriteTime = 0;
 
 ////---------------SENSORS----------------
-SensorGroup* sensorGroup;
+ModularSensorGroup* sensorGroup;
 
 void setup() {
 
@@ -32,13 +32,15 @@ void setup() {
 
   // initialize sensor group
   sensorGroup = new ModularSensorGroup();
+  sensorGroup->reinit(sensorGroup->strToVec(std::vector<std::string>(std::begin(DEFAULT_SENSOR_GROUP), std::end(DEFAULT_SENSOR_GROUP))));
 
   // initialize first transmission time
   nextTransmissionTime = millis() + TRANSMISSION_INTERVAL;
 
   // initialize BLE
   bleModule = new BLEModule();
-
+  bleModule->setSensorGroup(sensorGroup);
+  
   // initialize SD
   sdModule = new SDModule();
 }

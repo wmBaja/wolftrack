@@ -3,6 +3,7 @@
 #include <BLEServer.h>
 #include <BLEUtils.h>
 #include <BLE2902.h>
+#include <bitset>
 
 #include "BLEModule.h"
 #include "../../config.h"
@@ -88,7 +89,8 @@ CharacteristicCallbacks::CharacteristicCallbacks(ModularSensorGroup* sensorGroup
 
 void CharacteristicCallbacks::onWrite(BLECharacteristic* characteristic) {
 	if (this->sensorGroup != nullptr) {
-		std::string data = characteristic->getValue();
+		uint8_t* data = characteristic->getData();
+		Serial.println(data[0]);
 		//TODO - handle 	this->sensorGroup->reinit(data);
 	}
 }

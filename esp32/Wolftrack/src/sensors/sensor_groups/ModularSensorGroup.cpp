@@ -5,7 +5,7 @@ ModularSensorGroup::ModularSensorGroup():
 	adc()
 {
 	adc.begin(MCP3008_SPI_CS, MCP3008_SPI_MOSI, MCP3008_SPI_MISO, MCP3008_SPI_SCLK);
-	sensorList = strToVec(std::vector<std::string>(std::begin(DEFAULT_SENSOR_GROUP), std::end(DEFAULT_SENSOR_GROUP)));
+//	sensorList = this->strToVec(std::vector<std::string>(std::begin(DEFAULT_SENSOR_GROUP), std::end(DEFAULT_SENSOR_GROUP)));
 }
 
 void ModularSensorGroup::loop() {
