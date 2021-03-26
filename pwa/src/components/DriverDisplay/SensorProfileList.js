@@ -36,23 +36,7 @@ export default class SensorProfileModule extends React.Component {
   }
   
   render(){
-    let updateCheckBox = (sensor) => {
-      sensor.running = !sensor.running
-    }
     
-    let divStyle = {
-      width: "300px", margin:"auto", border: "dotted red 3px"
-    }
-    let checkStyle = {
-      display: "flex", width: "200px", margin:"10px"
-    }
-
-    this.checkBoxList = this.state.profile.sensors.map((sensor) => {
-      return (<Checkbox style={checkStyle} value = {sensor.valueName} label = {sensor.valueName} key = {sensor.valueName} onClick={() => updateCheckBox(sensor)}/>
-    )});
-
-    const render = this.state.showList;
-    let list;
     if(render){
       list = <div style = {divStyle}>
         

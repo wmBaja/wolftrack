@@ -11,6 +11,7 @@ export default class BLEClient {
     this.simulating = false;
     this._callbacks = [];
     this.currentData = DEFAULT_DATA;
+    this.profileCharacteristic = 1;
   }
 
   /**
@@ -95,6 +96,10 @@ export default class BLEClient {
       myCharacteristic.addEventListener('characteristicvaluechanged',
           handleNotifications);
 
+      console.log('Getting Profile Characteristic...');      
+      const profileCharacteristicUUID = '12345678-1234-5678-1234-56789abcdef2';
+      this.profileCharacteristic = await service.getCharacteristic(profileCharacteristicUUID);
+
       return true;
     } catch(error) {
       console.log(error);
@@ -105,6 +110,13 @@ export default class BLEClient {
   async _endConnection() {
     await this.bledevice.gatt.disconnect();
     return !this.bledevice.gatt.connected;
+  }
+
+  async writeData(data) {
+    if(this.connected){
+    console.log(this.profileCharacteristic)
+    this.profileCharacteristic.writeValueWithoutResponse(data);
+    }
   }
 
   async connect(simulate) {
