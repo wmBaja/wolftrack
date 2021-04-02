@@ -43,5 +43,5 @@ int CVTTemperature::getDataBits() {
 }
 
 void  CVTTemperature::printType() {
-	Serial.println("CVT Temperature");
+	Serial.println("\tCVT Temperature");
 }

@@ -98,5 +98,5 @@ int EngineRPM::getDataBits() {
 }
 
 void EngineRPM::printType() {
-	Serial.println("Engine RPM");
+	Serial.println("\tEngine RPM");
 }

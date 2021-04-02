@@ -98,5 +98,5 @@ int CVTSecRPM::getDataBits() {
 }
 
 void CVTSecRPM::printType() {
-	Serial.println("CVT Secondary RPM");
+	Serial.println("\tCVT Secondary RPM");
 }

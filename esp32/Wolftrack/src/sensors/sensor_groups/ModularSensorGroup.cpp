@@ -59,15 +59,16 @@ std::vector<Sensor*> *ModularSensorGroup::strToVec(std::vector<std::string> sens
 }
 
 void ModularSensorGroup::buildDataPacket(DataPacket* dataPacket) {
-	for (Sensor* sensor: sensorList) {
+	*dataPacket = DataPacket();
+	for (Sensor* sensor: this->sensorList) {
 		if (sensor->getMoreValues() == IS_ACCELEROMETER) {
 			Accelerometer* accel = (Accelerometer*) sensor;
-			dataPacket->addValue(accel->getXAccel(), accel->getDataBits());
-			dataPacket->addValue(accel->getYAccel(), accel->getDataBits());
 			dataPacket->addValue(accel->getZAccel(), accel->getDataBits());
+			dataPacket->addValue(accel->getYAccel(), accel->getDataBits());
+			dataPacket->addValue(accel->getXAccel(), accel->getDataBits());
 		}
 		else {
-		dataPacket->addValue(sensor->getValue(), sensor->getDataBits());
+			dataPacket->addValue(sensor->getValue(), sensor->getDataBits());
 		}
 	}
 }
@@ -89,6 +90,7 @@ void ModularSensorGroup::processData(uint32_t data) {
 		}
 	}
 	Serial.println("\nFinished updating sensors");
+	std::reverse(newSensorList.begin(), newSensorList.end());
 	this->reinit(this->strToVec(newSensorList));
 	return;
 }

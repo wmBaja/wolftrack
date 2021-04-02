@@ -59,7 +59,7 @@ int Accelerometer::getMoreValues() {
 }
 
 void Accelerometer::printType() {
-	Serial.println("Acceleromete");
+	Serial.println("\tAccelerometer");
 }
 
 int Accelerometer::getDataBits() {

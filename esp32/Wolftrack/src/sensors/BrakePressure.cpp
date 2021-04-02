@@ -39,5 +39,5 @@ int BrakePressure::getDataBits() {
 }
 
 void BrakePressure::printType() {
-	Serial.println("Brake Pressure");
+	Serial.println("\tBrake Pressure");
 }

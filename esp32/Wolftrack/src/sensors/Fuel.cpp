@@ -53,5 +53,5 @@ int Fuel::getDataBits() {
 }
 
 void Fuel::printType() {
-	Serial.println("Fuel");
+	Serial.println("\tFuel");
 }

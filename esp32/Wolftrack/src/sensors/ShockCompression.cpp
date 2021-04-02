@@ -44,5 +44,5 @@ int ShockCompression::getDataBits() {
 }
 
 void ShockCompression::printType() {
-	Serial.println("Shock Compression");
+	Serial.println("\tShock Compression");
 }
