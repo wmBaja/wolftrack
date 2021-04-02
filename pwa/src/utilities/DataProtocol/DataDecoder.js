@@ -29,9 +29,9 @@ export default class DataDecoder {
 
   static extractSensorReadings(byteArray, packetDefinition) {
     const values = {};
-
     let bitOffset = 0;
     for (let {valueName, bitLength} of packetDefinition) {
+		console.log(valueName);
       let value = 0;
 
       // extract the bits for this value from the byte array
@@ -55,7 +55,6 @@ export default class DataDecoder {
         curByteIdx++;
         nextBitInCurByteToExtractIdx = 0;
       }
-
       values[valueName] = value; // add the value to the dict of values
       bitOffset += bitLength; // update the bit offset into the byte array
     }
@@ -66,11 +65,10 @@ export default class DataDecoder {
     const byteArray = new Uint8Array(rawData.buffer);
     // Issue
     const sensors = DataDecoder.extractSensorReadings(byteArray, sensorProfile);
-
     return {
       rawData,
       fuel: DataDecoder.calculateFuelData(sensors.fuel, currentData.fuel.remainingEMALiters),
-      drivetrain: DataDecoder.calculateDrivetrainData(sensors.engine_rpm, sensors.cvt_sec_rpm, sensors.cvt_temp),
+      drivetrain: DataDecoder.calculateDrivetrainData(sensors.engine_rpm, sensors.cvt_sec_rpm, sensors.cvt_temperature),
       brakes: DataDecoder.calculateBrakesData(sensors.front_brake_pressure, sensors.rear_brake_pressure),
       suspension: DataDecoder.calculateSuspensionData(
         sensors.fl_shock_compression, sensors.fr_shock_compression,

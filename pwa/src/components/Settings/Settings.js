@@ -74,10 +74,11 @@ function Settings(props) {
 
 
     });
+	longInt32View[0] = int32;
     console.log(includeExport);
     
     bleClient.setSensorProfile(includeExport);
-    //bleClient.writeData(bitString);
+    bleClient.writeData(b);
   }
 
 
