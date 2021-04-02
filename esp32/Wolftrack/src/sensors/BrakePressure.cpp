@@ -37,3 +37,7 @@ int BrakePressure::getMoreValues() {
 int BrakePressure::getDataBits() {
 	return BRAKE_PRESSURE_DATA_BITS;
 }
+
+void BrakePressure::printType() {
+	Serial.println("Brake Pressure");
+}

@@ -96,6 +96,7 @@ void loop() {
     else { Serial.println("SD Card Write Enabled"); }
     if (bleModule->isDeviceConnected() == 1) { Serial.println("Bluetooth is connected"); }
     else { Serial.println("Bluetooth is not connected"); }
+    sensorGroup->printSensorList();
     
     loopCount = 0;
     nextProfilingReportTime = curMicroTime + PROFILING_REPORT_INTERVAL;

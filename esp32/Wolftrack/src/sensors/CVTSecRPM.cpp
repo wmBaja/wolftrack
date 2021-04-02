@@ -96,3 +96,7 @@ int CVTSecRPM::getMoreValues() {
 int CVTSecRPM::getDataBits() {
 	return CVT_SEC_DATA_BITS;
 }
+
+void CVTSecRPM::printType() {
+	Serial.println("CVT Secondary RPM");
+}

@@ -25,6 +25,7 @@ class CVTTemperature: public Sensor {
     int getValue();
 	int getMoreValues();
 	int getDataBits();
+	void printType();
 };
 
 #endif

@@ -11,7 +11,7 @@
 // whether or not to enable performance profiling
 #define ENABLE_PERFORMANCE_PROFILING 1
 // whether or not to generate random values for sensor readings
-#define GENERATE_RANDOM_VALUES 1
+#define GENERATE_RANDOM_VALUES 0
 // whether or not the electronics system is being tested
 #define TESTING (ENABLE_PERFORMANCE_PROFILING || GENERATE_RANDOM_VALUES)
 // the baud rate for the serial connection

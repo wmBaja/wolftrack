@@ -7,6 +7,7 @@ class Sensor {
 		virtual int getValue() = 0;
 		virtual int getDataBits() = 0;
 		virtual int getMoreValues() = 0;
+		virtual void printType() = 0;
 };
 
 #endif

@@ -42,3 +42,7 @@ int ShockCompression::getMoreValues() {
 int ShockCompression::getDataBits() {
 	return SHOCK_COMPRESSION_DATA_BITS;
 }
+
+void ShockCompression::printType() {
+	Serial.println("Shock Compression");
+}

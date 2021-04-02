@@ -20,10 +20,11 @@ class ModularSensorGroup: public SensorGroup {
 	public:
 		ModularSensorGroup();
 		void loop();
-		void reinit(std::vector<Sensor*> newSensorList);
-		std::vector<Sensor*> strToVec(std::vector<std::string>);
+		void reinit(std::vector<Sensor*> *newSensorList);
+		std::vector<Sensor*> *strToVec(std::vector<std::string>);
 		void buildDataPacket(DataPacket*);
 		void processData(uint32_t data);
+		void printSensorList();
 };
 
 #endif

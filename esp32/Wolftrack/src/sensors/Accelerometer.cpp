@@ -58,6 +58,10 @@ int Accelerometer::getMoreValues() {
 	return IS_ACCELEROMETER;
 }
 
+void Accelerometer::printType() {
+	Serial.println("Acceleromete");
+}
+
 int Accelerometer::getDataBits() {
 	return ACCELERATION_DATA_BITS;
 }
