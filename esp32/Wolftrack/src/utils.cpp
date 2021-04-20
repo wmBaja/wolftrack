@@ -38,8 +38,8 @@ namespace utils {
 
   int isSDWriteEnabled() {
 	if (digitalRead(STOP_OP_PIN) == HIGH) {
-		return 1;
+		return 0;
 	}
-	return 0;
+	return 1;
   }
 }

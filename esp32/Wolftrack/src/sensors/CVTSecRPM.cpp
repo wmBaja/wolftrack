@@ -31,7 +31,7 @@ void CVTSecRPM::checkForMagPasses() {
   int pinState = digitalRead(this->pin);
 
   // if the pin is high
-  if (pinState) {
+  if (!pinState) {
     // if the shaft's magnet is not currently considered passing
     if (!this->magIsPassing) {
       // then this is a new magnet pass
