@@ -96,3 +96,7 @@ int EngineRPM::getMoreValues() {
 int EngineRPM::getDataBits() {
 	return ENGINE_RPM_DATA_BITS;
 }
+
+void EngineRPM::printType() {
+	Serial.println("\tEngine RPM");
+}

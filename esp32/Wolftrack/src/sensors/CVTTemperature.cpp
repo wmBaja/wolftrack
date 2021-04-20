@@ -8,7 +8,9 @@ CVTTemperature::CVTTemperature():
   oneWire(CVT_TEMP_PIN),
   sensors(&oneWire),
   nextReadTime(0)
-{}
+{
+	sensors.begin();
+}
 
 void CVTTemperature::loop() {
 #if GENERATE_RANDOM_VALUES
@@ -38,4 +40,8 @@ int CVTTemperature::getMoreValues() {
 
 int CVTTemperature::getDataBits() {
 	return CVT_TEMP_DATA_BITS;
+}
+
+void  CVTTemperature::printType() {
+	Serial.println("\tCVT Temperature");
 }

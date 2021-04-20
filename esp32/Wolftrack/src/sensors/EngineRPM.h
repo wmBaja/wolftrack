@@ -27,6 +27,7 @@ class EngineRPM: public Sensor {
     int getValue();
 	int getMoreValues();
 	int getDataBits();
+	void printType();
   private:
     void checkForSparks();
     void updateRPM();

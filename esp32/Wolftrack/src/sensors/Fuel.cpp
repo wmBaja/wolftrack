@@ -51,3 +51,7 @@ int Fuel::getMoreValues() {
 int Fuel::getDataBits() {
 	return FUEL_DATA_BITS;
 }
+
+void Fuel::printType() {
+	Serial.println("\tFuel");
+}
