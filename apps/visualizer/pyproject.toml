@@ -1,0 +1,14 @@
+[project]
+name = "wolftrack-visualizer"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "asammdf>=8.7.2",
+    "cantools>=41.3.0",
+    "fastapi>=0.135.2",
+    "python-can>=4.6.1",
+    "uvicorn>=0.42.0",
+    "websockets>=16.0",
+]
