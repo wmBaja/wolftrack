@@ -59,16 +59,31 @@ class AppLogConfig:
         )
 
 @dataclass
+class PipelineConfig:
+    """Data Pipeline Configuration"""
+    source: str = 'zmq'  # 'zmq' or 'logfile'
+    log_file: str = 'data.blf'
+    
+    @classmethod
+    def from_env(cls) -> 'PipelineConfig':
+        return cls(
+            source=os.getenv('PIPELINE_SOURCE', 'zmq').lower(),
+            log_file=os.getenv('PIPELINE_LOG_FILE', 'data.blf')
+        )
+
+@dataclass
 class AppConfig:
     """Main application configuration"""
     zmq: ZMQConfig = field(default_factory=ZMQConfig)
     fastapi: FastAPIConfig = field(default_factory=FastAPIConfig)
     appLog: AppLogConfig = field(default_factory=AppLogConfig)
+    pipeline: PipelineConfig = field(default_factory=PipelineConfig)
     
     @classmethod
     def from_env(cls) -> 'AppConfig':
         return cls(
             zmq=ZMQConfig.from_env(),
             fastapi=FastAPIConfig.from_env(),
-            appLog=AppLogConfig.from_env()
+            appLog=AppLogConfig.from_env(),
+            pipeline=PipelineConfig.from_env()
         )

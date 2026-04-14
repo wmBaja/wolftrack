@@ -12,7 +12,7 @@ async def test_stream(port):
             for i in range(10):  # Just read 10 frames to verify
                 data = await websocket.recv()
                 parsed = json.loads(data)
-                print(f"Frame {i+1}: RPM={parsed.get('rpm', 0):.2f}, Speed={parsed.get('speed_mph', 0):.2f}")
+                print(f"Frame {i+1}: {parsed}")
             print("Successfully received 10 frames. Test passed!")
     except Exception as e:
         print(f"Failed to connect or read: {e}")
