@@ -23,9 +23,9 @@ class DataPipeline:
         self.processors_by_signal[processor.target_signal].append(processor)
         
     def process_signal(self, signal: dict) -> dict:
-        signal_name = signal.get("name")
-        if signal_name in self.processors_by_signal:
-            for processor in self.processors_by_signal[signal_name]:
+        signal_id = signal.get("id")
+        if signal_id in self.processors_by_signal:
+            for processor in self.processors_by_signal[signal_id]:
                 signal = processor(signal)
         return signal
 
@@ -90,8 +90,11 @@ class PipelineManager:
             async for message in self.source.stream():
                 if "decoded" in message and isinstance(message["decoded"], dict):
                     processed_signals = []
+                    message_name = message.get("message_name", "Unknown")
                     for signal_name, signal_value in message["decoded"].items():
+                        signal_id = f"{message_name}.{signal_name}"
                         signal_payload = {
+                            "id": signal_id,
                             "name": signal_name,
                             "value": signal_value,
                             "arbitration_id": message.get("arbitration_id"),

@@ -56,6 +56,8 @@ class ZMQDataSource(DataSource):
                         data_bytes = bytes(message["data"])
                         decoded = self.db.decode_message(message['arbitration_id'], data_bytes)
                         message['decoded'] = decoded
+                        msg_obj = self.db.get_message_by_frame_id(message['arbitration_id'])
+                        message['message_name'] = msg_obj.name
                     except KeyError:
                         pass
                 
@@ -112,6 +114,8 @@ class LogFileDataSource(DataSource):
             if self.db:
                 try:
                     payload['decoded'] = self.db.decode_message(msg.arbitration_id, msg.data)
+                    msg_obj = self.db.get_message_by_frame_id(msg.arbitration_id)
+                    payload['message_name'] = msg_obj.name
                 except KeyError:
                     pass
             

@@ -34,6 +34,7 @@ async def get_signals(request: Request):
     for msg in pm.source.db.messages:
         for sig in msg.signals:
             signals.append({
+                "id": f"{msg.name}.{sig.name}",
                 "message": msg.name,
                 "name": sig.name,
                 "unit": sig.unit
