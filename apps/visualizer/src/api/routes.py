@@ -1,7 +1,8 @@
 import os
+import shutil
 from typing import Optional
 from pydantic import BaseModel
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Request, HTTPException
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Request, HTTPException, UploadFile, File, Form
 from ws_manager import manager
 from pipeline.manager import PipelineManager
 
@@ -23,26 +24,44 @@ async def get_config(request: Request):
         "playback_speed": getattr(pipeline_config, "playback_speed", 1.0)
     }
 
-@router.post("/api/config")
-async def update_config(update: ConfigUpdate, request: Request):
-    if update.source not in ["zmq", "logfile"]:
+@router.post("/api/upload_config")
+async def upload_config(
+    request: Request,
+    source: str = Form(...),
+    playback_speed: float = Form(1.0),
+    log_file_upload: Optional[UploadFile] = File(None),
+    dbc_file_upload: Optional[UploadFile] = File(None),
+    existing_log: Optional[str] = Form(None),
+    existing_dbc: Optional[str] = Form(None)
+):
+    if source not in ["zmq", "logfile"]:
         raise HTTPException(status_code=400, detail="Source must be 'zmq' or 'logfile'.")
         
-    if update.log_file and not os.path.exists(update.log_file):
-        raise HTTPException(status_code=400, detail=f"Log file not found: {update.log_file}")
-        
-    if update.dbc_file and not os.path.exists(update.dbc_file):
-        raise HTTPException(status_code=400, detail=f"DBC file not found: {update.dbc_file}")
-        
-    # Update global config state
+    upload_dir = os.path.join(os.getcwd(), "logs", "uploads")
+    os.makedirs(upload_dir, exist_ok=True)
+    
     config = request.app.state.config
-    config.pipeline.source = update.source
-    if update.log_file is not None:
-        config.pipeline.log_file = update.log_file
-    if update.dbc_file is not None:
-        config.pipeline.dbc_file = update.dbc_file
-    if getattr(update, 'playback_speed', None) is not None:
-        config.pipeline.playback_speed = update.playback_speed
+    config.pipeline.source = source
+    config.pipeline.playback_speed = playback_speed
+    
+    if source == "logfile":
+        if log_file_upload and log_file_upload.filename:
+            file_path = os.path.join(upload_dir, log_file_upload.filename)
+            with open(file_path, "wb") as buffer:
+                shutil.copyfileobj(log_file_upload.file, buffer)
+            config.pipeline.log_file = file_path
+        elif existing_log:
+            config.pipeline.log_file = existing_log
+        else:
+            raise HTTPException(status_code=400, detail="Log file is required for logfile source.")
+            
+    if dbc_file_upload and dbc_file_upload.filename:
+        dbc_path = os.path.join(upload_dir, dbc_file_upload.filename)
+        with open(dbc_path, "wb") as buffer:
+            shutil.copyfileobj(dbc_file_upload.file, buffer)
+        config.pipeline.dbc_file = dbc_path
+    elif existing_dbc:
+        config.pipeline.dbc_file = existing_dbc
         
     # Reinitialize pipeline manager
     if getattr(request.app.state, 'pipeline_manager', None):
@@ -50,7 +69,7 @@ async def update_config(update: ConfigUpdate, request: Request):
         
     request.app.state.pipeline_manager = PipelineManager(config)
     await request.app.state.pipeline_manager.start()
-    return {"status": "success", "message": "Pipeline configuration updated and restarted successfully"}
+    return {"status": "success", "message": "Pipeline configuration uploaded and restarted successfully"}
 
 @router.post("/api/stop")
 async def stop_pipeline(request: Request):
