@@ -2,6 +2,7 @@ import asyncio
 import socket
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 from dotenv import load_dotenv
 
@@ -26,21 +27,29 @@ logger = get_logger(__name__)
 from pipeline.manager import PipelineManager
 from api.routes import router
 
-pipeline_manager = None
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    global pipeline_manager
-    pipeline_manager = PipelineManager(config)
-    await pipeline_manager.start()
+    app.state.config = config
+    app.state.pipeline_manager = PipelineManager(app.state.config)
+    
+    await app.state.pipeline_manager.start()
     
     yield
     
     # Stop cleanly
-    if pipeline_manager:
-        await pipeline_manager.stop()
+    if getattr(app.state, 'pipeline_manager', None):
+        await app.state.pipeline_manager.stop()
 
 app = FastAPI(lifespan=lifespan)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 app.include_router(router)
 
 if __name__ == "__main__":

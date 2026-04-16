@@ -28,7 +28,7 @@ class ZMQDataSource(DataSource):
         self.config = config
         self.zmq_context = zmq.asyncio.Context()
         self.sock = None
-        self.db = load_dbc()
+        self.db = load_dbc(self.config.pipeline.dbc_file)
 
     async def connect(self):
         self.sock = self.zmq_context.socket(zmq.SUB)
@@ -67,10 +67,10 @@ class ZMQDataSource(DataSource):
                 break
 
 class LogFileDataSource(DataSource):
-    def __init__(self, log_file_path: str, playback_speed: float = 1.0):
+    def __init__(self, log_file_path: str, playback_speed: float = 1.0, dbc_file: str = None):
         self.log_file_path = log_file_path
         self.playback_speed = playback_speed
-        self.db = load_dbc()
+        self.db = load_dbc(dbc_file)
         self._reader = None
 
     async def connect(self):
@@ -90,10 +90,18 @@ class LogFileDataSource(DataSource):
             raise RuntimeError("Log file not loaded. Call connect() first.")
         
         logger.info("Log playback stream loop started.")
+        last_timestamp = None
         for msg in self._reader:
-            # TODO: remove this delay
-            # delay for playback throttling 
-            await asyncio.sleep(0.01)
+            if self.playback_speed > 0:
+                current_timestamp = getattr(msg, 'timestamp', 0)
+                if last_timestamp is not None and current_timestamp >= last_timestamp:
+                    time_diff = current_timestamp - last_timestamp
+                    sleep_time = time_diff / self.playback_speed
+                    if sleep_time > 0:
+                        await asyncio.sleep(sleep_time)
+                last_timestamp = current_timestamp
+            else:
+                await asyncio.sleep(0)
             
             payload = {
                 "timestamp": getattr(msg, 'timestamp', 0),

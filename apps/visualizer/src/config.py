@@ -63,12 +63,16 @@ class PipelineConfig:
     """Data Pipeline Configuration"""
     source: str = 'zmq'  # 'zmq' or 'logfile'
     log_file: str = 'data.blf'
+    dbc_file: str = None
+    playback_speed: float = 1.0
     
     @classmethod
     def from_env(cls) -> 'PipelineConfig':
         return cls(
             source=os.getenv('PIPELINE_SOURCE', 'zmq').lower(),
-            log_file=os.getenv('PIPELINE_LOG_FILE', 'data.blf')
+            log_file=os.getenv('PIPELINE_LOG_FILE', 'data.blf'),
+            dbc_file=os.getenv('PIPELINE_DBC_FILE', None),
+            playback_speed=float(os.getenv('PIPELINE_PLAYBACK_SPEED', '1.0'))
         )
 
 @dataclass

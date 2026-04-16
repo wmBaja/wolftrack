@@ -49,7 +49,15 @@ class PipelineManager:
             log_file = "data.blf"
             if hasattr(self.config, 'pipeline') and hasattr(self.config.pipeline, 'log_file'):
                 log_file = self.config.pipeline.log_file
-            self.source = LogFileDataSource(log_file)
+            
+            playback_speed = getattr(self.config.pipeline, 'playback_speed', 1.0)
+            dbc_file = getattr(self.config.pipeline, 'dbc_file', None)
+                
+            self.source = LogFileDataSource(
+                log_file_path=log_file,
+                playback_speed=playback_speed,
+                dbc_file=dbc_file
+            )
         else:
             self.source = ZMQDataSource(self.config)
             
