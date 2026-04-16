@@ -24,6 +24,22 @@ async def get_config(request: Request):
         "playback_speed": getattr(pipeline_config, "playback_speed", 1.0)
     }
 
+@router.get("/api/signals")
+async def get_signals(request: Request):
+    pm = getattr(request.app.state, 'pipeline_manager', None)
+    if not pm or not getattr(pm, 'source', None) or not getattr(pm.source, 'db', None):
+        return {"signals": []}
+    
+    signals = []
+    for msg in pm.source.db.messages:
+        for sig in msg.signals:
+            signals.append({
+                "message": msg.name,
+                "name": sig.name,
+                "unit": sig.unit
+            })
+    return {"signals": signals}
+
 @router.post("/api/upload_config")
 async def upload_config(
     request: Request,
