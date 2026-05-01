@@ -1,0 +1,59 @@
+name: Build and Release Backend
+
+on:
+  push:
+    branches: [main, dev]
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            artifact: wolftrack-visualizer
+          - os: windows-latest
+            artifact: wolftrack-visualizer.exe
+          - os: macos-latest
+            artifact: wolftrack-visualizer
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: astral-sh/setup-uv@v5
+      
+      - name: Install dependencies
+        run: uv pip install pyinstaller
+        
+      - name: Build
+        run: uv run pyinstaller wolftrack-visualizer.spec --noconfirm --clean
+        
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-${{ matrix.os }}
+          path: dist/${{ matrix.artifact }}
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        
+      - name: Set Release Tag
+        id: tag
+        # Uses 'latest' for main branch, and 'dev' for dev branch
+        run: echo "tag_name=${{ github.ref_name == 'main' && 'latest' || 'dev' }}" >> $GITHUB_OUTPUT
+        
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.tag_name }}
+          prerelease: true
+          files: |
+            backend-ubuntu-latest/wolftrack-visualizer
+            backend-windows-latest/wolftrack-visualizer.exe
+            backend-macos-latest/wolftrack-visualizer
