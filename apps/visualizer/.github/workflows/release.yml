@@ -25,7 +25,7 @@ jobs:
       - uses: astral-sh/setup-uv@v5
       
       - name: Install dependencies
-        run: uv pip install pyinstaller
+        run: uv init && uv add pyinstaller
         
       - name: Build
         run: uv run pyinstaller wolftrack-visualizer.spec --noconfirm --clean
