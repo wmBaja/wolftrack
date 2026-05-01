@@ -23,12 +23,13 @@ jobs:
         with:
           python-version: '3.12'
       - uses: astral-sh/setup-uv@v5
+
       
       - name: Install dependencies
         run: uv sync
         
       - name: Build
-        run: uv run pyinstaller wolftrack-visualizer.spec --noconfirm --clean
+        run: uv run pyinstaller --name wolftrack-visualizer --onefile --noconfirm --clean --paths src src/app.py
         
       - name: Upload artifact
         uses: actions/upload-artifact@v4
