@@ -1,4 +1,9 @@
 import asyncio
+import warnings
+import sys
+
+if sys.platform == 'win32':
+    warnings.filterwarnings("ignore", message="Proactor event loop does not implement add_reader.*", category=RuntimeWarning)
 import socket
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
