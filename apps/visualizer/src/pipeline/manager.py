@@ -107,6 +107,10 @@ class PipelineManager:
                         await ws_manager.broadcast_json(processed_signals)
                 else:
                     pass
+            
+            # Broadcast stopped status when the stream finishes naturally
+            await ws_manager.broadcast_json({"type": "status", "status": "stopped"})
+            logger.info("PipelineManager stream finished naturally.")
         except asyncio.CancelledError:
             logger.info("PipelineManager loop cancelled.")
         except Exception as e:

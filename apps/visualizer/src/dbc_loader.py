@@ -15,7 +15,11 @@ def load_dbc(file_path: str = None):
             else:
                 logger.error(f"Explicit DBC path does not exist: {file_path}")
         else:
-            dbc_cache = list(Path('dbc').glob('*.dbc'))
+            import os
+            base_dir = Path(os.environ.get("WOLFTRACK_USER_DATA", os.getcwd()))
+            dbc_cache = list((base_dir / 'dbc').glob('*.dbc'))
+            if not dbc_cache:
+                dbc_cache = list(Path('dbc').glob('*.dbc'))
             if not dbc_cache:
                 dbc_cache = list(Path('.').glob('*.dbc'))
             if dbc_cache:
