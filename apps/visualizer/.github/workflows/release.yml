@@ -2,7 +2,10 @@ name: Build and Release Backend
 
 on:
   push:
-    branches: [main, dev]
+    branches: [ main, dev ]
+  pull_request:
+    branches: [ main, dev ]
+  workflow_dispatch:
 
 jobs:
   build:
@@ -46,8 +49,8 @@ jobs:
         
       - name: Set Release Tag
         id: tag
-        # Uses 'latest' for main branch, and 'dev' for dev branch
-        run: echo "tag_name=${{ github.ref_name == 'main' && 'latest' || 'dev' }}" >> $GITHUB_OUTPUT
+        run: echo "tag_name=nightly" >> "$GITHUB_OUTPUT"
+        shell: bash
         
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
