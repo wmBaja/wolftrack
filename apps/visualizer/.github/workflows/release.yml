@@ -54,6 +54,7 @@ jobs:
         with:
           tag_name: ${{ steps.tag.outputs.tag_name }}
           prerelease: true
+          overwrite_files: true
           files: |
             backend-ubuntu-latest/wolftrack-visualizer
             backend-windows-latest/wolftrack-visualizer.exe
