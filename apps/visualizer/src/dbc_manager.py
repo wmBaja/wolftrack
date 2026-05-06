@@ -18,11 +18,18 @@ class DBCManager:
         # Load initially if there is one available
         dbcs = self.get_available_dbcs()
         if dbcs:
-            self.select_dbc(dbcs[0])
+            self.select_dbc(dbcs[0]["name"])
             
-    def get_available_dbcs(self) -> List[str]:
-        """Return a list of available DBC filenames."""
-        return [f.name for f in self.dbc_dir.glob("*.dbc")]
+    def get_available_dbcs(self) -> List[Dict[str, Any]]:
+        """Return a list of available DBC file info."""
+        return [
+            {
+                "name": f.name,
+                "size": f.stat().st_size,
+                "mtime": f.stat().st_mtime
+            }
+            for f in self.dbc_dir.glob("*.dbc")
+        ]
         
     def upload_dbc(self, filename: str, file_content: bytes) -> str:
         """Save a DBC file to the dbc directory."""
@@ -49,7 +56,7 @@ class DBCManager:
                 # Try to load another one
                 dbcs = self.get_available_dbcs()
                 if dbcs:
-                    self.select_dbc(dbcs[0])
+                    self.select_dbc(dbcs[0]["name"])
             return True
         return False
         
