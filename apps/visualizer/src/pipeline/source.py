@@ -6,7 +6,6 @@ import zmq.asyncio
 
 from config import AppConfig
 from logging_config import get_logger
-from dbc_loader import load_dbc
 
 logger = get_logger(__name__)
 
@@ -24,11 +23,11 @@ class DataSource(abc.ABC):
         pass
 
 class ZMQDataSource(DataSource):
-    def __init__(self, config: AppConfig):
+    def __init__(self, config: AppConfig, db=None):
         self.config = config
         self.zmq_context = zmq.asyncio.Context()
         self.sock = None
-        self.db = load_dbc(self.config.pipeline.dbc_file)
+        self.db = db
 
     async def connect(self):
         self.sock = self.zmq_context.socket(zmq.SUB)
@@ -74,10 +73,10 @@ class ZMQDataSource(DataSource):
                 break
 
 class LogFileDataSource(DataSource):
-    def __init__(self, log_file_path: str, playback_speed: float = 1.0, dbc_file: str = None):
+    def __init__(self, log_file_path: str, playback_speed: float = 1.0, db=None):
         self.log_file_path = log_file_path
         self.playback_speed = playback_speed
-        self.db = load_dbc(dbc_file)
+        self.db = db
         self._reader = None
 
     async def connect(self):
