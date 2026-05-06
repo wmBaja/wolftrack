@@ -59,19 +59,43 @@ class PipelineManager:
                 dbc_file=dbc_file
             )
         else:
-            self.source = ZMQDataSource(self.config)
-            
-        pass
+            live_source = getattr(self.config, 'live_source', None)
+            has_runtime_endpoint = bool(
+                live_source
+                and live_source.connected
+                and live_source.zmq_host
+                and live_source.zmq_port
+            )
+
+            if has_runtime_endpoint:
+                self.source = ZMQDataSource(self.config)
+            else:
+                self.source = None
+                logger.info("PipelineManager initialized without an active live source.")
+
+    def has_source(self) -> bool:
+        return self.source is not None
+
+    async def _broadcast_status(self, status: str, detail: str | None = None):
+        payload = {
+            "type": "status",
+            "status": status,
+            "source": getattr(self.config.pipeline, "source", "unknown"),
+            "detail": detail,
+        }
+        await ws_manager.broadcast_json(payload)
 
     async def start(self):
         if not self.source:
-            logger.error("No DataSource configured for PipelineManager.")
+            logger.info("PipelineManager start skipped because no source is configured.")
+            await self._broadcast_status("stopped", "No active live source configured.")
             return
 
         logger.info("PipelineManager starting...")
         await self.source.connect()
         self._task = asyncio.create_task(self._run_loop())
         logger.info("PipelineManager started.")
+        await self._broadcast_status("running")
 
     async def stop(self):
         logger.info("PipelineManager stopping...")
@@ -84,6 +108,7 @@ class PipelineManager:
         if self.source:
             await self.source.disconnect()
         logger.info("PipelineManager stopped.")
+        await self._broadcast_status("stopped")
 
     async def _run_loop(self):
         try:
@@ -109,9 +134,10 @@ class PipelineManager:
                     pass
             
             # Broadcast stopped status when the stream finishes naturally
-            await ws_manager.broadcast_json({"type": "status", "status": "stopped"})
+            await self._broadcast_status("stopped")
             logger.info("PipelineManager stream finished naturally.")
         except asyncio.CancelledError:
             logger.info("PipelineManager loop cancelled.")
         except Exception as e:
             logger.error(f"PipelineManager error: {e}", exc_info=True)
+            await self._broadcast_status("error", str(e))

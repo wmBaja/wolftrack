@@ -37,7 +37,8 @@ async def lifespan(app: FastAPI):
     app.state.config = config
     app.state.pipeline_manager = PipelineManager(app.state.config)
     
-    await app.state.pipeline_manager.start()
+    if app.state.pipeline_manager.has_source():
+        await app.state.pipeline_manager.start()
     
     yield
     
