@@ -173,11 +173,13 @@ async def upload_config(
     else:
         config.pipeline.dbc_file = None
         
+    dbc_manager = getattr(request.app.state, 'dbc_manager', None)
+
     # Reinitialize pipeline manager
     if getattr(request.app.state, 'pipeline_manager', None):
         await request.app.state.pipeline_manager.stop()
         
-    request.app.state.pipeline_manager = PipelineManager(config)
+    request.app.state.pipeline_manager = PipelineManager(config, dbc_manager)
     if request.app.state.pipeline_manager.has_source():
         await request.app.state.pipeline_manager.start()
     return {"status": "success", "message": "Pipeline configuration uploaded and restarted successfully"}
@@ -186,6 +188,7 @@ async def upload_config(
 @router.post("/api/live_source/connect")
 async def connect_live_source(request: Request, payload: LiveSourceConnectRequest):
     config = request.app.state.config
+    dbc_manager = getattr(request.app.state, 'dbc_manager', None)
     config.pipeline.source = "zmq"
     config.live_source.flask_host = payload.flask_host
     config.live_source.flask_port = payload.flask_port
@@ -196,7 +199,7 @@ async def connect_live_source(request: Request, payload: LiveSourceConnectReques
     if getattr(request.app.state, 'pipeline_manager', None):
         await request.app.state.pipeline_manager.stop()
 
-    request.app.state.pipeline_manager = PipelineManager(config)
+    request.app.state.pipeline_manager = PipelineManager(config, dbc_manager)
     await request.app.state.pipeline_manager.start()
     await manager.broadcast_json({
         "type": "live_source",

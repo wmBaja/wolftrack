@@ -52,8 +52,6 @@ class PipelineManager:
                 log_file = self.config.pipeline.log_file
             
             playback_speed = getattr(self.config.pipeline, 'playback_speed', 1.0)
-            dbc_file = getattr(self.config.pipeline, 'dbc_file', None)
-                
             db = self.dbc_manager.get_active_dbc() if self.dbc_manager else None
             self.source = LogFileDataSource(
                 log_file_path=log_file,
@@ -70,7 +68,8 @@ class PipelineManager:
             )
 
             if has_runtime_endpoint:
-                self.source = ZMQDataSource(self.config)
+                db = self.dbc_manager.get_active_dbc() if self.dbc_manager else None
+                self.source = ZMQDataSource(self.config, db=db)
             else:
                 self.source = None
                 logger.info("PipelineManager initialized without an active live source.")
