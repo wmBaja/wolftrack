@@ -58,6 +58,10 @@ async def upload_dbc_route(
     content = await file.read()
     dbc_manager.upload_dbc(file.filename, content)
     
+    pipeline_manager = getattr(request.app.state, 'pipeline_manager', None)
+    if pipeline_manager and pipeline_manager.source:
+        pipeline_manager.source.db = dbc_manager.get_active_dbc()
+    
     return {"status": "success", "message": f"DBC {file.filename} uploaded successfully"}
 
 @router.post("/api/dbc/select")
@@ -73,6 +77,10 @@ async def select_dbc_route(
     if not success:
         raise HTTPException(status_code=400, detail=f"Failed to select DBC {filename}")
         
+    pipeline_manager = getattr(request.app.state, 'pipeline_manager', None)
+    if pipeline_manager and pipeline_manager.source:
+        pipeline_manager.source.db = dbc_manager.get_active_dbc()
+        
     return {"status": "success", "message": f"DBC {filename} selected"}
 
 @router.delete("/api/dbc/{filename}")
@@ -87,6 +95,10 @@ async def delete_dbc_route(
     success = dbc_manager.delete_dbc(filename)
     if not success:
         raise HTTPException(status_code=404, detail=f"DBC {filename} not found")
+        
+    pipeline_manager = getattr(request.app.state, 'pipeline_manager', None)
+    if pipeline_manager and pipeline_manager.source:
+        pipeline_manager.source.db = dbc_manager.get_active_dbc()
         
     return {"status": "success", "message": f"DBC {filename} deleted"}
 
