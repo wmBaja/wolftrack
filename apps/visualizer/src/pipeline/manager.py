@@ -30,8 +30,9 @@ class DataPipeline:
         return signal
 
 class PipelineManager:
-    def __init__(self, config: AppConfig):
+    def __init__(self, config: AppConfig, dbc_manager=None):
         self.config = config
+        self.dbc_manager = dbc_manager
         self.source: DataSource = None
         self.pipeline = DataPipeline()
         self._task = None
@@ -53,13 +54,15 @@ class PipelineManager:
             playback_speed = getattr(self.config.pipeline, 'playback_speed', 1.0)
             dbc_file = getattr(self.config.pipeline, 'dbc_file', None)
                 
+            db = self.dbc_manager.get_active_dbc() if self.dbc_manager else None
             self.source = LogFileDataSource(
                 log_file_path=log_file,
                 playback_speed=playback_speed,
-                dbc_file=dbc_file
+                db=db
             )
         else:
-            self.source = ZMQDataSource(self.config)
+            db = self.dbc_manager.get_active_dbc() if self.dbc_manager else None
+            self.source = ZMQDataSource(self.config, db=db)
             
         pass
 

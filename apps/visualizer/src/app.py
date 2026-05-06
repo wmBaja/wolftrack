@@ -1,5 +1,6 @@
 import asyncio
 import warnings
+import os
 import sys
 
 if sys.platform == 'win32':
@@ -31,11 +32,17 @@ logger = get_logger(__name__)
 
 from pipeline.manager import PipelineManager
 from api.routes import router
+from dbc_manager import DBCManager
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     app.state.config = config
-    app.state.pipeline_manager = PipelineManager(app.state.config)
+    
+    # Initialize global DBC manager
+    user_data_dir = os.environ.get("WOLFTRACK_USER_DATA", os.getcwd())
+    app.state.dbc_manager = DBCManager(user_data_dir)
+    
+    app.state.pipeline_manager = PipelineManager(app.state.config, app.state.dbc_manager)
     
     await app.state.pipeline_manager.start()
     

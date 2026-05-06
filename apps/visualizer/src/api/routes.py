@@ -26,20 +26,69 @@ async def get_config(request: Request):
 
 @router.get("/api/signals")
 async def get_signals(request: Request):
-    pm = getattr(request.app.state, 'pipeline_manager', None)
-    if not pm or not getattr(pm, 'source', None) or not getattr(pm.source, 'db', None):
+    dbc_manager = getattr(request.app.state, 'dbc_manager', None)
+    if not dbc_manager:
         return {"signals": []}
     
-    signals = []
-    for msg in pm.source.db.messages:
-        for sig in msg.signals:
-            signals.append({
-                "id": f"{msg.name}.{sig.name}",
-                "message": msg.name,
-                "name": sig.name,
-                "unit": sig.unit
-            })
-    return {"signals": signals}
+    return {"signals": dbc_manager.get_signals()}
+
+@router.get("/api/dbc")
+async def get_dbc_info(request: Request):
+    dbc_manager = getattr(request.app.state, 'dbc_manager', None)
+    if not dbc_manager:
+        return {"available": [], "active": None}
+    
+    return {
+        "available": dbc_manager.get_available_dbcs(),
+        "active": dbc_manager.active_dbc_filename
+    }
+
+@router.post("/api/dbc/upload")
+async def upload_dbc_route(
+    request: Request,
+    file: UploadFile = File(...)
+):
+    dbc_manager = getattr(request.app.state, 'dbc_manager', None)
+    if not dbc_manager:
+        raise HTTPException(status_code=500, detail="DBC Manager not initialized")
+        
+    if not file.filename.endswith('.dbc'):
+        raise HTTPException(status_code=400, detail="File must be a .dbc file")
+        
+    content = await file.read()
+    dbc_manager.upload_dbc(file.filename, content)
+    
+    return {"status": "success", "message": f"DBC {file.filename} uploaded successfully"}
+
+@router.post("/api/dbc/select")
+async def select_dbc_route(
+    request: Request,
+    filename: str = Form(...)
+):
+    dbc_manager = getattr(request.app.state, 'dbc_manager', None)
+    if not dbc_manager:
+        raise HTTPException(status_code=500, detail="DBC Manager not initialized")
+        
+    success = dbc_manager.select_dbc(filename)
+    if not success:
+        raise HTTPException(status_code=400, detail=f"Failed to select DBC {filename}")
+        
+    return {"status": "success", "message": f"DBC {filename} selected"}
+
+@router.delete("/api/dbc/{filename}")
+async def delete_dbc_route(
+    request: Request,
+    filename: str
+):
+    dbc_manager = getattr(request.app.state, 'dbc_manager', None)
+    if not dbc_manager:
+        raise HTTPException(status_code=500, detail="DBC Manager not initialized")
+        
+    success = dbc_manager.delete_dbc(filename)
+    if not success:
+        raise HTTPException(status_code=404, detail=f"DBC {filename} not found")
+        
+    return {"status": "success", "message": f"DBC {filename} deleted"}
 
 @router.post("/api/upload_config")
 async def upload_config(
@@ -58,8 +107,6 @@ async def upload_config(
     base_dir = os.environ.get("WOLFTRACK_USER_DATA", os.getcwd())
     upload_dir = os.path.join(base_dir, "logs", "uploads")
     os.makedirs(upload_dir, exist_ok=True)
-    dbc_upload_dir = os.path.join(base_dir, "dbc")
-    os.makedirs(dbc_upload_dir, exist_ok=True)
     
     config = request.app.state.config
     config.pipeline.source = source
@@ -86,29 +133,20 @@ async def upload_config(
         else:
             raise HTTPException(status_code=400, detail="Log file is required for logfile source.")
             
-    if dbc_file_upload and dbc_file_upload.filename:
-        # Clear old dbcs
-        for f in os.listdir(dbc_upload_dir):
-            try:
-                os.remove(os.path.join(dbc_upload_dir, f))
-            except Exception:
-                pass
-                
-        dbc_path = os.path.join(dbc_upload_dir, dbc_file_upload.filename)
-        with open(dbc_path, "wb") as buffer:
-            shutil.copyfileobj(dbc_file_upload.file, buffer)
-        config.pipeline.dbc_file = dbc_path
-    elif existing_dbc:
-        if os.path.isabs(existing_dbc) and os.path.exists(existing_dbc):
-            config.pipeline.dbc_file = existing_dbc
-        else:
-            config.pipeline.dbc_file = os.path.join(dbc_upload_dir, os.path.basename(existing_dbc))
+    # DBC file is now handled by DBCManager, so we just use the active one.
+    dbc_manager = getattr(request.app.state, 'dbc_manager', None)
+    if dbc_manager and dbc_manager.active_dbc_filename:
+        # The pipeline manager will pull the DBC from the DBCManager, 
+        # but we can set it in the config just in case.
+        config.pipeline.dbc_file = os.path.join(base_dir, "dbc", dbc_manager.active_dbc_filename)
+    else:
+        config.pipeline.dbc_file = None
         
     # Reinitialize pipeline manager
     if getattr(request.app.state, 'pipeline_manager', None):
         await request.app.state.pipeline_manager.stop()
         
-    request.app.state.pipeline_manager = PipelineManager(config)
+    request.app.state.pipeline_manager = PipelineManager(config, request.app.state.dbc_manager)
     await request.app.state.pipeline_manager.start()
     return {"status": "success", "message": "Pipeline configuration uploaded and restarted successfully"}
 
