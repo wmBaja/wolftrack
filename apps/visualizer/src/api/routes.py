@@ -14,6 +14,31 @@ class ConfigUpdate(BaseModel):
     dbc_file: Optional[str] = None
     playback_speed: Optional[float] = None
 
+
+class LiveSourceConnectRequest(BaseModel):
+    flask_host: str
+    flask_port: int
+    zmq_host: str
+    zmq_port: int
+
+
+def serialize_live_source(config):
+    live_source = config.live_source
+    return {
+        "connected": live_source.connected,
+        "flask_host": live_source.flask_host,
+        "flask_port": live_source.flask_port,
+        "zmq_host": live_source.zmq_host,
+        "zmq_port": live_source.zmq_port,
+    }
+
+
+def serialize_live_source_event(config):
+    return {
+        "type": "live_source",
+        **serialize_live_source(config),
+    }
+
 @router.get("/api/config")
 async def get_config(request: Request):
     pipeline_config = request.app.state.config.pipeline
@@ -23,6 +48,11 @@ async def get_config(request: Request):
         "dbc_file": pipeline_config.dbc_file,
         "playback_speed": getattr(pipeline_config, "playback_speed", 1.0)
     }
+
+
+@router.get("/api/live_source")
+async def get_live_source(request: Request):
+    return serialize_live_source(request.app.state.config)
 
 @router.get("/api/signals")
 async def get_signals(request: Request):
@@ -154,13 +184,66 @@ async def upload_config(
     else:
         config.pipeline.dbc_file = None
         
+    dbc_manager = getattr(request.app.state, 'dbc_manager', None)
+
     # Reinitialize pipeline manager
     if getattr(request.app.state, 'pipeline_manager', None):
         await request.app.state.pipeline_manager.stop()
         
-    request.app.state.pipeline_manager = PipelineManager(config, request.app.state.dbc_manager)
-    await request.app.state.pipeline_manager.start()
+    request.app.state.pipeline_manager = PipelineManager(config, dbc_manager)
+    if request.app.state.pipeline_manager.has_source():
+        await request.app.state.pipeline_manager.start()
     return {"status": "success", "message": "Pipeline configuration uploaded and restarted successfully"}
+
+
+@router.post("/api/live_source/connect")
+async def connect_live_source(request: Request, payload: LiveSourceConnectRequest):
+    config = request.app.state.config
+    dbc_manager = getattr(request.app.state, 'dbc_manager', None)
+    config.pipeline.source = "zmq"
+    config.live_source.flask_host = payload.flask_host
+    config.live_source.flask_port = payload.flask_port
+    config.live_source.zmq_host = payload.zmq_host
+    config.live_source.zmq_port = payload.zmq_port
+    config.live_source.connected = True
+
+    if getattr(request.app.state, 'pipeline_manager', None):
+        await request.app.state.pipeline_manager.stop()
+
+    request.app.state.pipeline_manager = PipelineManager(config, dbc_manager)
+    await request.app.state.pipeline_manager.start()
+    await manager.broadcast_json(serialize_live_source_event(config))
+    return {"status": "success", "message": "Live source connected successfully"}
+
+
+@router.post("/api/live_source/stop")
+async def stop_live_source(request: Request):
+    config = request.app.state.config
+
+    if getattr(request.app.state, 'pipeline_manager', None):
+        await request.app.state.pipeline_manager.stop()
+        request.app.state.pipeline_manager = None
+
+    config.live_source.connected = False
+    await manager.broadcast_json(serialize_live_source_event(config))
+    return {"status": "success", "message": "Live source stopped successfully"}
+
+
+@router.post("/api/live_source/disconnect")
+async def disconnect_live_source(request: Request):
+    config = request.app.state.config
+
+    if getattr(request.app.state, 'pipeline_manager', None):
+        await request.app.state.pipeline_manager.stop()
+        request.app.state.pipeline_manager = None
+
+    config.live_source.connected = False
+    config.live_source.flask_host = None
+    config.live_source.flask_port = None
+    config.live_source.zmq_host = None
+    config.live_source.zmq_port = None
+    await manager.broadcast_json(serialize_live_source_event(config))
+    return {"status": "success", "message": "Live source disconnected successfully"}
 
 @router.post("/api/stop")
 async def stop_pipeline(request: Request):
@@ -168,6 +251,7 @@ async def stop_pipeline(request: Request):
         await request.app.state.pipeline_manager.stop()
         # Nullify the active pipeline manager
         request.app.state.pipeline_manager = None
+        request.app.state.config.live_source.connected = False
         return {"status": "success", "message": "Pipeline stopped successfully"}
     return {"status": "success", "message": "Pipeline is already stopped"}
 

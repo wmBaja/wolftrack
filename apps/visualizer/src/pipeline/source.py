@@ -31,7 +31,12 @@ class ZMQDataSource(DataSource):
 
     async def connect(self):
         self.sock = self.zmq_context.socket(zmq.SUB)
-        zmq_url = f"tcp://{self.config.zmq.host}:{self.config.zmq.port}"
+        zmq_host = self.config.live_source.zmq_host or self.config.zmq.host
+        zmq_port = self.config.live_source.zmq_port or self.config.zmq.port
+        if not zmq_host or not zmq_port:
+            raise RuntimeError("Live ZMQ endpoint is not configured.")
+
+        zmq_url = f"tcp://{zmq_host}:{zmq_port}"
         self.sock.connect(zmq_url)
         self.sock.setsockopt_string(zmq.SUBSCRIBE, "")
         logger.info(f"ZMQDataSource connected to {zmq_url}")

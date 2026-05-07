@@ -5,6 +5,7 @@ src/config.py
 Defines all configuration dataclasses and loading methods.
 """
 from dataclasses import dataclass, field
+from typing import Optional
 import os
 
 @dataclass
@@ -75,6 +76,16 @@ class PipelineConfig:
             playback_speed=float(os.getenv('PIPELINE_PLAYBACK_SPEED', '1.0'))
         )
 
+
+@dataclass
+class LiveSourceConfig:
+    """Runtime DAQ connection details for live ZMQ streaming."""
+    flask_host: Optional[str] = None
+    flask_port: Optional[int] = None
+    zmq_host: Optional[str] = None
+    zmq_port: Optional[int] = None
+    connected: bool = False
+
 @dataclass
 class AppConfig:
     """Main application configuration"""
@@ -82,6 +93,7 @@ class AppConfig:
     fastapi: FastAPIConfig = field(default_factory=FastAPIConfig)
     appLog: AppLogConfig = field(default_factory=AppLogConfig)
     pipeline: PipelineConfig = field(default_factory=PipelineConfig)
+    live_source: LiveSourceConfig = field(default_factory=LiveSourceConfig)
     
     @classmethod
     def from_env(cls) -> 'AppConfig':
