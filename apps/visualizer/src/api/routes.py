@@ -21,6 +21,24 @@ class LiveSourceConnectRequest(BaseModel):
     zmq_host: str
     zmq_port: int
 
+
+def serialize_live_source(config):
+    live_source = config.live_source
+    return {
+        "connected": live_source.connected,
+        "flask_host": live_source.flask_host,
+        "flask_port": live_source.flask_port,
+        "zmq_host": live_source.zmq_host,
+        "zmq_port": live_source.zmq_port,
+    }
+
+
+def serialize_live_source_event(config):
+    return {
+        "type": "live_source",
+        **serialize_live_source(config),
+    }
+
 @router.get("/api/config")
 async def get_config(request: Request):
     pipeline_config = request.app.state.config.pipeline
@@ -34,14 +52,7 @@ async def get_config(request: Request):
 
 @router.get("/api/live_source")
 async def get_live_source(request: Request):
-    live_source = request.app.state.config.live_source
-    return {
-        "connected": live_source.connected,
-        "flask_host": live_source.flask_host,
-        "flask_port": live_source.flask_port,
-        "zmq_host": live_source.zmq_host,
-        "zmq_port": live_source.zmq_port,
-    }
+    return serialize_live_source(request.app.state.config)
 
 @router.get("/api/signals")
 async def get_signals(request: Request):
@@ -201,15 +212,21 @@ async def connect_live_source(request: Request, payload: LiveSourceConnectReques
 
     request.app.state.pipeline_manager = PipelineManager(config, dbc_manager)
     await request.app.state.pipeline_manager.start()
-    await manager.broadcast_json({
-        "type": "live_source",
-        "connected": True,
-        "flask_host": config.live_source.flask_host,
-        "flask_port": config.live_source.flask_port,
-        "zmq_host": config.live_source.zmq_host,
-        "zmq_port": config.live_source.zmq_port,
-    })
+    await manager.broadcast_json(serialize_live_source_event(config))
     return {"status": "success", "message": "Live source connected successfully"}
+
+
+@router.post("/api/live_source/stop")
+async def stop_live_source(request: Request):
+    config = request.app.state.config
+
+    if getattr(request.app.state, 'pipeline_manager', None):
+        await request.app.state.pipeline_manager.stop()
+        request.app.state.pipeline_manager = None
+
+    config.live_source.connected = False
+    await manager.broadcast_json(serialize_live_source_event(config))
+    return {"status": "success", "message": "Live source stopped successfully"}
 
 
 @router.post("/api/live_source/disconnect")
@@ -221,14 +238,11 @@ async def disconnect_live_source(request: Request):
         request.app.state.pipeline_manager = None
 
     config.live_source.connected = False
-    await manager.broadcast_json({
-        "type": "live_source",
-        "connected": False,
-        "flask_host": config.live_source.flask_host,
-        "flask_port": config.live_source.flask_port,
-        "zmq_host": config.live_source.zmq_host,
-        "zmq_port": config.live_source.zmq_port,
-    })
+    config.live_source.flask_host = None
+    config.live_source.flask_port = None
+    config.live_source.zmq_host = None
+    config.live_source.zmq_port = None
+    await manager.broadcast_json(serialize_live_source_event(config))
     return {"status": "success", "message": "Live source disconnected successfully"}
 
 @router.post("/api/stop")
