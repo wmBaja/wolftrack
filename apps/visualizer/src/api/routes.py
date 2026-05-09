@@ -1,12 +1,31 @@
+import csv
+import io
 import os
 import shutil
+from collections import defaultdict
+from datetime import datetime, timezone
 from typing import Optional
+from zoneinfo import ZoneInfo
 from pydantic import BaseModel
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Request, HTTPException, UploadFile, File, Form
+from fastapi.responses import StreamingResponse
+from openpyxl import Workbook
+from openpyxl.styles import Font
 from ws_manager import manager
 from pipeline.manager import PipelineManager
+from pipeline.source import LogFileDataSource
 
 router = APIRouter()
+
+US_EXPORT_TIMEZONES = {
+    "America/New_York",
+    "America/Chicago",
+    "America/Denver",
+    "America/Los_Angeles",
+    "America/Anchorage",
+    "Pacific/Honolulu",
+    "America/Phoenix",
+}
 
 class ConfigUpdate(BaseModel):
     source: str
@@ -38,6 +57,83 @@ def serialize_live_source_event(config):
         "type": "live_source",
         **serialize_live_source(config),
     }
+
+
+def _build_export_filename() -> str:
+    timestamp = datetime.now(timezone.utc).replace(microsecond=0).strftime("%Y-%m-%dT%H-%M-%SZ")
+    return f"wolftrack-export-{timestamp}.csv"
+
+
+def _format_export_timestamp(raw_timestamp: float, timezone_name: str) -> str:
+    localized = datetime.fromtimestamp(raw_timestamp, tz=timezone.utc).astimezone(ZoneInfo(timezone_name))
+    return localized.isoformat()
+
+
+def _validate_export_request(request: Request, timezone_name: str):
+    log_file = getattr(request.app.state.config.pipeline, "log_file", None)
+    if not log_file or not os.path.exists(log_file):
+        raise HTTPException(status_code=400, detail="No configured log file was found.")
+
+    if timezone_name not in US_EXPORT_TIMEZONES:
+        raise HTTPException(status_code=400, detail="Timezone must be one of the supported United States options.")
+
+    dbc_manager = getattr(request.app.state, "dbc_manager", None)
+    active_dbc = dbc_manager.get_active_dbc() if dbc_manager else None
+    if not active_dbc:
+        raise HTTPException(status_code=400, detail="No active DBC is loaded.")
+
+    return log_file, active_dbc
+
+
+async def _collect_export_rows(request: Request, timezone_name: str) -> list[dict[str, object]]:
+    log_file, active_dbc = _validate_export_request(request, timezone_name)
+    source = LogFileDataSource(log_file_path=log_file, playback_speed=0, db=active_dbc)
+    rows: list[dict[str, object]] = []
+
+    try:
+        await source.connect()
+        async for message in source.stream():
+            decoded = message.get("decoded")
+            if not isinstance(decoded, dict):
+                continue
+
+            message_name = message.get("message_name")
+            if not message_name:
+                continue
+
+            dbc_message = active_dbc.get_message_by_name(message_name)
+            signal_units = {
+                signal.name: signal.unit or ""
+                for signal in dbc_message.signals
+            }
+
+            timestamp = float(message.get("timestamp", 0))
+            formatted_timestamp = _format_export_timestamp(timestamp, timezone_name)
+            for signal_name, signal_value in decoded.items():
+                rows.append({
+                    "timestamp": formatted_timestamp,
+                    "signal_name": signal_name,
+                    "value": signal_value,
+                    "unit": signal_units.get(signal_name, ""),
+                })
+    finally:
+        await source.disconnect()
+
+    return rows
+
+
+def _build_sheet_name(signal_name: str, used_names: set[str]) -> str:
+    base_name = signal_name[:31] or "Signal"
+    candidate = base_name
+    suffix_index = 1
+
+    while candidate in used_names:
+        suffix = f"_{suffix_index}"
+        candidate = f"{base_name[:31 - len(suffix)]}{suffix}"
+        suffix_index += 1
+
+    used_names.add(candidate)
+    return candidate
 
 @router.get("/api/config")
 async def get_config(request: Request):
@@ -194,6 +290,81 @@ async def upload_config(
     if request.app.state.pipeline_manager.has_source():
         await request.app.state.pipeline_manager.start()
     return {"status": "success", "message": "Pipeline configuration uploaded and restarted successfully"}
+
+
+@router.get("/api/export_csv")
+async def export_csv(request: Request, timezone_name: str = "America/New_York"):
+    rows = await _collect_export_rows(request, timezone_name)
+    buffer = io.StringIO()
+    writer = csv.writer(buffer, lineterminator="\n")
+    writer.writerow(["timestamp", "signal_name", "value", "unit"])
+    for row in rows:
+        writer.writerow([
+            row["timestamp"],
+            row["signal_name"],
+            row["value"],
+            row["unit"],
+        ])
+
+    csv_content = "\ufeff" + buffer.getvalue()
+    headers = {
+        "Content-Disposition": f'attachment; filename="{_build_export_filename()}"',
+    }
+    return StreamingResponse(
+        iter([csv_content.encode("utf-8")]),
+        media_type="text/csv; charset=utf-8",
+        headers=headers,
+    )
+
+
+@router.get("/api/export_xlsx")
+async def export_xlsx(request: Request, timezone_name: str = "America/New_York"):
+    rows = await _collect_export_rows(request, timezone_name)
+    grouped_rows: dict[str, list[dict[str, object]]] = defaultdict(list)
+    for row in rows:
+        grouped_rows[str(row["signal_name"])].append(row)
+
+    workbook = Workbook()
+    default_sheet = workbook.active
+    workbook.remove(default_sheet)
+    header_font = Font(bold=True)
+    used_sheet_names: set[str] = set()
+
+    for signal_name, signal_rows in grouped_rows.items():
+        sheet = workbook.create_sheet(title=_build_sheet_name(signal_name, used_sheet_names))
+        sheet.append(["timestamp", "value", "unit"])
+        for cell in sheet[1]:
+            cell.font = header_font
+
+        for row in signal_rows:
+            sheet.append([
+                row["timestamp"],
+                row["value"],
+                row["unit"],
+            ])
+
+        for column_cells in sheet.columns:
+            max_length = max(len(str(cell.value or "")) for cell in column_cells)
+            sheet.column_dimensions[column_cells[0].column_letter].width = max_length + 2
+
+    if not workbook.sheetnames:
+        sheet = workbook.create_sheet(title="Signals")
+        sheet.append(["timestamp", "value", "unit"])
+        for cell in sheet[1]:
+            cell.font = header_font
+
+    buffer = io.BytesIO()
+    workbook.save(buffer)
+    buffer.seek(0)
+
+    headers = {
+        "Content-Disposition": f'attachment; filename="{_build_export_filename().replace(".csv", ".xlsx")}"',
+    }
+    return StreamingResponse(
+        iter([buffer.getvalue()]),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers=headers,
+    )
 
 
 @router.post("/api/live_source/connect")
