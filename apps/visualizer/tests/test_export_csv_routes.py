@@ -1,8 +1,10 @@
 from pathlib import Path
+import io
 import sys
 
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from openpyxl import load_workbook
 
 sys.path.append(str(Path(__file__).resolve().parents[1] / "src"))
 
@@ -77,6 +79,8 @@ class StubLogFileDataSource:
             "message_name": "VehicleState",
             "decoded": {
                 "speed": 13.0,
+                "abcdefghijklmnopqrstuvwxyz123456789": 8.8,
+                "abcdefghijklmnopqrstuvwxyz123456780": 9.9,
             },
         }
         yield {
@@ -137,6 +141,69 @@ def test_export_csv_streams_bom_csv_and_reuses_logfile_source(monkeypatch, tmp_p
     assert "1969-12-31T18:00:01.250000-06:00,speed,12.5,mph\n" in response.text
     assert "1969-12-31T18:00:01.250000-06:00,gear,3,\n" in response.text
     assert "1969-12-31T18:00:02.500000-06:00,speed,13.0,mph\n" in response.text
+
+    assert len(StubLogFileDataSource.instances) == 1
+    instance = StubLogFileDataSource.instances[0]
+    assert instance.log_file_path == str(log_file)
+    assert instance.playback_speed == 0
+    assert instance.connected is True
+    assert instance.disconnected is True
+
+
+def test_export_xlsx_rejects_non_us_timezones(tmp_path: Path):
+    client, _ = build_client(tmp_path, dbc=StubDbc())
+
+    response = client.get("/api/export_xlsx", params={"timezone_name": "Europe/London"})
+
+    assert response.status_code == 400
+    assert response.json() == {"detail": "Timezone must be one of the supported United States options."}
+
+
+def test_export_xlsx_returns_grouped_workbook(monkeypatch, tmp_path: Path):
+    StubLogFileDataSource.instances.clear()
+    monkeypatch.setattr(routes, "LogFileDataSource", StubLogFileDataSource)
+    client, log_file = build_client(tmp_path, dbc=StubDbc())
+
+    response = client.get("/api/export_xlsx", params={"timezone_name": "America/Chicago"})
+
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith(
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+    assert "attachment; filename=\"wolftrack-export-" in response.headers["content-disposition"]
+    assert response.headers["content-disposition"].endswith(".xlsx\"")
+
+    workbook = load_workbook(io.BytesIO(response.content))
+    assert "speed" in workbook.sheetnames
+    assert "gear" in workbook.sheetnames
+    assert "abcdefghijklmnopqrstuvwxyz12345" in workbook.sheetnames
+    assert "abcdefghijklmnopqrstuvwxyz123_1" in workbook.sheetnames
+
+    speed_sheet = workbook["speed"]
+    assert [cell.value for cell in speed_sheet[1]] == ["timestamp", "value", "unit"]
+    assert speed_sheet["A1"].font.bold is True
+    assert speed_sheet["B1"].font.bold is True
+    assert speed_sheet["C1"].font.bold is True
+    assert speed_sheet["A2"].value == "1969-12-31T18:00:01.250000-06:00"
+    assert speed_sheet["B2"].value == 12.5
+    assert speed_sheet["C2"].value == "mph"
+    assert speed_sheet["A3"].value == "1969-12-31T18:00:02.500000-06:00"
+    assert speed_sheet["B3"].value == 13
+    assert speed_sheet["C3"].value == "mph"
+    assert speed_sheet.column_dimensions["A"].width > len("timestamp")
+
+    gear_sheet = workbook["gear"]
+    assert [cell.value for cell in gear_sheet[1]] == ["timestamp", "value", "unit"]
+    assert gear_sheet["B2"].value == 3
+    assert gear_sheet["C2"].value in ("", None)
+
+    long_sheet = workbook["abcdefghijklmnopqrstuvwxyz12345"]
+    assert long_sheet["B2"].value == 8.8
+    assert long_sheet["C2"].value in ("", None)
+
+    collision_sheet = workbook["abcdefghijklmnopqrstuvwxyz123_1"]
+    assert collision_sheet["B2"].value == 9.9
+    assert collision_sheet["C2"].value in ("", None)
 
     assert len(StubLogFileDataSource.instances) == 1
     instance = StubLogFileDataSource.instances[0]
