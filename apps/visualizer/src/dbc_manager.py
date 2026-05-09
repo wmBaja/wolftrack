@@ -87,11 +87,14 @@ class DBCManager:
             
         signals = []
         for msg in self.db.messages:
-            for sig in msg.signals:
-                signals.append({
-                    "id": f"{msg.name}.{sig.name}",
-                    "message": msg.name,
-                    "name": sig.name,
-                    "unit": sig.unit
-                })
+            nodes = msg.senders if msg.senders else ["Unassigned"]
+            for node in nodes:
+                for sig in msg.signals:
+                    signals.append({
+                        "id": f"{msg.name}.{sig.name}",
+                        "node": node,
+                        "message": msg.name,
+                        "name": sig.name,
+                        "unit": sig.unit
+                    })
         return signals
