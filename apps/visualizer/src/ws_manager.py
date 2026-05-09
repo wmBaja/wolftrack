@@ -6,6 +6,8 @@ logger = get_logger(__name__)
 class ConnectionManager:
     def __init__(self):
         self.active_connections: set[WebSocket] = set()
+        self.subscribed_signals: set[str] = set()
+        self.live_window_seconds: float = 15.0
 
     async def connect(self, websocket: WebSocket):
         await websocket.accept()

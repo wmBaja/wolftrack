@@ -2,6 +2,7 @@ import csv
 import io
 import os
 import shutil
+import json
 from collections import defaultdict
 from datetime import datetime, timezone
 from typing import Optional
@@ -14,6 +15,13 @@ from openpyxl.styles import Font
 from ws_manager import manager
 from pipeline.manager import PipelineManager
 from pipeline.source import LogFileDataSource
+from pipeline.log_query import log_query_service
+
+class LogQueryRequest(BaseModel):
+    signals: list[str]
+    start_ts: float
+    end_ts: float
+    max_points: int
 
 router = APIRouter()
 
@@ -287,9 +295,24 @@ async def upload_config(
         await request.app.state.pipeline_manager.stop()
         
     request.app.state.pipeline_manager = PipelineManager(config, dbc_manager)
-    if request.app.state.pipeline_manager.has_source():
+    if source == "zmq" and request.app.state.pipeline_manager.has_source():
         await request.app.state.pipeline_manager.start()
+    elif source == "logfile":
+        dbc_manager = getattr(request.app.state, 'dbc_manager', None)
+        active_dbc = dbc_manager.get_active_dbc() if dbc_manager else None
+        if active_dbc and config.pipeline.log_file:
+            log_query_service.start_indexing(config.pipeline.log_file, active_dbc)
+            
     return {"status": "success", "message": "Pipeline configuration uploaded and restarted successfully"}
+
+@router.get("/api/logfile/status")
+async def get_logfile_status():
+    return log_query_service.get_status()
+
+@router.post("/api/logfile/query")
+async def query_logfile(payload: LogQueryRequest):
+    data = log_query_service.query(payload.signals, payload.start_ts, payload.end_ts, payload.max_points)
+    return {"data": data}
 
 
 @router.get("/api/export_csv")
@@ -431,7 +454,13 @@ async def websocket_endpoint(websocket: WebSocket):
     await manager.connect(websocket)
     try:
         while True:
-            # Keep the socket open until client drops or sends close frame
-            await websocket.receive_text()
+            text = await websocket.receive_text()
+            try:
+                data = json.loads(text)
+                if data.get("type") == "subscribe":
+                    manager.subscribed_signals = set(data.get("signals", []))
+                    manager.live_window_seconds = data.get("live_window_seconds", 15.0)
+            except Exception:
+                pass
     except WebSocketDisconnect:
         manager.disconnect(websocket)
