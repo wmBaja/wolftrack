@@ -62,4 +62,3 @@ jobs:
           files: |
             backend-ubuntu-latest/wolftrack-visualizer
             backend-windows-latest/wolftrack-visualizer.exe
-            backend-macos-latest/wolftrack-visualizer
