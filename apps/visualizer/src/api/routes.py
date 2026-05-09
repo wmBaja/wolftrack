@@ -1,12 +1,28 @@
+import csv
+import io
 import os
 import shutil
+from datetime import datetime, timezone
 from typing import Optional
+from zoneinfo import ZoneInfo
 from pydantic import BaseModel
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Request, HTTPException, UploadFile, File, Form
+from fastapi.responses import StreamingResponse
 from ws_manager import manager
 from pipeline.manager import PipelineManager
+from pipeline.source import LogFileDataSource
 
 router = APIRouter()
+
+US_EXPORT_TIMEZONES = {
+    "America/New_York",
+    "America/Chicago",
+    "America/Denver",
+    "America/Los_Angeles",
+    "America/Anchorage",
+    "Pacific/Honolulu",
+    "America/Phoenix",
+}
 
 class ConfigUpdate(BaseModel):
     source: str
@@ -38,6 +54,16 @@ def serialize_live_source_event(config):
         "type": "live_source",
         **serialize_live_source(config),
     }
+
+
+def _build_export_filename() -> str:
+    timestamp = datetime.now(timezone.utc).replace(microsecond=0).strftime("%Y-%m-%dT%H-%M-%SZ")
+    return f"wolftrack-export-{timestamp}.csv"
+
+
+def _format_export_timestamp(raw_timestamp: float, timezone_name: str) -> str:
+    localized = datetime.fromtimestamp(raw_timestamp, tz=timezone.utc).astimezone(ZoneInfo(timezone_name))
+    return localized.isoformat()
 
 @router.get("/api/config")
 async def get_config(request: Request):
@@ -194,6 +220,65 @@ async def upload_config(
     if request.app.state.pipeline_manager.has_source():
         await request.app.state.pipeline_manager.start()
     return {"status": "success", "message": "Pipeline configuration uploaded and restarted successfully"}
+
+
+@router.get("/api/export_csv")
+async def export_csv(request: Request, timezone_name: str = "America/New_York"):
+    log_file = getattr(request.app.state.config.pipeline, "log_file", None)
+    if not log_file or not os.path.exists(log_file):
+        raise HTTPException(status_code=400, detail="No configured log file was found.")
+
+    if timezone_name not in US_EXPORT_TIMEZONES:
+        raise HTTPException(status_code=400, detail="Timezone must be one of the supported United States options.")
+
+    dbc_manager = getattr(request.app.state, "dbc_manager", None)
+    active_dbc = dbc_manager.get_active_dbc() if dbc_manager else None
+    if not active_dbc:
+        raise HTTPException(status_code=400, detail="No active DBC is loaded.")
+
+    source = LogFileDataSource(log_file_path=log_file, playback_speed=0, db=active_dbc)
+    buffer = io.StringIO()
+    writer = csv.writer(buffer, lineterminator="\n")
+    writer.writerow(["timestamp", "signal_name", "value", "unit"])
+
+    try:
+        await source.connect()
+        async for message in source.stream():
+            decoded = message.get("decoded")
+            if not isinstance(decoded, dict):
+                continue
+
+            message_name = message.get("message_name")
+            if not message_name:
+                continue
+
+            dbc_message = active_dbc.get_message_by_name(message_name)
+            signal_units = {
+                signal.name: signal.unit or ""
+                for signal in dbc_message.signals
+            }
+
+            timestamp = float(message.get("timestamp", 0))
+            formatted_timestamp = _format_export_timestamp(timestamp, timezone_name)
+            for signal_name, signal_value in decoded.items():
+                writer.writerow([
+                    formatted_timestamp,
+                    signal_name,
+                    signal_value,
+                    signal_units.get(signal_name, ""),
+                ])
+    finally:
+        await source.disconnect()
+
+    csv_content = "\ufeff" + buffer.getvalue()
+    headers = {
+        "Content-Disposition": f'attachment; filename="{_build_export_filename()}"',
+    }
+    return StreamingResponse(
+        iter([csv_content.encode("utf-8")]),
+        media_type="text/csv; charset=utf-8",
+        headers=headers,
+    )
 
 
 @router.post("/api/live_source/connect")
