@@ -68,8 +68,7 @@ class PipelineManager:
             )
 
             if has_runtime_endpoint:
-                db = self.dbc_manager.get_active_dbc() if self.dbc_manager else None
-                self.source = ZMQDataSource(self.config, db=db)
+                self.source = ZMQDataSource(self.config)
             else:
                 self.source = None
                 logger.info("PipelineManager initialized without an active live source.")
