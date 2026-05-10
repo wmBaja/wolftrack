@@ -13,11 +13,14 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            artifact: wolftrack-visualizer-linux
+            app_name: wolftrack-visualizer-linux
+            file_name: wolftrack-visualizer-linux
           - os: windows-latest
-            artifact: wolftrack-visualizer.exe
+            app_name: wolftrack-visualizer # PyInstaller automatically adds .exe
+            file_name: wolftrack-visualizer.exe
           - os: macos-latest
-            artifact: wolftrack-visualizer-mac
+            app_name: wolftrack-visualizer-mac
+            file_name: wolftrack-visualizer-mac
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -27,18 +30,17 @@ jobs:
           python-version: '3.12'
       - uses: astral-sh/setup-uv@v5
 
-      
       - name: Install dependencies
         run: uv sync
         
       - name: Build
-        run: uv run pyinstaller --name wolftrack-visualizer --onefile --noconfirm --clean --paths src src/app.py
+        run: uv run pyinstaller --name ${{ matrix.app_name }} --onefile --noconfirm --clean --paths src src/app.py
         
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: backend-${{ matrix.os }}
-          path: dist/${{ matrix.artifact }}
+          path: dist/${{ matrix.file_name }}
 
   release:
     if: github.event_name != 'pull_request'
