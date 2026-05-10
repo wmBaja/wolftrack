@@ -13,34 +13,40 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            app_name: wolftrack-visualizer-linux
-            file_name: wolftrack-visualizer-linux
+            artifact: wolftrack-visualizer
+            release_name: wolftrack-visualizer-linux
           - os: windows-latest
-            app_name: wolftrack-visualizer # PyInstaller automatically adds .exe
-            file_name: wolftrack-visualizer.exe
+            artifact: wolftrack-visualizer.exe
+            release_name: wolftrack-visualizer-windows.exe
           - os: macos-latest
-            app_name: wolftrack-visualizer-mac
-            file_name: wolftrack-visualizer-mac
+            artifact: wolftrack-visualizer
+            release_name: wolftrack-visualizer-macos
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
+      
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+          
       - uses: astral-sh/setup-uv@v5
 
       - name: Install dependencies
         run: uv sync
         
       - name: Build
-        run: uv run pyinstaller --name ${{ matrix.app_name }} --onefile --noconfirm --clean --paths src src/app.py
+        run: uv run pyinstaller --name wolftrack-visualizer --onefile --noconfirm --clean --paths src src/app.py
+        
+      - name: Rename OS-specific binary
+        shell: bash
+        run: mv dist/${{ matrix.artifact }} dist/${{ matrix.release_name }}
         
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: backend-${{ matrix.os }}
-          path: dist/${{ matrix.file_name }}
+          path: dist/${{ matrix.release_name }}
 
   release:
     if: github.event_name != 'pull_request'
@@ -61,7 +67,8 @@ jobs:
           tag_name: ${{ steps.tag.outputs.tag_name }}
           prerelease: true
           overwrite_files: true
+          # Now uploading all three distinct files
           files: |
             backend-ubuntu-latest/wolftrack-visualizer-linux
-            backend-windows-latest/wolftrack-visualizer.exe
-            backend-macos-latest/wolftrack-visualizer-mac
+            backend-windows-latest/wolftrack-visualizer-windows.exe
+            backend-macos-latest/wolftrack-visualizer-macos
