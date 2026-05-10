@@ -23,11 +23,10 @@ class DataSource(abc.ABC):
         pass
 
 class ZMQDataSource(DataSource):
-    def __init__(self, config: AppConfig, db=None):
+    def __init__(self, config: AppConfig):
         self.config = config
         self.zmq_context = zmq.asyncio.Context()
         self.sock = None
-        self.db = db
 
     async def connect(self):
         self.sock = self.zmq_context.socket(zmq.SUB)
@@ -54,17 +53,6 @@ class ZMQDataSource(DataSource):
         while True:
             try:
                 message = await self.sock.recv_json()
-                
-                if self.db and "arbitration_id" in message and "data" in message:
-                    try:
-                        data_bytes = bytes(message["data"])
-                        decoded = self.db.decode_message(message['arbitration_id'], data_bytes)
-                        message['decoded'] = decoded
-                        msg_obj = self.db.get_message_by_frame_id(message['arbitration_id'])
-                        message['message_name'] = msg_obj.name
-                    except KeyError:
-                        pass
-                
                 yield message
             except asyncio.CancelledError:
                 break
