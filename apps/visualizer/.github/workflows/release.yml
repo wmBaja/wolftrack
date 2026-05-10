@@ -13,11 +13,11 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            artifact: wolftrack-visualizer
+            artifact: wolftrack-visualizer-linux
           - os: windows-latest
             artifact: wolftrack-visualizer.exe
           - os: macos-latest
-            artifact: wolftrack-visualizer
+            artifact: wolftrack-visualizer-mac
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -60,5 +60,6 @@ jobs:
           prerelease: true
           overwrite_files: true
           files: |
-            backend-ubuntu-latest/wolftrack-visualizer
+            backend-ubuntu-latest/wolftrack-visualizer-linux
             backend-windows-latest/wolftrack-visualizer.exe
+            backend-macos-latest/wolftrack-visualizer-mac
