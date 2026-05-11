@@ -1,0 +1,74 @@
+name: Build and Release Backend
+
+on:
+  push:
+    branches: [ main, dev ]
+  pull_request:
+    branches: [ main, dev ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            artifact: wolftrack-visualizer
+            release_name: wolftrack-visualizer-linux
+          - os: windows-latest
+            artifact: wolftrack-visualizer.exe
+            release_name: wolftrack-visualizer-windows.exe
+          - os: macos-latest
+            artifact: wolftrack-visualizer
+            release_name: wolftrack-visualizer-macos
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          
+      - uses: astral-sh/setup-uv@v5
+
+      - name: Install dependencies
+        run: uv sync
+        
+      - name: Build
+        run: uv run pyinstaller --name wolftrack-visualizer --onefile --noconfirm --clean --paths src src/app.py
+        
+      - name: Rename OS-specific binary
+        shell: bash
+        run: mv dist/${{ matrix.artifact }} dist/${{ matrix.release_name }}
+        
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-${{ matrix.os }}
+          path: dist/${{ matrix.release_name }}
+
+  release:
+    if: github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        
+      - name: Set Release Tag
+        id: tag
+        run: echo "tag_name=nightly" >> "$GITHUB_OUTPUT"
+        shell: bash
+        
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.tag_name }}
+          prerelease: true
+          overwrite_files: true
+          # Now uploading all three distinct files
+          files: |
+            backend-ubuntu-latest/wolftrack-visualizer-linux
+            backend-windows-latest/wolftrack-visualizer-windows.exe
+            backend-macos-latest/wolftrack-visualizer-macos
