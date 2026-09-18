@@ -290,7 +290,10 @@ async def upload_config(
         
     dbc_manager = getattr(request.app.state, 'dbc_manager', None)
 
-    # Reinitialize pipeline manager
+    # Reinitialize pipeline manager. A logfile index is owned separately from
+    # the playback pipeline, so it must be cancelled explicitly before a new
+    # source configuration can replace it.
+    log_query_service.stop()
     if getattr(request.app.state, 'pipeline_manager', None):
         await request.app.state.pipeline_manager.stop()
         
@@ -441,6 +444,9 @@ async def disconnect_live_source(request: Request):
 
 @router.post("/api/stop")
 async def stop_pipeline(request: Request):
+    # Log-file indexing runs in its own worker thread and is not controlled by
+    # PipelineManager. Signal it even when no pipeline manager is active.
+    log_query_service.stop()
     if getattr(request.app.state, 'pipeline_manager', None):
         await request.app.state.pipeline_manager.stop()
         # Nullify the active pipeline manager

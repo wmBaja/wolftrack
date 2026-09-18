@@ -18,6 +18,14 @@ class DummyPipelineManager:
         self.stop_calls += 1
 
 
+class DummyLogQueryService:
+    def __init__(self):
+        self.stop_calls = 0
+
+    def stop(self):
+        self.stop_calls += 1
+
+
 def build_client():
     app = FastAPI()
     app.include_router(routes.router)
@@ -82,3 +90,29 @@ def test_disconnect_live_source_clears_remembered_endpoint():
         "zmq_host": None,
         "zmq_port": None,
     }]
+
+
+def test_stop_pipeline_cancels_logfile_index_and_pipeline(monkeypatch):
+    client, app, _ = build_client()
+    pipeline_manager = app.state.pipeline_manager
+    log_query_service = DummyLogQueryService()
+    monkeypatch.setattr(routes, "log_query_service", log_query_service)
+
+    response = client.post("/api/stop")
+
+    assert response.status_code == 200
+    assert log_query_service.stop_calls == 1
+    assert pipeline_manager.stop_calls == 1
+    assert app.state.pipeline_manager is None
+
+
+def test_stop_pipeline_cancels_logfile_index_without_pipeline(monkeypatch):
+    client, app, _ = build_client()
+    app.state.pipeline_manager = None
+    log_query_service = DummyLogQueryService()
+    monkeypatch.setattr(routes, "log_query_service", log_query_service)
+
+    response = client.post("/api/stop")
+
+    assert response.status_code == 200
+    assert log_query_service.stop_calls == 1
