@@ -150,7 +150,7 @@ async def get_config(request: Request):
         "source": pipeline_config.source,
         "log_file": pipeline_config.log_file,
         "dbc_file": pipeline_config.dbc_file,
-        "playback_speed": getattr(pipeline_config, "playback_speed", 1.0)
+        "playback_speed": getattr(pipeline_config, "playback_speed", 0.0)
     }
 
 
@@ -240,7 +240,7 @@ async def delete_dbc_route(
 async def upload_config(
     request: Request,
     source: str = Form(...),
-    playback_speed: float = Form(1.0),
+    playback_speed: float = Form(0.0),
     log_file_upload: Optional[UploadFile] = File(None),
     dbc_file_upload: Optional[UploadFile] = File(None),
     existing_log: Optional[str] = Form(None),
