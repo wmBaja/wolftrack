@@ -31,6 +31,7 @@ _sys_logger = setup_logging(
 logger = get_logger(__name__)
 
 from pipeline.manager import PipelineManager
+from pipeline.log_query import log_query_service
 from api.routes import router
 from dbc_manager import DBCManager
 
@@ -50,6 +51,7 @@ async def lifespan(app: FastAPI):
     yield
     
     # Stop cleanly
+    log_query_service.stop()
     if getattr(app.state, 'pipeline_manager', None):
         await app.state.pipeline_manager.stop()
 

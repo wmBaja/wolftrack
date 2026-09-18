@@ -51,7 +51,7 @@ class PipelineManager:
             if hasattr(self.config, 'pipeline') and hasattr(self.config.pipeline, 'log_file'):
                 log_file = self.config.pipeline.log_file
             
-            playback_speed = getattr(self.config.pipeline, 'playback_speed', 1.0)
+            playback_speed = getattr(self.config.pipeline, 'playback_speed', 0.0)
             db = self.dbc_manager.get_active_dbc() if self.dbc_manager else None
             self.source = LogFileDataSource(
                 log_file_path=log_file,

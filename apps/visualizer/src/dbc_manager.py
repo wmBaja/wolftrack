@@ -30,10 +30,26 @@ class DBCManager:
             }
             for f in self.dbc_dir.glob("*.dbc")
         ]
+
+    def _get_dbc_path(self, filename: str) -> Path:
+        """Return a validated path within the managed DBC directory."""
+        if (
+            not isinstance(filename, str)
+            or not filename.strip()
+            or filename != filename.strip()
+            or '/' in filename
+            or '\\' in filename
+            or '..' in filename
+            or Path(filename).name != filename
+            or Path(filename).suffix != '.dbc'
+        ):
+            raise ValueError('Filename must be a plain .dbc filename')
+
+        return self.dbc_dir / filename
         
     def upload_dbc(self, filename: str, file_content: bytes) -> str:
         """Save a DBC file to the dbc directory."""
-        file_path = self.dbc_dir / filename
+        file_path = self._get_dbc_path(filename)
         with open(file_path, "wb") as f:
             f.write(file_content)
         logger.info(f"DBC uploaded: {filename}")
@@ -46,7 +62,7 @@ class DBCManager:
         
     def delete_dbc(self, filename: str) -> bool:
         """Delete a DBC file. Return True if successful."""
-        file_path = self.dbc_dir / filename
+        file_path = self._get_dbc_path(filename)
         if file_path.exists():
             file_path.unlink()
             logger.info(f"DBC deleted: {filename}")
@@ -59,10 +75,27 @@ class DBCManager:
                     self.select_dbc(dbcs[0]["name"])
             return True
         return False
+
+    def rename_dbc(self, filename: str, new_filename: str) -> bool:
+        """Rename a DBC file and retain its active state when applicable."""
+        file_path = self._get_dbc_path(filename)
+        new_file_path = self._get_dbc_path(new_filename)
+
+        if not file_path.exists():
+            return False
+        if new_file_path.exists():
+            raise ValueError('A DBC with that name already exists')
+
+        file_path.rename(new_file_path)
+        if self.active_dbc_filename == filename:
+            self.active_dbc_filename = new_filename
+
+        logger.info(f"DBC renamed: {filename} -> {new_filename}")
+        return True
         
     def select_dbc(self, filename: str) -> bool:
         """Select a DBC file to be the active database."""
-        file_path = self.dbc_dir / filename
+        file_path = self._get_dbc_path(filename)
         if file_path.exists():
             try:
                 self.db = cantools.database.load_file(file_path)

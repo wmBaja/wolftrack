@@ -61,7 +61,7 @@ class ZMQDataSource(DataSource):
                 break
 
 class LogFileDataSource(DataSource):
-    def __init__(self, log_file_path: str, playback_speed: float = 1.0, db=None):
+    def __init__(self, log_file_path: str, playback_speed: float = 0.0, db=None):
         self.log_file_path = log_file_path
         self.playback_speed = playback_speed
         self.db = db
