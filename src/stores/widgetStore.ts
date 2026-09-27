@@ -125,6 +125,53 @@ export const useWidgetStore = defineStore('widgets', () => {
     }
   }
 
+  function exportLayout(): void {
+    try {
+      const jsonData = JSON.stringify(widgets.value);
+      const blob = new Blob([jsonData], { type : 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = "export.json";
+      link.click();
+      URL.revokeObjectURL(url);
+    }
+    catch (error) {
+      console.error('Failed to export widgets:', error);
+    }
+  }
+
+  function importLayout(event: Event): void {
+    const file = (event.target as HTMLInputElement).files?.[0]
+    if (!file) return
+
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      const contents = reader.result as string;
+      widgets.value = JSON.parse(contents);
+    };
+
+    reader.onerror = () => {
+      console.error('Error reading file:', reader.error);
+    };
+
+    reader.readAsText(file);
+  }
+
+  function importQuery(): void {
+    try {
+      const link = document.createElement('input');
+      link.type = 'file';
+      link.accept = '.json';
+      link.addEventListener('change', importLayout);
+      link.click();
+    }
+    catch (error) {
+      console.error('Failed to import widgets:', error);
+    }
+  }
+
   function clearAll(): void {
     widgets.value = []
     saveToLocalStorage()
@@ -141,6 +188,10 @@ export const useWidgetStore = defineStore('widgets', () => {
     removeWidget,
     updateWidget,
     updateLayout,
+    exportLayout,
+    importLayout,
+    importQuery,
+    saveToLocalStorage,
     loadFromLocalStorage,
     clearAll
   }

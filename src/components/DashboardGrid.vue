@@ -139,7 +139,17 @@ function handleGridContextMenu(event: MouseEvent) {
         icon: h('span', '➕'),
         onClick: () => widgetStore.addWidget(WIDGET_TYPES.CHART, { ...gridPos, ...chartSize }),
       },
-      { divided: true },
+      {
+        label: 'Export Layout',
+        icon: h('span', '📤'),
+        onClick: () => widgetStore.exportLayout(),
+      },
+      {
+        label: 'Import Layout',
+        icon: h('span', '📥'),
+        onClick: () => widgetStore.importQuery(),
+        divided: true,
+      },
       {
         label: 'Clear All Widgets',
         icon: h('span', '🗑️'),
