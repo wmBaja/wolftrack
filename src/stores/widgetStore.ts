@@ -148,8 +148,31 @@ export const useWidgetStore = defineStore('widgets', () => {
     const reader = new FileReader();
 
     reader.onload = () => {
-      const contents = reader.result as string;
-      widgets.value = JSON.parse(contents);
+      try {
+        const contents : string = reader.result as string;
+        const widgetsRaw : Widget[] = JSON.parse(contents);
+        const widgetsNew : Widget[] = [];
+        let correctFormat : boolean = true;
+        for (const widget of widgetsRaw) {
+          try {
+            const newWidget : Widget = addWidget(widget.type, {x: widget.x, y: widget.y, w: widget.w, h: widget.h});
+            newWidget.signals = widget.signals;
+            newWidget.title = widget.title;
+            widgetsNew.push(newWidget);
+          }
+          catch (error)
+          {
+            console.log('Imported layout file has improper format', error);
+            correctFormat = false;
+            break;
+          }
+        }
+        widgets.value = correctFormat ? widgetsNew : widgets.value;
+      }
+      catch (error)
+      {
+        console.error('Error reading file', error);
+      }
     };
 
     reader.onerror = () => {
@@ -191,7 +214,6 @@ export const useWidgetStore = defineStore('widgets', () => {
     exportLayout,
     importLayout,
     importQuery,
-    saveToLocalStorage,
     loadFromLocalStorage,
     clearAll
   }
