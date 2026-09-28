@@ -6,6 +6,7 @@ import ContextMenu from '@imengyu/vue3-context-menu'
 import BaseWidget from '@/components/widgets/BaseWidget.vue'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import ChartWidget from '@/components/widgets/ChartWidget.vue'
+import LogWindowControl from '@/components/LogWindowControl.vue'
 import { WIDGET_TYPES, type Widget } from '@/types/widgets'
 
 const widgetStore = useWidgetStore()
@@ -154,6 +155,7 @@ function handleGridContextMenu(event: MouseEvent) {
 
 <template>
   <div class="dashboard-grid-container" @contextmenu="handleGridContextMenu">
+    <LogWindowControl />
     <div ref="gridWrapperRef" class="grid-wrapper custom-scrollbar">
       <GridLayout
         v-model:layout="widgetStore.widgets"

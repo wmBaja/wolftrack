@@ -1,6 +1,6 @@
 <!-- src/components/widgets/BaseWidget.vue -->
 <script setup lang="ts">
-import { ref, computed, h} from 'vue'
+import { ref, computed, h, onBeforeUnmount} from 'vue'
 import { useWidgetStore } from '@/stores/widgetStore'
 import { useDbcStore } from '@/stores/dbcStore'
 import { useDataSourceStore } from '@/stores/dataSourceStore'
@@ -57,6 +57,7 @@ function addSignalId(sigId: string) {
 const dataSourceStore = useDataSourceStore()
 const liveDataStore = useLiveDataStore()
 const logDataStore = useLogDataStore()
+let logQueryTimeout: number | null = null
 
 const queryLogData = () => {
     if (dataSourceStore.config.source !== 'logfile' || logDataStore.status.status !== 'ready') return
@@ -74,7 +75,18 @@ watch(() => [
   logDataStore.queryWindow.start_ts,
   logDataStore.queryWindow.end_ts,
 ], () => {
-    queryLogData()
+    if (logQueryTimeout) {
+      window.clearTimeout(logQueryTimeout)
+    }
+    // Range sliders can emit many input events. Waiting briefly avoids a
+    // request per pixel while still keeping the selected window responsive.
+    logQueryTimeout = window.setTimeout(queryLogData, 150)
+})
+
+onBeforeUnmount(() => {
+  if (logQueryTimeout) {
+    window.clearTimeout(logQueryTimeout)
+  }
 })
 
 async function handleRefresh() {

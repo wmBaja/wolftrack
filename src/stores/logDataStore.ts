@@ -106,6 +106,15 @@ export const useLogDataStore = defineStore('logData', () => {
     queryWindow.value = { start_ts: start, end_ts: end }
   }
 
+  function selectQueryWindow(startTs: number, endTs: number) {
+    setQueryWindow(startTs, endTs)
+    stopPlayback()
+    // Selecting a range is an explicit request to inspect it, rather than to
+    // wait for playback to reach it.
+    currentTime.value = queryWindow.value.end_ts
+    dataVersion.value++
+  }
+
   function stopPlayback() {
     isPlaying.value = false
     if (reqFrame) cancelAnimationFrame(reqFrame)
@@ -170,6 +179,14 @@ export const useLogDataStore = defineStore('logData', () => {
       })
       if (res.ok) {
         const data = await res.json()
+        // A range may have changed while this request was in flight. Do not
+        // replace the selected window with a stale response.
+        if (
+          queryWindow.value.start_ts !== start_ts
+          || queryWindow.value.end_ts !== end_ts
+        ) {
+          return
+        }
         if (data.data) {
           for (const [sig, buf] of Object.entries(data.data)) {
             buffers.value[sig] = buf as { timestamps: number[], values: number[] }
@@ -193,6 +210,7 @@ export const useLogDataStore = defineStore('logData', () => {
     stopPolling,
     queryData,
     setQueryWindow,
+    selectQueryWindow,
     getQueryPointBudget: getLogQueryPointBudget,
     clearBuffers,
     stopPlayback
