@@ -9,6 +9,29 @@ export interface LogStatus {
   end_ts: number
 }
 
+export interface LogTimeWindow {
+  start_ts: number
+  end_ts: number
+}
+
+// A chart should receive enough points to reproduce common CAN signal rates
+// when a user is looking at a short time range, without making a full-day log
+// expensive to transfer or render. These limits are deliberately exported so
+// a later time-range UI can share and tune the same policy.
+export const LOG_QUERY_TARGET_POINTS_PER_SECOND = 1_000
+export const LOG_QUERY_MIN_POINTS = 1_000
+export const LOG_QUERY_MAX_POINTS = 100_000
+
+export function getLogQueryPointBudget(startTs: number, endTs: number): number {
+  const durationSeconds = Math.max(0, endTs - startTs)
+  const requestedPoints = Math.ceil(durationSeconds * LOG_QUERY_TARGET_POINTS_PER_SECOND)
+
+  return Math.min(
+    LOG_QUERY_MAX_POINTS,
+    Math.max(LOG_QUERY_MIN_POINTS, requestedPoints),
+  )
+}
+
 export const useLogDataStore = defineStore('logData', () => {
   const status = ref<LogStatus>({
     status: 'idle',
@@ -19,6 +42,9 @@ export const useLogDataStore = defineStore('logData', () => {
 
   const buffers = ref<Record<string, { timestamps: number[], values: number[] }>>({})
   const dataVersion = ref(0)
+  // This defaults to the complete log. A time navigator or chart zoom handler
+  // can narrow it later without changing the query/rendering contract.
+  const queryWindow = ref<LogTimeWindow>({ start_ts: 0, end_ts: 0 })
   
   const playbackSpeed = ref(0.0)
   const currentTime = ref(0)
@@ -67,7 +93,17 @@ export const useLogDataStore = defineStore('logData', () => {
     isPlaying.value = false
     if (reqFrame) cancelAnimationFrame(reqFrame)
     status.value = { status: 'idle', progress: 0, start_ts: 0, end_ts: 0 }
+    queryWindow.value = { start_ts: 0, end_ts: 0 }
     dataVersion.value++
+  }
+
+  function setQueryWindow(startTs: number, endTs: number) {
+    const logStart = status.value.start_ts
+    const logEnd = status.value.end_ts
+    const start = Math.max(logStart, Math.min(startTs, logEnd))
+    const end = Math.max(start, Math.min(endTs, logEnd))
+
+    queryWindow.value = { start_ts: start, end_ts: end }
   }
 
   function stopPlayback() {
@@ -88,6 +124,7 @@ export const useLogDataStore = defineStore('logData', () => {
           pollInterval = null
           
           currentTime.value = data.start_ts
+          setQueryWindow(data.start_ts, data.end_ts)
           import('./dataSourceStore').then(m => {
             const ds = m.useDataSourceStore()
             startPlayback(ds.config.playback_speed ?? 0.0)
@@ -112,7 +149,12 @@ export const useLogDataStore = defineStore('logData', () => {
     }
   }
 
-  async function queryData(signals: string[], start_ts: number, end_ts: number, max_points: number = 1000) {
+  async function queryData(
+    signals: string[],
+    start_ts: number,
+    end_ts: number,
+    max_points: number = getLogQueryPointBudget(start_ts, end_ts),
+  ) {
     if (status.value.status !== 'ready') return
     try {
       const base = await getVisualizerBase()
@@ -144,11 +186,14 @@ export const useLogDataStore = defineStore('logData', () => {
     status,
     buffers,
     dataVersion,
+    queryWindow,
     currentTime,
     isPlaying,
     startPollingStatus,
     stopPolling,
     queryData,
+    setQueryWindow,
+    getQueryPointBudget: getLogQueryPointBudget,
     clearBuffers,
     stopPlayback
   }

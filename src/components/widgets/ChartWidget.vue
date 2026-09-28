@@ -31,7 +31,7 @@ function getAlignedData(): AlignedData {
   if (signalsToPlot.length === 1) {
     const firstSig = signalsToPlot[0]
     if (!firstSig) return [[]]
-    
+
     if (isLive) {
         const buf = liveDataStore.buffers.get(firstSig)
         if (!buf || buf.length === 0) return [[], []]
@@ -40,7 +40,7 @@ function getAlignedData(): AlignedData {
     } else {
         const buf = logDataStore.buffers[firstSig]
         if (!buf) return [[], []]
-        
+
         const cutoff = logDataStore.currentTime
         let validLen = 0
         for (let i = 0; i < buf.timestamps.length; i++) {
@@ -48,23 +48,24 @@ function getAlignedData(): AlignedData {
             if (ts !== undefined && ts > cutoff) break
             validLen++
         }
-        
+
         return [buf.timestamps.slice(0, validLen), buf.values.slice(0, validLen)]
     }
   }
 
-  // Multi-signal alignment: O(N) bucket sampling
   let minTime = Infinity
   let maxTime = -Infinity
+  let largestBufferLength = 0
 
-  const activeBuffers = isLive 
+  const activeBuffers = isLive
     ? signalsToPlot.map(sig => liveDataStore.buffers.get(sig))
     : signalsToPlot.map(sig => logDataStore.buffers[sig])
-  
+
   activeBuffers.forEach(buf => {
     if (isLive) {
         const liveBuf = buf as RingBuffer | undefined
         if (liveBuf && liveBuf.length > 0) {
+          largestBufferLength = Math.max(largestBufferLength, liveBuf.length)
           const firstTime = liveBuf.timestamps[liveBuf.tail]!
           const lastIdx = (liveBuf.head - 1 + liveBuf.capacity) % liveBuf.capacity
           const lastTime = liveBuf.timestamps[lastIdx]!
@@ -74,6 +75,7 @@ function getAlignedData(): AlignedData {
     } else {
         const logBuf = buf as LogBuffer | undefined
         if (logBuf && logBuf.timestamps.length > 0) {
+          largestBufferLength = Math.max(largestBufferLength, logBuf.timestamps.length)
           const firstTime = logBuf.timestamps[0]!
           const lastFileTime = logBuf.timestamps[logBuf.timestamps.length - 1]!
           const lastTime = Math.min(lastFileTime, logDataStore.currentTime)
@@ -85,7 +87,10 @@ function getAlignedData(): AlignedData {
 
   if (minTime === Infinity) return [[]]
 
-  const numBuckets = 1000 // roughly 2x pixel width
+  const pointBudget = isLive
+    ? 1_000
+    : logDataStore.getQueryPointBudget(minTime, maxTime)
+  const numBuckets = Math.max(1, Math.min(pointBudget, largestBufferLength))
   const bucketSize = (maxTime - minTime) / numBuckets || 0.001
 
   const alignedTimestamps = new Array(numBuckets)
@@ -101,14 +106,14 @@ function getAlignedData(): AlignedData {
     if (buf) {
       const ts = isLive ? (buf as RingBuffer).getArrays().timestamps : (buf as LogBuffer).timestamps
       const vs = isLive ? (buf as RingBuffer).getArrays().values : (buf as LogBuffer).values
-      
+
       const cutoff = isLive ? Infinity : logDataStore.currentTime
 
       if (ts.length > 0) {
           for (let i = 0; i < ts.length; i++) {
             const t = ts[i]!
             if (t > cutoff) break
-            
+
             const v = vs[i]
             let bucketIdx = Math.floor((t - minTime) / bucketSize)
             if (bucketIdx >= numBuckets) bucketIdx = numBuckets - 1

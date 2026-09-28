@@ -62,11 +62,18 @@ const queryLogData = () => {
     if (dataSourceStore.config.source !== 'logfile' || logDataStore.status.status !== 'ready') return
     const signals = widget.value?.signals || []
     if (signals.length > 0) {
-        logDataStore.queryData(signals, logDataStore.status.start_ts, logDataStore.status.end_ts, 1000)
+        const { start_ts, end_ts } = logDataStore.queryWindow
+        logDataStore.queryData(signals, start_ts, end_ts)
     }
 }
 
-watch(() => [logDataStore.status.status, widget.value?.signals, dataSourceStore.config.source], () => {
+watch(() => [
+  logDataStore.status.status,
+  widget.value?.signals,
+  dataSourceStore.config.source,
+  logDataStore.queryWindow.start_ts,
+  logDataStore.queryWindow.end_ts,
+], () => {
     queryLogData()
 })
 
