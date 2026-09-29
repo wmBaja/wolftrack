@@ -28,6 +28,7 @@ const windowDuration = computed(() => Math.max(0, endOffset.value - startOffset.
 
 const draftStart = ref(0)
 const draftEnd = ref(0)
+const isExpanded = ref(true)
 const timelineRef = ref<HTMLElement | null>(null)
 const dragMode = ref<'start' | 'end' | 'window' | null>(null)
 let dragPointerStart = 0
@@ -130,83 +131,125 @@ function formatSeconds(seconds: number) {
 </script>
 
 <template>
-  <section v-if="isAvailable" class="log-window-control" aria-label="Log chart window">
-    <div class="log-window-control__timeline-wrap">
-      <div
-        ref="timelineRef"
-        class="log-window-control__timeline"
-        :class="{ 'is-dragging': dragMode }"
-        aria-label="Selected log time window"
-        @pointermove="moveWindow"
-        @pointerup="endDrag"
-        @pointercancel="endDrag"
-      >
-        <div class="log-window-control__timeline-grid" aria-hidden="true">
-          <span v-for="tick in 9" :key="tick" />
+  <section
+    v-if="isAvailable"
+    class="log-window-control"
+    :class="{ 'is-expanded': isExpanded }"
+    aria-label="Log chart window"
+  >
+    <button
+      class="log-window-control__tab"
+      type="button"
+      :aria-expanded="isExpanded"
+      aria-controls="log-window-drawer"
+      :aria-label="isExpanded ? 'Collapse timeline' : 'Expand timeline'"
+      @click="isExpanded = !isExpanded"
+    >
+      <span>Timeline</span>
+      <span class="log-window-control__tab-icon" aria-hidden="true">{{ isExpanded ? '⌄' : '⌃' }}</span>
+    </button>
+
+    <div class="log-window-control__drawer-body" :aria-hidden="!isExpanded">
+      <div id="log-window-drawer" class="log-window-control__panel">
+        <div class="log-window-control__timeline-wrap">
+          <div
+            ref="timelineRef"
+            class="log-window-control__timeline"
+            :class="{ 'is-dragging': dragMode }"
+            aria-label="Selected log time window"
+            @pointermove="moveWindow"
+            @pointerup="endDrag"
+            @pointercancel="endDrag"
+          >
+            <div class="log-window-control__timeline-grid" aria-hidden="true">
+              <span v-for="tick in 9" :key="tick" />
+            </div>
+            <div
+              class="log-window-control__selection"
+              :style="{
+                left: `${(startOffset / logDuration) * 100}%`,
+                width: `${((endOffset - startOffset) / logDuration) * 100}%`,
+              }"
+              @pointerdown.prevent="beginDrag('window', $event)"
+            >
+              <span class="log-window-control__selection-label">{{ formatSeconds(windowDuration) }}</span>
+            </div>
+            <button
+              class="log-window-control__handle log-window-control__handle--start"
+              :style="{ left: `${(startOffset / logDuration) * 100}%` }"
+              type="button"
+              aria-label="Drag window start"
+              @pointerdown.stop.prevent="beginDrag('start', $event)"
+            />
+            <button
+              class="log-window-control__handle log-window-control__handle--end"
+              :style="{ left: `${(endOffset / logDuration) * 100}%` }"
+              type="button"
+              aria-label="Drag window end"
+              @pointerdown.stop.prevent="beginDrag('end', $event)"
+            />
+          </div>
+          <div class="log-window-control__timeline-labels" aria-hidden="true">
+            <span>0 s</span>
+            <span>{{ formatSeconds(logDuration / 2) }}</span>
+            <span>{{ formatSeconds(logDuration) }}</span>
+          </div>
         </div>
         <div
-          class="log-window-control__selection"
-          :style="{
-            left: `${(startOffset / logDuration) * 100}%`,
-            width: `${((endOffset - startOffset) / logDuration) * 100}%`,
-          }"
-          @pointerdown.prevent="beginDrag('window', $event)"
+          class="log-window-control__actions"
         >
-          <span class="log-window-control__selection-label">{{ formatSeconds(windowDuration) }}</span>
+          <label>
+            Start
+            <input
+              v-model.number="draftStart"
+              type="number"
+              min="0"
+              :max="draftEnd"
+              step="0.010"
+              @change="applyDraft"
+              @keyup.enter="applyDraft"
+            >
+          </label>
+          <label>
+            End
+            <input
+              v-model.number="draftEnd"
+              type="number"
+              :min="draftStart"
+              :max="logDuration"
+              step="0.010"
+              @change="applyDraft"
+              @keyup.enter="applyDraft"
+            >
+          </label>
         </div>
-        <button
-          class="log-window-control__handle log-window-control__handle--start"
-          :style="{ left: `${(startOffset / logDuration) * 100}%` }"
-          type="button"
-          aria-label="Drag window start"
-          @pointerdown.stop.prevent="beginDrag('start', $event)"
-        />
-        <button
-          class="log-window-control__handle log-window-control__handle--end"
-          :style="{ left: `${(endOffset / logDuration) * 100}%` }"
-          type="button"
-          aria-label="Drag window end"
-          @pointerdown.stop.prevent="beginDrag('end', $event)"
-        />
       </div>
-      <div class="log-window-control__timeline-labels" aria-hidden="true">
-        <span>0 s</span>
-        <span>{{ formatSeconds(logDuration / 2) }}</span>
-        <span>{{ formatSeconds(logDuration) }}</span>
-      </div>
-    </div>
-
-    <div class="log-window-control__actions">
-      <label>
-        Start
-        <input
-          v-model.number="draftStart"
-          type="number"
-          min="0"
-          :max="draftEnd"
-          step="0.001"
-          @change="applyDraft"
-          @keyup.enter="applyDraft"
-        >
-      </label>
-      <label>
-        End
-        <input
-          v-model.number="draftEnd"
-          type="number"
-          :min="draftStart"
-          :max="logDuration"
-          step="0.001"
-          @change="applyDraft"
-          @keyup.enter="applyDraft"
-        >
-      </label>
     </div>
   </section>
 </template>
 
 <style scoped>
 .log-window-control {
+  position: fixed;
+  z-index: 40;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  pointer-events: none;
+}
+
+.log-window-control__drawer-body {
+  max-height: 0;
+  overflow: hidden;
+  pointer-events: auto;
+  transition: max-height 260ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.log-window-control.is-expanded .log-window-control__drawer-body {
+  max-height: 160px;
+}
+
+.log-window-control__panel {
   display: grid;
   grid-template-columns: minmax(220px, 1fr) auto;
   align-items: center;
@@ -214,9 +257,52 @@ function formatSeconds(seconds: number) {
   padding: 8px 10px;
   background: var(--color-panel);
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-bottom: 0;
+  border-radius: 0 10px 0 0;
+  box-shadow: 0 -8px 24px rgb(0 0 0 / 25%);
   color: var(--color-text);
   font-size: 12px;
+  pointer-events: auto;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 180ms ease, transform 240ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.log-window-control.is-expanded .log-window-control__panel {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.log-window-control__tab {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  margin-bottom: -1px;
+  padding: 5px 11px 6px 8px;
+  border: 1px solid var(--color-border);
+  border-bottom: 0;
+  border-radius: 8px 8px 0 0;
+  background: var(--color-panel);
+  color: var(--color-text);
+  box-shadow: none;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 700;
+  pointer-events: auto;
+}
+
+.log-window-control__tab:hover,
+.log-window-control__tab:focus-visible {
+  color: var(--color-accent);
+  outline: none;
+}
+
+.log-window-control__tab-icon {
+  font-size: 14px;
+  line-height: 1;
 }
 
 .log-window-control__duration {
@@ -344,7 +430,7 @@ function formatSeconds(seconds: number) {
 }
 
 @media (max-width: 900px) {
-  .log-window-control {
+  .log-window-control__panel {
     grid-template-columns: 1fr;
   }
 }
