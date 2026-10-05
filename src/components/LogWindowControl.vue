@@ -90,6 +90,7 @@ function beginDrag(mode: 'start' | 'end' | 'window', event: PointerEvent) {
   dragWindowStart = startOffset.value
   dragWindowEnd = endOffset.value
   timelineRef.value?.setPointerCapture(event.pointerId)
+  logDataStore.beginQueryWindowDrag()
 }
 
 function moveWindow(event: PointerEvent) {
@@ -120,6 +121,7 @@ function endDrag(event: PointerEvent) {
   if (timelineRef.value?.hasPointerCapture(event.pointerId)) {
     timelineRef.value.releasePointerCapture(event.pointerId)
   }
+  logDataStore.endQueryWindowDrag()
 }
 
 function formatSeconds(seconds: number) {

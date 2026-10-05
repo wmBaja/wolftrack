@@ -1,16 +1,12 @@
 <!-- src/components/widgets/BaseWidget.vue -->
 <script setup lang="ts">
-import { ref, computed, h, onBeforeUnmount} from 'vue'
+import { ref, computed, h } from 'vue'
 import { useWidgetStore } from '@/stores/widgetStore'
 import { useDbcStore } from '@/stores/dbcStore'
-import { useDataSourceStore } from '@/stores/dataSourceStore'
-import { useLiveDataStore } from '@/stores/liveDataStore'
-import { useLogDataStore } from '@/stores/logDataStore'
 import ContextMenu from '@imengyu/vue3-context-menu'
 import type { MenuOptions } from '@imengyu/vue3-context-menu'
 import type { WIDGET_TYPES } from '@/types/widgets'
 import SignalTree from '@/components/SignalTree.vue'
-import { watch } from 'vue'
 
 interface Props {
   widgetId: string
@@ -22,6 +18,9 @@ const props = withDefaults(defineProps<Props>(), {
   icon: '📦',
   customMenuItems: () => []
 })
+const emit = defineEmits<{
+  refresh: []
+}>()
 
 const store = useWidgetStore()
 const dbcStore = useDbcStore()
@@ -54,47 +53,8 @@ function addSignalId(sigId: string) {
   }
 }
 
-const dataSourceStore = useDataSourceStore()
-const liveDataStore = useLiveDataStore()
-const logDataStore = useLogDataStore()
-let logQueryTimeout: number | null = null
-
-const queryLogData = () => {
-    if (dataSourceStore.config.source !== 'logfile' || logDataStore.status.status !== 'ready') return
-    const signals = widget.value?.signals || []
-    if (signals.length > 0) {
-        const { start_ts, end_ts } = logDataStore.queryWindow
-        logDataStore.queryData(signals, start_ts, end_ts)
-    }
-}
-
-watch(() => [
-  logDataStore.status.status,
-  widget.value?.signals,
-  dataSourceStore.config.source,
-  logDataStore.queryWindow.start_ts,
-  logDataStore.queryWindow.end_ts,
-], () => {
-    if (logQueryTimeout) {
-      window.clearTimeout(logQueryTimeout)
-    }
-    // Range sliders can emit many input events. Waiting briefly avoids a
-    // request per pixel while still keeping the selected window responsive.
-    logQueryTimeout = window.setTimeout(queryLogData, 150)
-})
-
-onBeforeUnmount(() => {
-  if (logQueryTimeout) {
-    window.clearTimeout(logQueryTimeout)
-  }
-})
-
-async function handleRefresh() {
-  if (dataSourceStore.config.source === 'zmq') {
-      liveDataStore.clearBuffers()
-  } else {
-      queryLogData()
-  }
+function handleRefresh() {
+  emit('refresh')
 }
 
 function startEditTitle() {
