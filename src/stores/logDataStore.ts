@@ -18,10 +18,10 @@ export interface LogTimeWindow {
 // when a user is looking at a short time range, without making a full-day log
 // expensive to transfer or render. These limits are deliberately exported so
 // a later time-range UI can share and tune the same policy.
-export const LOG_QUERY_TARGET_POINTS_PER_SECOND = 1_000
-export const LOG_QUERY_MIN_POINTS = 1_000
-export const LOG_QUERY_MAX_POINTS = 5_000
-export const LOG_OVERVIEW_MAX_POINTS = 2_000
+export const LOG_QUERY_TARGET_POINTS_PER_SECOND = 2_000
+export const LOG_QUERY_MIN_POINTS = 2_000
+export const LOG_QUERY_MAX_POINTS = 20_000
+export const LOG_OVERVIEW_MAX_POINTS = 3_000
 
 export function getLogQueryPointBudget(startTs: number, endTs: number): number {
   const durationSeconds = Math.max(0, endTs - startTs)
@@ -57,11 +57,11 @@ export const useLogDataStore = defineStore('logData', () => {
   // This defaults to the complete log. A time navigator or chart zoom handler
   // can narrow it later without changing the query/rendering contract.
   const queryWindow = ref<LogTimeWindow>({ start_ts: 0, end_ts: 0 })
-  
+
   const playbackSpeed = ref(0.0)
   const currentTime = ref(0)
   const isPlaying = ref(false)
-  
+
   let pollInterval: number | null = null
   let reqFrame = 0
   let lastFrameTime = 0
@@ -96,29 +96,29 @@ export const useLogDataStore = defineStore('logData', () => {
       dataVersion.value++
       return
     }
-    
+
     isPlaying.value = true
     lastFrameTime = performance.now()
-    
+
     function loop(now: number) {
       if (!isPlaying.value) return
-      
+
       const dt = (now - lastFrameTime) / 1000
       lastFrameTime = now
-      
+
       currentTime.value += dt * playbackSpeed.value
-      
+
       if (currentTime.value >= status.value.end_ts) {
         currentTime.value = status.value.end_ts
         isPlaying.value = false
       }
-      
+
       dataVersion.value++
       if (isPlaying.value) {
         reqFrame = requestAnimationFrame(loop)
       }
     }
-    
+
     reqFrame = requestAnimationFrame(loop)
   }
 
@@ -176,11 +176,11 @@ export const useLogDataStore = defineStore('logData', () => {
         status.value = data
 
         if (hasNewReadyLog) clearQueryCaches()
-        
+
         if (data.status === 'ready' && pollInterval) {
           clearInterval(pollInterval)
           pollInterval = null
-          
+
           currentTime.value = data.start_ts
           setQueryWindow(data.start_ts, data.end_ts)
           import('./dataSourceStore').then(m => {

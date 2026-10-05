@@ -26,6 +26,12 @@ export interface ChartRenderModel {
   structureKey: string
 }
 
+export interface ChartSampleRate {
+  id: string
+  label: string
+  samplesPerSecond: number | null
+}
+
 const SERIES_COLORS = ['#e11d48', '#3b82f6', '#22c55e', '#f59e0b', '#a855f7', '#14b8a6', '#ec4899']
 
 function scaleKeyForUnit(unit: string) {
@@ -34,6 +40,49 @@ function scaleKeyForUnit(unit: string) {
 
 function toNumberArray(values: ArrayLike<number>) {
   return Array.from(values)
+}
+
+// The aligned y columns contain undefined values at timestamps belonging to
+// another series. Use only real values so each rate remains signal-specific.
+// Sampling frequency is measured over sample intervals rather than by dividing
+// endpoint-inclusive point counts by the viewport duration.
+export function getVisibleSampleRates(
+  model: ChartRenderModel,
+  start: number | null | undefined,
+  end: number | null | undefined,
+): ChartSampleRate[] {
+  const duration = (end ?? NaN) - (start ?? NaN)
+  if (!Number.isFinite(duration) || duration <= 0) {
+    return model.series.map(({ id, label }) => ({ id, label, samplesPerSecond: null }))
+  }
+
+  const timestamps = model.data[0] ?? []
+  return model.series.map((series, seriesIndex) => {
+    const values = model.data[seriesIndex + 1] ?? []
+    let firstTimestamp: number | null = null
+    let lastTimestamp: number | null = null
+    let count = 0
+
+    for (let index = 0; index < timestamps.length; index++) {
+      const timestamp = timestamps[index]
+      if (timestamp == null || !Number.isFinite(timestamp) || timestamp < start! || timestamp > end! || values[index] == null) continue
+      if (firstTimestamp == null) firstTimestamp = timestamp
+      lastTimestamp = timestamp
+      count++
+    }
+
+    const sampleDuration = lastTimestamp == null || firstTimestamp == null
+      ? 0
+      : lastTimestamp - firstTimestamp
+
+    return {
+      id: series.id,
+      label: series.label,
+      samplesPerSecond: count < 2 || sampleDuration <= 0
+        ? null
+        : (count - 1) / sampleDuration,
+    }
+  })
 }
 
 // uPlot's aligned mode requires one shared x column. join() preserves every

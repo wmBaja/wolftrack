@@ -2,7 +2,7 @@
 import { onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
 import uPlot from 'uplot'
 import 'uplot/dist/uPlot.min.css'
-import type { ChartRenderModel } from '@/lib/chartData'
+import { getVisibleSampleRates, type ChartRenderModel, type ChartSampleRate } from '@/lib/chartData'
 
 interface Viewport {
   start: number
@@ -17,6 +17,10 @@ const props = defineProps<{
   timeOrigin: number | null
 }>()
 
+const emit = defineEmits<{
+  sampleRates: [rates: ChartSampleRate[]]
+}>()
+
 const plotHost = ref<HTMLElement>()
 const legendHost = ref<HTMLElement>()
 const chart = shallowRef<uPlot>()
@@ -27,6 +31,11 @@ let appliedResetRevision = -1
 
 function displayTime(value: number) {
   return `${(value - (props.timeOrigin ?? 0)).toFixed(3)}s`
+}
+
+function publishVisibleSampleRates(instance = chart.value) {
+  const xScale = instance?.scales.x
+  emit('sampleRates', getVisibleSampleRates(props.model, xScale?.min, xScale?.max))
 }
 
 function createOptions(): uPlot.Options {
@@ -81,6 +90,11 @@ function createOptions(): uPlot.Options {
     legend: {
       mount: (_u, legend) => legendHost.value?.appendChild(legend),
     },
+    hooks: {
+      setScale: [instance => {
+        publishVisibleSampleRates(instance)
+      }],
+    },
   }
 }
 
@@ -103,6 +117,7 @@ function syncData(resetScales: boolean) {
     chart.value?.setData(props.model.data, resetScales)
     applyViewport()
   })
+  publishVisibleSampleRates()
 }
 
 function initChart() {
@@ -111,6 +126,7 @@ function initChart() {
   structureKey = props.model.structureKey
   appliedResetRevision = props.resetViewRevision
   applyViewport()
+  publishVisibleSampleRates()
 
   resizeObserver ??= new ResizeObserver(() => {
     if (!chart.value || !plotHost.value) return

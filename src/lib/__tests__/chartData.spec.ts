@@ -15,7 +15,7 @@ vi.mock('uplot', () => ({
   },
 }))
 
-import { buildChartRenderModel } from '@/lib/chartData'
+import { buildChartRenderModel, getVisibleSampleRates } from '@/lib/chartData'
 
 describe('buildChartRenderModel', () => {
   it('outer-joins unequal sample times without client-side bucketing', () => {
@@ -56,6 +56,33 @@ describe('buildChartRenderModel', () => {
     expect(model.scales).toEqual([
       { key: 'unit:V', unit: 'V' },
       { key: 'unit:A', unit: 'A' },
+    ])
+  })
+
+  it('calculates interval-based sample rates without counting alignment gaps', () => {
+    const model = buildChartRenderModel(
+      ['a', 'b'],
+      {
+        a: { timestamps: [1, 2, 4], values: [10, 20, 40] },
+        b: { timestamps: [1, 3], values: [100, 300] },
+      },
+      [
+        { id: 'a', name: 'A', unit: '', node: '', message: '' },
+        { id: 'b', name: 'B', unit: '', node: '', message: '' },
+      ],
+    )
+
+    expect(getVisibleSampleRates(model, 1, 4)).toEqual([
+      { id: 'a', label: 'A', samplesPerSecond: 2 / 3 },
+      { id: 'b', label: 'B', samplesPerSecond: 0.5 },
+    ])
+    expect(getVisibleSampleRates(model, 1, 3)).toEqual([
+      { id: 'a', label: 'A', samplesPerSecond: 1 },
+      { id: 'b', label: 'B', samplesPerSecond: 0.5 },
+    ])
+    expect(getVisibleSampleRates(model, 2, 2)).toEqual([
+      { id: 'a', label: 'A', samplesPerSecond: null },
+      { id: 'b', label: 'B', samplesPerSecond: null },
     ])
   })
 })

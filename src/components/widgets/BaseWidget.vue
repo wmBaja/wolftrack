@@ -193,6 +193,9 @@ defineExpose({ handleRefresh, startEditTitle, setLoading, toggleConfig })
           {{ widget.title }}
         </h3>
       </div>
+      <div class="base-widget__header-actions">
+        <slot name="header-actions"></slot>
+      </div>
     </header>
 
     <!-- Widget Content -->
@@ -278,6 +281,12 @@ defineExpose({ handleRefresh, startEditTitle, setLoading, toggleConfig })
   gap: 10px;
   flex: 1;
   min-width: 0;
+}
+
+.base-widget__header-actions {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
 }
 
 .base-widget__icon {
