@@ -30,6 +30,7 @@ const draftStart = ref(0)
 const draftEnd = ref(0)
 const isExpanded = ref(true)
 const timelineRef = ref<HTMLElement | null>(null)
+const timelineGridTransform = ref('none')
 const dragMode = ref<'start' | 'end' | 'window' | null>(null)
 const focusStart = ref(0)
 const focusEnd = ref(0)
@@ -41,11 +42,15 @@ const PRECISION_GRID_DIVISIONS = 20
 const TIMELINE_LABEL_POSITIONS = [0, 0.25, 0.5, 0.75, 1]
 const FOCUS_TRANSITION_DURATION_MS = 420
 const FOCUS_CHANGE_DELAY_MS = 1000
+const WHEEL_DELTA_UNIT = 750
+const WHEEL_PAN_FRACTION = 0.1
+const WHEEL_RESIZE_FRACTION = 0.1
 let dragPointerStart = 0
 let dragWindowStart = 0
 let dragWindowEnd = 0
 let focusTransitionTimer: number | undefined
 let focusChangeTimer: number | undefined
+let gridTransitionFrame: number | undefined
 let pendingFocusChange: 'focus' | 'reset' | undefined
 
 const focusDuration = computed(() => Math.max(0, focusEnd.value - focusStart.value))
@@ -104,6 +109,7 @@ function scheduleFocusChange(kind: 'focus' | 'reset', change: () => void) {
 
 onBeforeUnmount(() => {
   if (focusTransitionTimer !== undefined) window.clearTimeout(focusTransitionTimer)
+  if (gridTransitionFrame !== undefined) window.cancelAnimationFrame(gridTransitionFrame)
   clearPendingFocusChange()
 })
 
@@ -189,7 +195,36 @@ function setFocusAround(center: number, duration: number) {
   focusEnd.value = start + duration
 }
 
+function transitionTimelineGrid(
+  previousStart: number,
+  previousEnd: number,
+  nextStart: number,
+  nextEnd: number,
+) {
+  const previousDuration = previousEnd - previousStart
+  const nextDuration = nextEnd - nextStart
+  if (previousDuration <= 0 || nextDuration <= 0) return
+
+  // Keep the ticks attached to their previous times for the first frame, then
+  // let them expand into the new focus range with the selection.
+  const translate = ((previousStart - nextStart) / nextDuration) * 100
+  const scale = previousDuration / nextDuration
+  timelineGridTransform.value = `translateX(${translate}%) scaleX(${scale})`
+
+  if (gridTransitionFrame !== undefined) window.cancelAnimationFrame(gridTransitionFrame)
+  gridTransitionFrame = window.requestAnimationFrame(() => {
+    // Give the browser a frame to paint the previous tick positions before
+    // transitioning them into the new focus range.
+    gridTransitionFrame = window.requestAnimationFrame(() => {
+      timelineGridTransform.value = 'none'
+      gridTransitionFrame = undefined
+    })
+  })
+}
+
 function zoomOutAtFocusEdge(edge: 'start' | 'end', start: number, end: number) {
+  const previousFocusStart = focusStart.value
+  const previousFocusEnd = focusEnd.value
   const reachedTimelineEdge = start <= 0 || end >= logDuration.value
   const duration = reachedTimelineEdge
     ? logDuration.value
@@ -202,6 +237,12 @@ function zoomOutAtFocusEdge(edge: 'start' | 'end', start: number, end: number) {
     : clampFocusStart(end - duration, duration)
   focusStart.value = boundedStart
   focusEnd.value = boundedStart + duration
+  transitionTimelineGrid(
+    previousFocusStart,
+    previousFocusEnd,
+    focusStart.value,
+    focusEnd.value,
+  )
 
   isFocusTransitioning.value = true
   if (focusTransitionTimer !== undefined) window.clearTimeout(focusTransitionTimer)
@@ -209,6 +250,14 @@ function zoomOutAtFocusEdge(edge: 'start' | 'end', start: number, end: number) {
     isFocusTransitioning.value = false
     focusTransitionTimer = undefined
   }, FOCUS_TRANSITION_DURATION_MS)
+}
+
+function keepWindowInFocus(start: number, end: number) {
+  if (start < focusStart.value) {
+    zoomOutAtFocusEdge('start', start, end)
+  } else if (end > focusEnd.value) {
+    zoomOutAtFocusEdge('end', start, end)
+  }
 }
 
 function needsPrecisionFocus() {
@@ -240,6 +289,51 @@ function endPrecisionFocus() {
   if (isFocusReset() || pendingFocusChange === 'reset') return
 
   scheduleFocusChange('reset', resetFocus)
+}
+
+function normalizedWheelDelta(event: WheelEvent) {
+  if (event.deltaMode === WheelEvent.DOM_DELTA_LINE) return event.deltaY * 16
+  if (event.deltaMode === WheelEvent.DOM_DELTA_PAGE) {
+    return event.deltaY * (timelineRef.value?.clientWidth ?? WHEEL_DELTA_UNIT)
+  }
+  return event.deltaY
+}
+
+function handleWheel(event: WheelEvent) {
+  if (!isAvailable.value || dragMode.value || event.deltaY === 0) return
+
+  const delta = normalizedWheelDelta(event) / WHEEL_DELTA_UNIT
+  const currentDuration = windowDuration.value
+
+  if (event.shiftKey) {
+    // Wheel down expands the selection; wheel up contracts it. Keep the
+    // selection centered and clamp it to the full log duration.
+    const minimumDuration = logDuration.value / Math.max(
+      1,
+      timelineRef.value?.getBoundingClientRect().width ?? 1,
+    )
+    const nextDuration = Math.min(
+      logDuration.value,
+      Math.max(
+        minimumDuration,
+        currentDuration + delta * focusDuration.value * WHEEL_RESIZE_FRACTION,
+      ),
+    )
+    const nextStart = clampFocusStart(
+      (startOffset.value + endOffset.value - nextDuration) / 2,
+      nextDuration,
+    )
+    applyWindow(nextStart, nextStart + nextDuration)
+    keepWindowInFocus(nextStart, nextStart + nextDuration)
+    return
+  }
+
+  const nextStart = clampFocusStart(
+    startOffset.value + delta * focusDuration.value * WHEEL_PAN_FRACTION,
+    currentDuration,
+  )
+  applyWindow(nextStart, nextStart + currentDuration)
+  keepWindowInFocus(nextStart, nextStart + currentDuration)
 }
 
 function getOffsetAtPointer(event: PointerEvent) {
@@ -372,22 +466,31 @@ function formatSeconds(seconds: number) {
             @pointermove="moveWindow"
             @pointerup="endDrag"
             @pointercancel="endDrag"
+            @wheel.prevent="handleWheel"
           >
-            <div class="log-window-control__timeline-grid" aria-hidden="true">
-              <span
-                v-for="tick in timelineGridTicks"
-                :key="tick.id"
-                class="is-minor"
-                :style="{ left: `${tick.position}%` }"
-              />
-              <span
-                v-for="marker in timelineLabelMarkers"
-                :key="`major-${marker.position}`"
-                class="is-major"
-                :style="marker.position === 1
-                  ? { right: '0' }
-                  : { left: `${marker.position * 100}%` }"
-              />
+            <div
+              class="log-window-control__timeline-grid"
+              aria-hidden="true"
+            >
+              <div
+                class="log-window-control__timeline-grid-track"
+                :style="{ transform: timelineGridTransform }"
+              >
+                <span
+                  v-for="tick in timelineGridTicks"
+                  :key="tick.id"
+                  class="is-minor"
+                  :style="{ left: `${tick.position}%` }"
+                />
+                <span
+                  v-for="marker in timelineLabelMarkers"
+                  :key="`major-${marker.position}`"
+                  class="is-major"
+                  :style="marker.position === 1
+                    ? { right: '0' }
+                    : { left: `${marker.position * 100}%` }"
+                />
+              </div>
             </div>
             <div
               class="log-window-control__selection"
@@ -569,6 +672,14 @@ function formatSeconds(seconds: number) {
   pointer-events: none;
 }
 
+.log-window-control__timeline-grid-track {
+  position: absolute;
+  inset: 0;
+  transform-origin: left center;
+  transition: transform var(--focus-transition-duration) cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+
 .log-window-control__timeline-grid span {
   position: absolute;
   transition: left var(--focus-transition-duration) cubic-bezier(0.22, 1, 0.36, 1);
@@ -665,7 +776,8 @@ function formatSeconds(seconds: number) {
 }
 
 .log-window-control__timeline.is-dragging .log-window-control__selection,
-.log-window-control__timeline.is-dragging .log-window-control__handle {
+.log-window-control__timeline.is-dragging .log-window-control__handle,
+.log-window-control__timeline.is-dragging .log-window-control__timeline-grid-track {
   transition: none;
 }
 
@@ -675,6 +787,10 @@ function formatSeconds(seconds: number) {
 
 .log-window-control__timeline.is-dragging.is-focus-transitioning .log-window-control__handle {
   transition: left var(--focus-transition-duration) cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.log-window-control__timeline.is-dragging.is-focus-transitioning .log-window-control__timeline-grid-track {
+  transition: transform var(--focus-transition-duration) cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .log-window-control__timeline-labels {
