@@ -336,6 +336,14 @@ function handleTimelinePointerLeave() {
   endPrecisionFocus()
 }
 
+function resetWindow() {
+  cancelWheelInteraction()
+  clearPendingFocusChange()
+  applyWindow(0, logDuration.value)
+  resetFocus()
+  logDataStore.endQueryWindowDrag()
+}
+
 function normalizedWheelDelta(event: WheelEvent) {
   if (event.deltaMode === WheelEvent.DOM_DELTA_LINE) return event.deltaY * 16
   if (event.deltaMode === WheelEvent.DOM_DELTA_PAGE) {
@@ -529,12 +537,13 @@ function formatSeconds(seconds: number) {
               'is-dragging': dragMode,
               'is-focus-transitioning': isFocusTransitioning,
             }"
-            aria-label="Selected log time window"
+            aria-label="Selected log time window. Double-click to reset to the full log."
             @pointerenter="handleTimelinePointerEnter"
             @pointerleave="handleTimelinePointerLeave"
             @pointermove="moveWindow"
             @pointerup="endDrag"
             @pointercancel="endDrag"
+            @dblclick="resetWindow"
             @wheel.prevent="handleWheel"
           >
             <div
