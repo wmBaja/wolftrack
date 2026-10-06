@@ -31,6 +31,7 @@ const draftEnd = ref(0)
 const isExpanded = ref(true)
 const timelineRef = ref<HTMLElement | null>(null)
 const timelineGridTransform = ref('none')
+const isTimelineHovered = ref(false)
 const dragMode = ref<'start' | 'end' | 'window' | null>(null)
 const focusStart = ref(0)
 const focusEnd = ref(0)
@@ -45,6 +46,11 @@ const FOCUS_CHANGE_DELAY_MS = 1000
 const WHEEL_DELTA_UNIT = 750
 const WHEEL_PAN_FRACTION = 0.1
 const WHEEL_RESIZE_FRACTION = 0.1
+const WINDOW_PRESETS = [
+  { label: '10 sec', duration: 10 },
+  { label: '1 min', duration: 60 },
+  { label: '5 min', duration: 300 },
+] as const
 let dragPointerStart = 0
 let dragWindowStart = 0
 let dragWindowEnd = 0
@@ -159,6 +165,30 @@ function applyWindow(start: number, end: number) {
 function applyDraft() {
   applyWindow(draftStart.value, draftEnd.value)
   resetFocus()
+}
+
+function applyWindowPreset(duration: number) {
+  clearPendingFocusChange()
+
+  // Keep the selected point in the log stable, so presets remain useful after
+  // panning away from the end of a recording. For a freshly opened log, the
+  // current end is the log end and this selects its final interval.
+  const end = endOffset.value
+  const start = Math.max(0, end - Math.min(duration, logDuration.value))
+  applyWindow(start, end)
+
+  if (!needsPrecisionFocus()) {
+    resetFocus()
+    return
+  }
+
+  focusSelection()
+  if (!isTimelineHovered.value) endPrecisionFocus()
+}
+
+function isPresetActive(duration: number) {
+  return logDuration.value >= duration
+    && Math.abs(windowDuration.value - duration) < 0.001
 }
 
 function clampFocusStart(value: number, duration: number) {
@@ -289,6 +319,15 @@ function endPrecisionFocus() {
   if (isFocusReset() || pendingFocusChange === 'reset') return
 
   scheduleFocusChange('reset', resetFocus)
+}
+
+function handleTimelinePointerEnter() {
+  isTimelineHovered.value = true
+}
+
+function handleTimelinePointerLeave() {
+  isTimelineHovered.value = false
+  endPrecisionFocus()
 }
 
 function normalizedWheelDelta(event: WheelEvent) {
@@ -462,7 +501,8 @@ function formatSeconds(seconds: number) {
               'is-focus-transitioning': isFocusTransitioning,
             }"
             aria-label="Selected log time window"
-            @pointerleave="endPrecisionFocus"
+            @pointerenter="handleTimelinePointerEnter"
+            @pointerleave="handleTimelinePointerLeave"
             @pointermove="moveWindow"
             @pointerup="endDrag"
             @pointercancel="endDrag"
@@ -535,30 +575,45 @@ function formatSeconds(seconds: number) {
         <div
           class="log-window-control__actions"
         >
-          <label>
-            Start
-            <input
-              v-model.number="draftStart"
-              type="number"
-              min="0"
-              :max="draftEnd"
-              step="0.010"
-              @change="applyDraft"
-              @keyup.enter="applyDraft"
+          <div class="log-window-control__presets" role="group" aria-label="Window duration presets">
+            <button
+              v-for="preset in WINDOW_PRESETS"
+              :key="preset.duration"
+              class="log-window-control__preset"
+              :class="{ 'is-active': isPresetActive(preset.duration) }"
+              type="button"
+              :aria-pressed="isPresetActive(preset.duration)"
+              @click="applyWindowPreset(preset.duration)"
             >
-          </label>
-          <label>
-            End
-            <input
-              v-model.number="draftEnd"
-              type="number"
-              :min="draftStart"
-              :max="logDuration"
-              step="0.010"
-              @change="applyDraft"
-              @keyup.enter="applyDraft"
-            >
-          </label>
+              {{ preset.label }}
+            </button>
+          </div>
+          <div class="log-window-control__range-inputs">
+            <label>
+              Start
+              <input
+                v-model.number="draftStart"
+                type="number"
+                min="0"
+                :max="draftEnd"
+                step="0.010"
+                @change="applyDraft"
+                @keyup.enter="applyDraft"
+              >
+            </label>
+            <label>
+              End
+              <input
+                v-model.number="draftEnd"
+                type="number"
+                :min="draftStart"
+                :max="logDuration"
+                step="0.010"
+                @change="applyDraft"
+                @keyup.enter="applyDraft"
+              >
+            </label>
+          </div>
         </div>
       </div>
     </div>
@@ -655,7 +710,7 @@ function formatSeconds(seconds: number) {
 .log-window-control__timeline {
   position: relative;
   width: 100%;
-  height: 24px;
+  height: 30px;
   overflow: visible;
   border-radius: 4px;
   background: color-mix(in srgb, var(--color-panel-header) 70%, transparent);
@@ -804,9 +859,46 @@ function formatSeconds(seconds: number) {
 
 .log-window-control__actions {
   display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.log-window-control__presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+
+.log-window-control__range-inputs {
+  display: flex;
   align-items: end;
   flex-wrap: wrap;
-  gap: 4px;
+  gap: 6px;
+}
+
+.log-window-control__preset {
+  min-height: 24px;
+  padding: 3px 7px;
+  border: 1px solid color-mix(in srgb, var(--color-accent) 42%, var(--color-border));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-panel-header) 70%, var(--color-input, #171b26));
+  color: var(--color-text);
+  cursor: pointer;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.log-window-control__preset:hover,
+.log-window-control__preset:focus-visible,
+.log-window-control__preset.is-active {
+  border-color: var(--color-accent);
+  color: var(--color-text);
+  outline: none;
+}
+
+.log-window-control__preset.is-active {
+  background: color-mix(in srgb, var(--color-accent) 22%, var(--color-panel-header));
 }
 
 .log-window-control label {
@@ -824,13 +916,18 @@ function formatSeconds(seconds: number) {
   border-radius: 4px;
   background: var(--color-input, #171b26);
   color: var(--color-text);
-  font-size: 11px;
+  font-size: 12px;
   text-overflow: ellipsis;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 700px) {
   .log-window-control__panel {
     grid-template-columns: 1fr;
   }
+
+  .log-window-control__actions {
+    align-items: flex-start;
+  }
 }
+
 </style>
