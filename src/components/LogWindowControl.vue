@@ -46,6 +46,7 @@ const FOCUS_CHANGE_DELAY_MS = 1000
 const WHEEL_DELTA_UNIT = 750
 const WHEEL_PAN_FRACTION = 0.1
 const WHEEL_RESIZE_FRACTION = 0.1
+const WHEEL_INTERACTION_SETTLE_MS = 150
 const WINDOW_PRESETS = [
   { label: '10 sec', duration: 10 },
   { label: '1 min', duration: 60 },
@@ -57,6 +58,7 @@ let dragWindowEnd = 0
 let focusTransitionTimer: number | undefined
 let focusChangeTimer: number | undefined
 let gridTransitionFrame: number | undefined
+let wheelInteractionTimer: number | undefined
 let pendingFocusChange: 'focus' | 'reset' | undefined
 
 const focusDuration = computed(() => Math.max(0, focusEnd.value - focusStart.value))
@@ -116,6 +118,10 @@ function scheduleFocusChange(kind: 'focus' | 'reset', change: () => void) {
 onBeforeUnmount(() => {
   if (focusTransitionTimer !== undefined) window.clearTimeout(focusTransitionTimer)
   if (gridTransitionFrame !== undefined) window.cancelAnimationFrame(gridTransitionFrame)
+  if (wheelInteractionTimer !== undefined) {
+    window.clearTimeout(wheelInteractionTimer)
+    logDataStore.endQueryWindowDrag()
+  }
   clearPendingFocusChange()
 })
 
@@ -338,9 +344,31 @@ function normalizedWheelDelta(event: WheelEvent) {
   return event.deltaY
 }
 
+function beginWheelInteraction() {
+  if (wheelInteractionTimer === undefined) {
+    // Match handle dragging: use the overview while the range is changing,
+    // then request one detail query for the final range.
+    logDataStore.beginQueryWindowDrag()
+  } else {
+    window.clearTimeout(wheelInteractionTimer)
+  }
+
+  wheelInteractionTimer = window.setTimeout(() => {
+    wheelInteractionTimer = undefined
+    logDataStore.endQueryWindowDrag()
+  }, WHEEL_INTERACTION_SETTLE_MS)
+}
+
+function cancelWheelInteraction() {
+  if (wheelInteractionTimer === undefined) return
+  window.clearTimeout(wheelInteractionTimer)
+  wheelInteractionTimer = undefined
+}
+
 function handleWheel(event: WheelEvent) {
   if (!isAvailable.value || dragMode.value || event.deltaY === 0) return
 
+  beginWheelInteraction()
   const delta = normalizedWheelDelta(event) / WHEEL_DELTA_UNIT
   const currentDuration = windowDuration.value
 
@@ -386,6 +414,7 @@ function getOffsetAtPointer(event: PointerEvent) {
 function beginDrag(mode: 'start' | 'end' | 'window', event: PointerEvent) {
   if (!isAvailable.value) return
 
+  cancelWheelInteraction()
   // Preserve the current timeline scale once the user has found a control.
   // This prevents a queued hover zoom from moving it out from under the pointer.
   clearPendingFocusChange()
