@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useDataSourceStore } from '@/stores/dataSourceStore'
 import { useLogDataStore } from '@/stores/logDataStore'
 
@@ -31,16 +31,96 @@ const draftEnd = ref(0)
 const isExpanded = ref(true)
 const timelineRef = ref<HTMLElement | null>(null)
 const dragMode = ref<'start' | 'end' | 'window' | null>(null)
+const focusStart = ref(0)
+const focusEnd = ref(0)
+const isFocusTransitioning = ref(false)
+const MIN_USABLE_WINDOW_WIDTH_PX = 72
+const PRECISION_FOCUS_LOG_FRACTION = 0.1
+const TIMELINE_GRID_DIVISIONS = 16
+const PRECISION_GRID_DIVISIONS = 20
+const TIMELINE_LABEL_POSITIONS = [0, 0.25, 0.5, 0.75, 1]
+const FOCUS_TRANSITION_DURATION_MS = 420
+const FOCUS_CHANGE_DELAY_MS = 1000
 let dragPointerStart = 0
 let dragWindowStart = 0
 let dragWindowEnd = 0
+let focusTransitionTimer: number | undefined
+let focusChangeTimer: number | undefined
+let pendingFocusChange: 'focus' | 'reset' | undefined
+
+const focusDuration = computed(() => Math.max(0, focusEnd.value - focusStart.value))
+const selectionStartPercent = computed(() => focusDuration.value > 0
+  ? ((startOffset.value - focusStart.value) / focusDuration.value) * 100
+  : 0)
+const selectionEndPercent = computed(() => focusDuration.value > 0
+  ? ((endOffset.value - focusStart.value) / focusDuration.value) * 100
+  : 0)
+const selectionWidthPercent = computed(() => Math.max(
+  0,
+  selectionEndPercent.value - selectionStartPercent.value,
+))
+const isPrecisionFocused = computed(() => (
+  logDuration.value > 0 && focusDuration.value < logDuration.value
+))
+const timelineGridTicks = computed(() => {
+  const divisions = isPrecisionFocused.value
+    ? PRECISION_GRID_DIVISIONS
+    : TIMELINE_GRID_DIVISIONS
+
+  return Array.from({ length: divisions - 1 }, (_, index) => ({
+    id: index + 1,
+    position: ((index + 1) / divisions) * 100,
+  }))
+})
+const timelineLabelMarkers = computed(() => TIMELINE_LABEL_POSITIONS.map(position => ({
+  position,
+  time: focusStart.value + focusDuration.value * position,
+})))
+
+function resetFocus() {
+  focusStart.value = 0
+  focusEnd.value = logDuration.value
+}
+
+function isFocusReset() {
+  return focusStart.value === 0 && focusEnd.value === logDuration.value
+}
+
+function clearPendingFocusChange() {
+  if (focusChangeTimer !== undefined) window.clearTimeout(focusChangeTimer)
+  focusChangeTimer = undefined
+  pendingFocusChange = undefined
+}
+
+function scheduleFocusChange(kind: 'focus' | 'reset', change: () => void) {
+  clearPendingFocusChange()
+  pendingFocusChange = kind
+  focusChangeTimer = window.setTimeout(() => {
+    change()
+    focusChangeTimer = undefined
+    pendingFocusChange = undefined
+  }, FOCUS_CHANGE_DELAY_MS)
+}
+
+onBeforeUnmount(() => {
+  if (focusTransitionTimer !== undefined) window.clearTimeout(focusTransitionTimer)
+  clearPendingFocusChange()
+})
+
+watch(
+  [() => logDataStore.status.start_ts, () => logDataStore.status.end_ts],
+  resetFocus,
+  { immediate: true },
+)
 
 function syncDraft() {
   draftStart.value = compactInputValue(startOffset.value)
   draftEnd.value = compactInputValue(endOffset.value)
 }
 
-watch([startOffset, endOffset], syncDraft, { immediate: true })
+watch([startOffset, endOffset], () => {
+  syncDraft()
+}, { immediate: true })
 
 function clampOffset(value: number) {
   if (!Number.isFinite(value)) return 0
@@ -72,6 +152,94 @@ function applyWindow(start: number, end: number) {
 
 function applyDraft() {
   applyWindow(draftStart.value, draftEnd.value)
+  resetFocus()
+}
+
+function clampFocusStart(value: number, duration: number) {
+  return Math.min(logDuration.value - duration, Math.max(0, value))
+}
+
+function focusSelection() {
+  if (windowDuration.value <= 0 || logDuration.value <= 0) return
+
+  const timelineWidth = timelineRef.value?.getBoundingClientRect().width ?? 0
+  const maxDurationForUsableSelection = timelineWidth > 0
+    ? windowDuration.value * timelineWidth / MIN_USABLE_WINDOW_WIDTH_PX
+    : logDuration.value
+
+  // Keep the zoomed timeline at a predictable scale by default. For a tiny
+  // selection in a very long log, zoom further only until it is 72 px wide.
+  // A larger current selection remains fully visible instead of being clipped.
+  const duration = Math.min(
+    logDuration.value,
+    Math.max(
+      windowDuration.value,
+      Math.min(
+        logDuration.value * PRECISION_FOCUS_LOG_FRACTION,
+        maxDurationForUsableSelection,
+      ),
+    ),
+  )
+  setFocusAround((startOffset.value + endOffset.value) / 2, duration)
+}
+
+function setFocusAround(center: number, duration: number) {
+  const start = clampFocusStart(center - duration / 2, duration)
+  focusStart.value = start
+  focusEnd.value = start + duration
+}
+
+function zoomOutAtFocusEdge(edge: 'start' | 'end', start: number, end: number) {
+  const reachedTimelineEdge = start <= 0 || end >= logDuration.value
+  const duration = reachedTimelineEdge
+    ? logDuration.value
+    : Math.min(
+      logDuration.value,
+      Math.max(focusDuration.value * 2, windowDuration.value * 4),
+    )
+  const boundedStart = edge === 'start'
+    ? clampFocusStart(start, duration)
+    : clampFocusStart(end - duration, duration)
+  focusStart.value = boundedStart
+  focusEnd.value = boundedStart + duration
+
+  isFocusTransitioning.value = true
+  if (focusTransitionTimer !== undefined) window.clearTimeout(focusTransitionTimer)
+  focusTransitionTimer = window.setTimeout(() => {
+    isFocusTransitioning.value = false
+    focusTransitionTimer = undefined
+  }, FOCUS_TRANSITION_DURATION_MS)
+}
+
+function needsPrecisionFocus() {
+  const width = timelineRef.value?.getBoundingClientRect().width ?? 0
+  return windowDuration.value > 0
+    && logDuration.value > 0
+    && width > 0
+    && (windowDuration.value / logDuration.value) * width < MIN_USABLE_WINDOW_WIDTH_PX
+}
+
+function beginPrecisionFocus(immediate = false) {
+  if (pendingFocusChange === 'reset') clearPendingFocusChange()
+  if (!needsPrecisionFocus() || !isFocusReset()) return
+
+  if (immediate) {
+    clearPendingFocusChange()
+    focusSelection()
+    return
+  }
+
+  if (pendingFocusChange !== 'focus') {
+    scheduleFocusChange('focus', focusSelection)
+  }
+}
+
+function endPrecisionFocus() {
+  if (dragMode.value) return
+  if (pendingFocusChange === 'focus') clearPendingFocusChange()
+  if (isFocusReset() || pendingFocusChange === 'reset') return
+
+  scheduleFocusChange('reset', resetFocus)
 }
 
 function getOffsetAtPointer(event: PointerEvent) {
@@ -79,12 +247,15 @@ function getOffsetAtPointer(event: PointerEvent) {
   if (!rect || rect.width === 0) return 0
 
   const ratio = Math.min(1, Math.max(0, (event.clientX - rect.left) / rect.width))
-  return ratio * logDuration.value
+  return focusStart.value + ratio * focusDuration.value
 }
 
 function beginDrag(mode: 'start' | 'end' | 'window', event: PointerEvent) {
   if (!isAvailable.value) return
 
+  // Preserve the current timeline scale once the user has found a control.
+  // This prevents a queued hover zoom from moving it out from under the pointer.
+  clearPendingFocusChange()
   dragMode.value = mode
   dragPointerStart = getOffsetAtPointer(event)
   dragWindowStart = startOffset.value
@@ -108,10 +279,28 @@ function moveWindow(event: PointerEvent) {
 
   const width = dragWindowEnd - dragWindowStart
   const delta = offset - dragPointerStart
-  const nextStart = Math.min(
-    logDuration.value - width,
-    Math.max(0, dragWindowStart + delta),
-  )
+  const nextStart = dragWindowStart + delta
+
+  // Zoom out at the edge being dragged. Anchoring the focus at that edge keeps
+  // the selected window under the pointer throughout the transition.
+  if (nextStart < focusStart.value || nextStart + width > focusEnd.value) {
+    const boundedStart = Math.min(
+      logDuration.value - width,
+      Math.max(0, nextStart),
+    )
+    const boundedEnd = boundedStart + width
+    applyWindow(boundedStart, boundedEnd)
+    zoomOutAtFocusEdge(
+      nextStart < focusStart.value ? 'start' : 'end',
+      boundedStart,
+      boundedEnd,
+    )
+    dragPointerStart = getOffsetAtPointer(event)
+    dragWindowStart = boundedStart
+    dragWindowEnd = boundedEnd
+    return
+  }
+
   applyWindow(nextStart, nextStart + width)
 }
 
@@ -122,6 +311,22 @@ function endDrag(event: PointerEvent) {
     timelineRef.value.releasePointerCapture(event.pointerId)
   }
   logDataStore.endQueryWindowDrag()
+}
+
+function adjustHandle(mode: 'start' | 'end', event: KeyboardEvent) {
+  if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return
+  event.preventDefault()
+
+  const direction = event.key === 'ArrowLeft' ? -1 : 1
+  const increment = focusDuration.value / (event.shiftKey ? 10 : 100)
+  const nextValue = mode === 'start'
+    ? startOffset.value + direction * increment
+    : endOffset.value + direction * increment
+
+  applyWindow(
+    mode === 'start' ? nextValue : startOffset.value,
+    mode === 'end' ? nextValue : endOffset.value,
+  )
 }
 
 function formatSeconds(seconds: number) {
@@ -137,6 +342,7 @@ function formatSeconds(seconds: number) {
     v-if="isAvailable"
     class="log-window-control"
     :class="{ 'is-expanded': isExpanded }"
+    :style="{ '--focus-transition-duration': `${FOCUS_TRANSITION_DURATION_MS}ms` }"
     aria-label="Log chart window"
   >
     <button
@@ -157,44 +363,72 @@ function formatSeconds(seconds: number) {
           <div
             ref="timelineRef"
             class="log-window-control__timeline"
-            :class="{ 'is-dragging': dragMode }"
+            :class="{
+              'is-dragging': dragMode,
+              'is-focus-transitioning': isFocusTransitioning,
+            }"
             aria-label="Selected log time window"
             @pointermove="moveWindow"
             @pointerup="endDrag"
             @pointercancel="endDrag"
           >
             <div class="log-window-control__timeline-grid" aria-hidden="true">
-              <span v-for="tick in 9" :key="tick" />
+              <span
+                v-for="tick in timelineGridTicks"
+                :key="tick.id"
+                class="is-minor"
+                :style="{ left: `${tick.position}%` }"
+              />
+              <span
+                v-for="marker in timelineLabelMarkers"
+                :key="`major-${marker.position}`"
+                class="is-major"
+                :style="marker.position === 1
+                  ? { right: '0' }
+                  : { left: `${marker.position * 100}%` }"
+              />
             </div>
             <div
               class="log-window-control__selection"
               :style="{
-                left: `${(startOffset / logDuration) * 100}%`,
-                width: `${((endOffset - startOffset) / logDuration) * 100}%`,
+                left: `${selectionStartPercent}%`,
+                width: `${selectionWidthPercent}%`,
               }"
+              @pointerenter="beginPrecisionFocus()"
+              @pointerleave="endPrecisionFocus"
               @pointerdown.prevent="beginDrag('window', $event)"
             >
               <span class="log-window-control__selection-label">{{ formatSeconds(windowDuration) }}</span>
             </div>
             <button
               class="log-window-control__handle log-window-control__handle--start"
-              :style="{ left: `${(startOffset / logDuration) * 100}%` }"
+              :style="{ left: `${selectionStartPercent}%` }"
               type="button"
-              aria-label="Drag window start"
+              aria-label="Drag window start. Use left and right arrow keys for precise adjustment."
+              @pointerenter="beginPrecisionFocus()"
+              @pointerleave="endPrecisionFocus"
               @pointerdown.stop.prevent="beginDrag('start', $event)"
+              @focus="beginPrecisionFocus(true)"
+              @blur="endPrecisionFocus"
+              @keydown="adjustHandle('start', $event)"
             />
             <button
               class="log-window-control__handle log-window-control__handle--end"
-              :style="{ left: `${(endOffset / logDuration) * 100}%` }"
+              :style="{ left: `${selectionEndPercent}%` }"
               type="button"
-              aria-label="Drag window end"
+              aria-label="Drag window end. Use left and right arrow keys for precise adjustment."
+              @pointerenter="beginPrecisionFocus()"
+              @pointerleave="endPrecisionFocus"
               @pointerdown.stop.prevent="beginDrag('end', $event)"
+              @focus="beginPrecisionFocus(true)"
+              @blur="endPrecisionFocus"
+              @keydown="adjustHandle('end', $event)"
             />
           </div>
-          <div class="log-window-control__timeline-labels" aria-hidden="true">
-            <span>0 s</span>
-            <span>{{ formatSeconds(logDuration / 2) }}</span>
-            <span>{{ formatSeconds(logDuration) }}</span>
+          <div class="log-window-control__timeline-labels">
+            <span v-for="marker in timelineLabelMarkers" :key="marker.position">
+              {{ formatSeconds(marker.time) }}
+            </span>
           </div>
         </div>
         <div
@@ -332,16 +566,30 @@ function formatSeconds(seconds: number) {
 .log-window-control__timeline-grid {
   position: absolute;
   inset: 0;
-  display: flex;
-  justify-content: space-between;
-  padding: 0 10%;
+  overflow: hidden;
+  border-radius: inherit;
   pointer-events: none;
 }
 
 .log-window-control__timeline-grid span {
-  width: 1px;
-  height: 100%;
-  background: color-mix(in srgb, var(--color-border) 70%, transparent);
+  position: absolute;
+  transition: left var(--focus-transition-duration) cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.log-window-control__timeline-grid span.is-minor {
+  top: 4px;
+  bottom: 4px;
+  width: 2px;
+  background: color-mix(in srgb, var(--color-border) 70%, var(--color-text));
+  opacity: 1.0;
+}
+
+.log-window-control__timeline-grid span.is-major {
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: color-mix(in srgb, var(--color-border) 55%, var(--color-text));
+  opacity: 1.0;
 }
 
 .log-window-control__selection {
@@ -353,6 +601,8 @@ function formatSeconds(seconds: number) {
   border-top: 1px solid color-mix(in srgb, var(--color-accent) 85%, white);
   border-bottom: 1px solid color-mix(in srgb, var(--color-accent) 85%, white);
   cursor: grab;
+  transition: left var(--focus-transition-duration) cubic-bezier(0.22, 1, 0.36, 1), width var(--focus-transition-duration) cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: left, width;
 }
 
 .log-window-control__selection:active {
@@ -361,9 +611,10 @@ function formatSeconds(seconds: number) {
 
 .log-window-control__selection-label {
   position: absolute;
-  top: 50%;
+  z-index: 3;
+  top: 2px;
   left: 50%;
-  transform: translate(-50%, -50%);
+  transform: translateX(-50%);
   color: var(--color-text);
   font-size: 12px;
   font-weight: 700;
@@ -377,32 +628,64 @@ function formatSeconds(seconds: number) {
   z-index: 2;
   top: -4px;
   bottom: -4px;
-  width: 5px;
+  width: 18px;
   padding: 0;
+  transform: translateX(-50%);
+  border: 0;
+  background: transparent;
+  cursor: ew-resize;
+  transition: left var(--focus-transition-duration) cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: left;
+}
+
+.log-window-control__handle::after {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 5px;
   transform: translateX(-50%);
   border: 1px solid color-mix(in srgb, var(--color-accent) 80%, white);
   border-radius: 2px;
   background: var(--color-accent);
   box-shadow: 0 0 0 1px rgb(0 0 0 / 25%), 0 1px 5px rgb(0 0 0 / 35%);
-  cursor: ew-resize;
+  content: '';
 }
 
 .log-window-control__handle:hover,
 .log-window-control__handle:focus-visible {
-  width: 7px;
   outline: none;
+}
+
+.log-window-control__handle:hover::after,
+.log-window-control__handle:focus-visible::after {
+  width: 7px;
 }
 
 .log-window-control__timeline.is-dragging .log-window-control__selection {
   cursor: grabbing;
 }
 
+.log-window-control__timeline.is-dragging .log-window-control__selection,
+.log-window-control__timeline.is-dragging .log-window-control__handle {
+  transition: none;
+}
+
+.log-window-control__timeline.is-dragging.is-focus-transitioning .log-window-control__selection {
+  transition: left var(--focus-transition-duration) cubic-bezier(0.22, 1, 0.36, 1), width var(--focus-transition-duration) cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.log-window-control__timeline.is-dragging.is-focus-transitioning .log-window-control__handle {
+  transition: left var(--focus-transition-duration) cubic-bezier(0.22, 1, 0.36, 1);
+}
+
 .log-window-control__timeline-labels {
   display: flex;
+  align-items: center;
   justify-content: space-between;
   margin-top: 3px;
-  color: var(--color-muted);
-  font-size: 10px;
+  color: var(--color-text);
+  font-size: 12px;
 }
 
 .log-window-control__actions {
@@ -415,7 +698,7 @@ function formatSeconds(seconds: number) {
 .log-window-control label {
   display: grid;
   gap: 1px;
-  color: var(--color-muted);
+  color: var(--color-text);
   font-size: 10px;
 }
 
