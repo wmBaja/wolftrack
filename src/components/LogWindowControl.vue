@@ -368,6 +368,7 @@ function formatSeconds(seconds: number) {
               'is-focus-transitioning': isFocusTransitioning,
             }"
             aria-label="Selected log time window"
+            @pointerleave="endPrecisionFocus"
             @pointermove="moveWindow"
             @pointerup="endDrag"
             @pointercancel="endDrag"
@@ -395,7 +396,6 @@ function formatSeconds(seconds: number) {
                 width: `${selectionWidthPercent}%`,
               }"
               @pointerenter="beginPrecisionFocus()"
-              @pointerleave="endPrecisionFocus"
               @pointerdown.prevent="beginDrag('window', $event)"
             >
               <span class="log-window-control__selection-label">{{ formatSeconds(windowDuration) }}</span>
@@ -406,7 +406,6 @@ function formatSeconds(seconds: number) {
               type="button"
               aria-label="Drag window start. Use left and right arrow keys for precise adjustment."
               @pointerenter="beginPrecisionFocus()"
-              @pointerleave="endPrecisionFocus"
               @pointerdown.stop.prevent="beginDrag('start', $event)"
               @focus="beginPrecisionFocus(true)"
               @blur="endPrecisionFocus"
@@ -418,7 +417,6 @@ function formatSeconds(seconds: number) {
               type="button"
               aria-label="Drag window end. Use left and right arrow keys for precise adjustment."
               @pointerenter="beginPrecisionFocus()"
-              @pointerleave="endPrecisionFocus"
               @pointerdown.stop.prevent="beginDrag('end', $event)"
               @focus="beginPrecisionFocus(true)"
               @blur="endPrecisionFocus"
