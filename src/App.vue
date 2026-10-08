@@ -2,6 +2,7 @@
 import { RouterView } from 'vue-router'
 import NavBar from './components/NavBar.vue'
 import DaqReconnectDialog from './components/DaqReconnectDialog.vue'
+import DialogBox from '@/components/DialogBox.vue'
 import { useLiveDataStore } from './stores/liveDataStore'
 import { useDataSourceStore } from './stores/dataSourceStore'
 import { useDaqConnectionStore } from './stores/daqConnectionStore'
@@ -33,6 +34,7 @@ onUnmounted(() => {
 
     <main class="flex-1">
       <RouterView />
+      <DialogBox />
     </main>
 
     <DaqReconnectDialog
