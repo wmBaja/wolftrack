@@ -2,10 +2,10 @@
 import { onMounted, ref, h, type Component, watch } from 'vue'
 import { GridLayout, GridItem } from 'grid-layout-plus'
 import { useWidgetStore } from '@/stores/widgetStore'
+import { confirmDialog } from '@/types/dialog'
 import ContextMenu from '@imengyu/vue3-context-menu'
 import BaseWidget from '@/components/widgets/BaseWidget.vue'
 import PointData from './widgets/PointData.vue'
-import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import ChartWidget from '@/components/widgets/ChartWidget.vue'
 import LogWindowControl from '@/components/LogWindowControl.vue'
 import { WIDGET_TYPES, type Widget } from '@/types/widgets'
@@ -50,8 +50,6 @@ export interface Point {
 
 const widgetRefs = ref<Record<string, WidgetExpose>>({})
 const pointClicks = ref<Point[]>([])
-
-const showClearAllConfirm = ref(false)
 const gridWrapperRef = ref<HTMLElement>()
 const GRID_COLS = 16
 const GRID_ROW_HEIGHT = 30
@@ -142,6 +140,15 @@ function handlePointClick(event: Point) {
   pointClicks.value.push(event);
 }
 
+async function handleClearAll() {
+  const ok = await confirmDialog(
+    'Delete All Widgets',
+    'Are you sure you want to delete all widgets?',
+    { confirmText: 'Delete', danger: true },
+  )
+  if (ok) widgetStore.clearAll()
+}
+
 function handleGridContextMenu(event: MouseEvent) {
   const target = event.target as HTMLElement
   if (target.closest('.vue-grid-item')) {
@@ -179,9 +186,7 @@ function handleGridContextMenu(event: MouseEvent) {
         label: 'Clear All Widgets',
         icon: h('span', '🗑️'),
         customClass: 'context-menu-danger',
-        onClick: () => {
-          showClearAllConfirm.value = true
-        },
+        onClick: handleClearAll,
       },
     ],
   })
@@ -230,17 +235,6 @@ function handleGridContextMenu(event: MouseEvent) {
         </GridItem>
       </GridLayout>
     </div>
-
-    <ConfirmDialog
-      :show="showClearAllConfirm"
-      title="Delete All Widgets"
-      message="Are you sure you want to delete all widgets?"
-      confirm-text="Delete"
-      cancel-text="Cancel"
-      danger
-      @confirm="widgetStore.clearAll()"
-      @close="showClearAllConfirm = false"
-    />
   </div>
 </template>
 

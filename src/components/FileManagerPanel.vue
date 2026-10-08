@@ -3,7 +3,6 @@ import { computed, ref, onBeforeUnmount, onMounted } from 'vue'
 import { useDbcStore } from '@/stores/dbcStore'
 import { useLogStore } from '@/stores/logStore'
 import { useDaqConnectionStore } from '@/stores/daqConnectionStore'
-import ConfirmDialog from './ConfirmDialog.vue'
 
 const dbcStore = useDbcStore()
 const logStore = useLogStore()
