@@ -847,6 +847,10 @@ const logIndexStatusText = computed(() => {
   cursor: pointer;
 }
 
+.browse-input-overlay::-webkit-file-upload-button {
+  cursor: pointer;
+}
+
 .browse-btn-group {
   display: flex;
   gap: 4px;
