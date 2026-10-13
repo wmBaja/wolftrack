@@ -145,4 +145,8 @@ onBeforeUnmount(() => {
   border-width: 6px !important;
   box-sizing: border-box !important;
 }
+
+:deep(.u-select) {
+  background: rgba(59, 130, 246, 0.2);
+}
 </style>

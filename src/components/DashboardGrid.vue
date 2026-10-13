@@ -159,9 +159,6 @@ function handleGridContextMenu(event: MouseEvent) {
         v-model:layout="widgetStore.widgets"
         :col-num="GRID_COLS"
         :row-height="GRID_ROW_HEIGHT"
-        :resize-option="{
-          edges: { right: true, bottom: true },
-        }"
         :is-draggable="true"
         :is-resizable="true"
         :is-bounded="false"
@@ -175,6 +172,9 @@ function handleGridContextMenu(event: MouseEvent) {
         <GridItem
           v-for="item in widgetStore.widgets"
           :key="item.i"
+          :resize-option="{
+            edges: { right: true, bottom: true },
+          }"
           v-bind="item"
           drag-allow-from=".base-widget__header"
           drag-ignore-from=".base-widget__content"
