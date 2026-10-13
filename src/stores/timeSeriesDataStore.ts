@@ -82,10 +82,14 @@ export const useTimeSeriesDataStore = defineStore('timeSeriesData', () => {
   function getSnapshot(signalIds: string[]): TimeSeriesSnapshot {
     const normalizedSignals = uniqueSignals(signalIds)
     if (dataSourceStore.config.source === 'zmq') {
+      // Each WebSocket batch advances this revision. Unlike a log viewport,
+      // live data has no fixed range to reapply after setData(), so uPlot must
+      // recalculate its scales as the ring buffer advances.
+      const liveRevision = liveDataStore.dataVersion
       return {
         model: buildChartRenderModel(normalizedSignals, getLiveBuffers(normalizedSignals), dbcStore.signals),
         viewport: null,
-        resetViewRevision: 0,
+        resetViewRevision: liveRevision,
         timeOrigin: liveDataStore.sessionStartTimestamp,
       }
     }

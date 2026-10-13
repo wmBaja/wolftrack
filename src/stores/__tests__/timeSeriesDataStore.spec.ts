@@ -32,4 +32,15 @@ describe('time series data store', () => {
 
     expect(timeSeries.activeSignals).toEqual(['Engine.rpm', 'Battery.voltage'])
   })
+
+  it('advances the chart reset revision for each live data batch', () => {
+    const timeSeries = useTimeSeriesDataStore()
+    const liveData = useLiveDataStore()
+
+    const beforeBatch = timeSeries.getSnapshot(['Vehicle.speed'])
+    liveData.dataVersion++
+    const afterBatch = timeSeries.getSnapshot(['Vehicle.speed'])
+
+    expect(afterBatch.resetViewRevision).toBe(beforeBatch.resetViewRevision + 1)
+  })
 })
