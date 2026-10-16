@@ -148,6 +148,12 @@ async function handleClearAll() {
   )
   if (ok) widgetStore.clearAll()
 }
+function handlePointClick(event: Point) {
+  for (const point of pointClicks.value) {
+    if (point.values.x == event.values.x) return
+  }
+  pointClicks.value.push(event)
+}
 
 function handleGridContextMenu(event: MouseEvent) {
   const target = event.target as HTMLElement
@@ -210,13 +216,11 @@ function requestImportLayout() {
         if (ok) {
           widgetStore.overwriteLayout(newWidgets)
         }
-      }
-      else {
-        await confirmDialog(
-          'Import Layout',
-          'The selected file is not a valid layout.',
-          { confirmText: 'OK' , removeCancel: true },
-        )
+      } else {
+        await confirmDialog('Import Layout', 'The selected file is not a valid layout.', {
+          confirmText: 'OK',
+          removeCancel: true,
+        })
       }
     } catch {
       return
