@@ -289,7 +289,6 @@ function isActiveLog(log: { name: string; active?: boolean }) {
 }
 
 async function handleDeleteTarget(allowed: boolean) {
-  console.log("handleDeleteTarget called");
   if (!allowed) {
     await confirmDialog('Error', 'Stop logging before deleting this file')
     deleteTarget.value = null

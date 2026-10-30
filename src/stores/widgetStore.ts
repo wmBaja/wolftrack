@@ -202,8 +202,7 @@ export const useWidgetStore = defineStore('widgets', () => {
       }
 
       return parsed
-    } catch (error) {
-      console.error('Imported layout file has improper format', error)
+    } catch {
       return null
     }
   }
