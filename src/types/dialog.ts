@@ -44,18 +44,18 @@ export function closeDialog(result = 'dismissed'): void {
 export async function confirmDialog(
   title: string,
   body: string,
-  opts: { confirmText?: string; cancelText?: string; danger?: boolean } = {},
+  opts: { confirmText?: string; cancelText?: string; danger?: boolean; removeCancel?: boolean } = {},
 ): Promise<boolean> {
-  const { confirmText = 'Confirm', cancelText = 'Cancel', danger = false } = opts
+  const { confirmText = 'Confirm', cancelText = 'Cancel', danger = false, removeCancel = false } = opts
 
   const result = await showDialog({
     title,
     body,
     danger,
     buttons: [
-      { id: 'cancel', text: cancelText },
+      !removeCancel && { id: 'cancel', text: cancelText },
       { id: 'confirm', text: confirmText, danger, primary: !danger },
-    ],
+    ].filter(Boolean) as DialogButton[],
   })
 
   return result === 'confirm'
