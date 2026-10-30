@@ -155,7 +155,7 @@ function handleGridContextMenu(event: MouseEvent) {
       {
         label: 'Import Layout',
         icon: h('span', '📥'),
-        onClick: () => widgetStore.importQuery(),
+        onClick: () => requestImportLayout(),
         divided: true,
       },
       {
@@ -166,6 +166,39 @@ function handleGridContextMenu(event: MouseEvent) {
       },
     ],
   })
+}
+
+function requestImportLayout() {
+  const input = document.createElement('input')
+  input.type = 'file'
+  input.accept = '.json'
+  input.onchange = async () => {
+    if (!input.files || !input.files[0]) return
+    const file = input.files[0]
+    try {
+      const newWidgets = await widgetStore.parseImportedLayout(file)
+      if (newWidgets) {
+        const ok = await confirmDialog(
+          'Import Layout',
+          'Are you sure you want to import this layout? This will overwrite your current layout.',
+          { confirmText: 'Import', danger: true },
+        )
+        if (ok) {
+          widgetStore.overwriteLayout(newWidgets)
+        }
+      }
+      else {
+        await confirmDialog(
+          'Import Layout',
+          'The selected file is not a valid layout.',
+          { confirmText: 'OK' , removeCancel: true },
+        )
+      }
+    } catch {
+      return
+    }
+  }
+  input.click()
 }
 </script>
 

@@ -141,62 +141,80 @@ export const useWidgetStore = defineStore('widgets', () => {
     }
   }
 
-  function importLayout(event: Event): void {
-    const file = (event.target as HTMLInputElement).files?.[0]
-    if (!file) return
-
-    const reader = new FileReader();
-
-    reader.onload = () => {
-      try {
-        const contents : string = reader.result as string;
-        const widgetsRaw : Widget[] = JSON.parse(contents);
-        const widgetsNew : Widget[] = [];
-        let correctFormat : boolean = true;
-        for (const widget of widgetsRaw) {
-          try {
-            const newWidget : Widget = addWidget(widget.type, {x: widget.x, y: widget.y, w: widget.w, h: widget.h});
-            newWidget.signals = widget.signals;
-            newWidget.title = widget.title;
-            widgetsNew.push(newWidget);
-          }
-          catch (error)
-          {
-            console.log('Imported layout file has improper format', error);
-            correctFormat = false;
-            break;
-          }
-        }
-        widgets.value = correctFormat ? widgetsNew : widgets.value;
-      }
-      catch (error)
-      {
-        console.error('Error reading file', error);
-      }
-    };
-
-    reader.onerror = () => {
-      console.error('Error reading file:', reader.error);
-    };
-
-    reader.readAsText(file);
-  }
-
-  function importQuery(): void {
+  async function parseImportedLayout(file: File): Promise<Widget[] | null> {
     try {
-      const link = document.createElement('input');
-      link.type = 'file';
-      link.accept = '.json';
-      link.addEventListener('change', importLayout);
-      link.click();
-    }
-    catch (error) {
-      console.error('Failed to import widgets:', error);
+      const contents = await file.text()
+      const widgetsRaw = JSON.parse(contents)
+
+      if (!Array.isArray(widgetsRaw)) {
+        return null
+      }
+
+      const parsed: Widget[] = []
+
+      for (const widget of widgetsRaw) {
+        if (!widget || typeof widget !== 'object') {
+          throw new Error('Invalid widget entry')
+        }
+
+        if (!widget.type || !Object.values(WIDGET_TYPES).includes(widget.type)) {
+          throw new Error(`Invalid widget type: ${String(widget.type)}`)
+        }
+
+        if (
+          typeof widget.x !== 'number' ||
+          typeof widget.y !== 'number' ||
+          typeof widget.w !== 'number' ||
+          typeof widget.h !== 'number'
+        ) {
+          throw new Error('Invalid widget size/position')
+        }
+
+        if (!Array.isArray(widget.signals)) {
+          throw new Error('Invalid widget signals')
+        }
+
+        if (typeof widget.title !== 'string') {
+          throw new Error('Invalid widget title')
+        }
+
+        if (typeof widget.i !== 'string' && typeof widget.i !== 'number') {
+          throw new Error('Invalid widget id')
+        }
+
+        if (typeof widget.createdAt !== 'number') {
+          throw new Error('Invalid widget createdAt')
+        }
+
+        const newWidget = createWidget(widget.type, {
+          x: widget.x,
+          y: widget.y,
+          w: widget.w,
+          h: widget.h,
+        })
+
+        newWidget.signals = widget.signals
+        newWidget.title = widget.title
+        newWidget.i = String(widget.i)
+        newWidget.createdAt = widget.createdAt
+
+        parsed.push(newWidget)
+      }
+
+      return parsed
+    } catch (error) {
+      console.error('Imported layout file has improper format', error)
+      return null
     }
   }
 
   function clearAll(): void {
     widgets.value = []
+    saveToLocalStorage()
+  }
+
+  function overwriteLayout(newWidgets: Widget[]): void {
+    widgets.value = newWidgets
     saveToLocalStorage()
   }
 
@@ -212,9 +230,9 @@ export const useWidgetStore = defineStore('widgets', () => {
     updateWidget,
     updateLayout,
     exportLayout,
-    importLayout,
-    importQuery,
+    parseImportedLayout,
     loadFromLocalStorage,
-    clearAll
+    clearAll,
+    overwriteLayout,
   }
 })
