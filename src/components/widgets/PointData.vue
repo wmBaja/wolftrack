@@ -9,7 +9,7 @@ defineProps<{
 <template>
   <div
     v-for="item in pointDatas"
-    :key="item.values.x"
+    :key="item.id"
     class="data-pt"
     :style="`--left: ${item.coords.x}px; --top: ${item.coords.y}px`"
   >

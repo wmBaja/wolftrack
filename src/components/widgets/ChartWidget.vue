@@ -92,6 +92,7 @@ defineExpose({ startEditTitle })
         </div>
         <UplotChart
           v-else
+          :widget-id="widgetId"
           :model="snapshot.model"
           :viewport="snapshot.viewport"
           :reset-view-revision="snapshot.resetViewRevision"
@@ -99,6 +100,7 @@ defineExpose({ startEditTitle })
           :time-origin="snapshot.timeOrigin"
           @sample-rates="sampleRates = $event"
           @point-click="$emit('pointClick', $event)"
+          @point-positions="$emit('pointPositions', $event)"
         />
       </div>
     </template>

@@ -34,6 +34,10 @@ const componentMap: Record<string, Component> = {
 }
 
 export interface Point {
+  visible: boolean
+  id: string
+  widgetId: string
+  scaleKey: string
   coords: {
     x: number
     y: number
@@ -142,10 +146,16 @@ async function handleClearAll() {
   if (ok) widgetStore.clearAll()
 }
 function handlePointClick(event: Point) {
-  for (const point of pointClicks.value) {
-    if (point.values.x == event.values.x) return
-  }
+  if (pointClicks.value.some((point) => point.id === event.id)) return
   pointClicks.value.push(event)
+}
+
+function updatePointPositions(points: Point[]) {
+  const byId = new Map(points.map((point) => [point.id, {coords:point.coords, visible:point.visible}]))
+  pointClicks.value = pointClicks.value.map((point) => {
+    const newPoint = byId.get(point.id)
+    return newPoint ? { ...point, coords: newPoint.coords, visible: newPoint.visible } : point
+  })
 }
 
 function handleGridContextMenu(event: MouseEvent) {
@@ -254,13 +264,19 @@ function requestImportLayout() {
           drag-allow-from=".base-widget__header"
           drag-ignore-from=".base-widget__content"
         >
-          <PointData :point-datas="pointClicks"> </PointData>
+          <PointData
+            :point-datas="
+              pointClicks.filter((point) => point.widgetId == String(item.i) && point.visible)
+            "
+          >
+          </PointData>
           <component
             :is="componentMap[(item as Widget).type] || BaseWidget"
             :ref="(el: WidgetExpose | null) => setWidgetRef(String(item.i), el)"
             :widget-id="item.i"
             :data-widget-id="item.i"
             @point-click="handlePointClick"
+            @point-positions="updatePointPositions"
           />
         </GridItem>
       </GridLayout>

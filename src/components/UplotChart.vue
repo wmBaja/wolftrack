@@ -11,6 +11,7 @@ interface Viewport {
 }
 
 const props = defineProps<{
+  widgetId: string
   model: ChartRenderModel
   viewport: Viewport | null
   resetViewRevision: number
@@ -21,6 +22,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   sampleRates: [rates: ChartSampleRate[]]
   pointClick: [point: Point]
+  pointPositions: [positions: Point[]]
 }>()
 
 const plotHost = ref<HTMLElement>()
@@ -30,6 +32,7 @@ let resizeObserver: ResizeObserver | null = null
 let viewportFrame: number | null = null
 let structureKey = ''
 let appliedResetRevision = -1
+const clickedPoints = new Map<string, Point>()
 
 function displayTime(value: number) {
   return `${(value - (props.timeOrigin ?? 0)).toFixed(3)}s`
@@ -97,6 +100,7 @@ function createOptions(): uPlot.Options {
       setScale: [
         (instance) => {
           publishVisibleSampleRates(instance)
+          handlePointDataResize()
         },
       ],
     },
@@ -126,6 +130,28 @@ function syncData(resetScales: boolean) {
 }
 
 function handlePointDataResize() {
+  const u = chart.value
+  const overlay = u?.root.querySelector('.u-over')
+  const widget = plotHost.value?.closest('.base-widget')
+  if (!u || !overlay || !widget) return
+
+  const plotRect = overlay.getBoundingClientRect()
+  const widgetRect = widget.getBoundingClientRect()
+  const updated = [...clickedPoints.values()].map((point) => ({
+    ...point,
+    coords: {
+      x:
+        plotRect.left - widgetRect.left + u.valToPos(point.values.x + (props.timeOrigin ?? 0), 'x'),
+      y: plotRect.top - widgetRect.top + u.valToPos(point.values.y, point.scaleKey),
+    },
+    visible:
+      u.series[0] && u.series[0].min != null && u.series[0].max != null
+        ? point.values.x + (props.timeOrigin ?? 0) >= u.series[0]?.min &&
+          point.values.x + (props.timeOrigin ?? 0) <= u.series[0]?.max
+        : true,
+  }));
+  for (const point of updated) clickedPoints.set(point.id, point)
+  emit('pointPositions', updated)
 }
 
 function handlePlotClick() {
@@ -150,10 +176,14 @@ function handlePlotClick() {
   if (value == null || !xScale || !yScale) return
 
   const isVisible =
-    xScale.min != null && xScale.max != null &&
-    yScale.min != null && yScale.max != null &&
-    time >= xScale.min && time <= xScale.max &&
-    value >= yScale.min && value <= yScale.max
+    xScale.min != null &&
+    xScale.max != null &&
+    yScale.min != null &&
+    yScale.max != null &&
+    time >= xScale.min &&
+    time <= xScale.max &&
+    value >= yScale.min &&
+    value <= yScale.max
   if (!isVisible) return
 
   const overlay = u.root.querySelector('.u-over')
@@ -163,6 +193,10 @@ function handlePlotClick() {
   const plotRect = overlay.getBoundingClientRect()
   const widgetRect = widget.getBoundingClientRect()
   const point: Point = {
+    visible: true,
+    id: `${props.syncKey}:${series.scaleKey}:${time}`,
+    widgetId: props.widgetId,
+    scaleKey: series.scaleKey,
     values: { x: time - (props.timeOrigin ?? 0), y: value },
     units: { x: 'secs', y: series.unit },
     coords: {
@@ -171,6 +205,7 @@ function handlePlotClick() {
     },
   }
 
+  clickedPoints.set(point.id, point)
   emit('pointClick', point)
 }
 
@@ -187,11 +222,11 @@ function initChart() {
 
   resizeObserver ??= new ResizeObserver(() => {
     if (!chart.value || !plotHost.value) return
-    handlePointDataResize();
     chart.value.setSize({
       width: Math.max(10, plotHost.value.clientWidth),
       height: Math.max(10, plotHost.value.clientHeight),
     })
+    handlePointDataResize()
   })
   resizeObserver.observe(plotHost.value)
 }
