@@ -14,15 +14,8 @@ defineProps<{
     :style="`--left: ${item.coords.x}px; --top: ${item.coords.y}px`"
   >
     <dl class="data-pt-info">
-      <dt class="data-pt-coordinate"><i>X</i></dt>
       <dd class="data-pt-detail">
-        <b>{{ item.values.x.toFixed(3) }}</b> {{ item.units.x }}
-      </dd>
-    </dl>
-    <dl class="data-pt-info">
-      <dt class="data-pt-coordinate"><i>Y</i></dt>
-      <dd class="data-pt-detail">
-        <b>{{ item.values.y.toFixed(3) }}</b> {{ item.units.y }}
+        <b>({{ item.values.x.toFixed(3) }} {{ item.units.x }}, {{ item.values.y.toFixed(3) }} {{ item.units.y }})</b>
       </dd>
     </dl>
   </div>
@@ -54,6 +47,5 @@ defineProps<{
 .data-pt-detail {
   line-height: 1.5;
   color: var(--color-text-muted);
-  margin-inline-start: 15px;
 }
 </style>
