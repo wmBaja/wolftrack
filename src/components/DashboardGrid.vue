@@ -133,13 +133,6 @@ function mouseToGridPosition(event: MouseEvent, size: GridSize = { w: 1, h: 1 })
   }
 }
 
-function handlePointClick(event: Point) {
-  for(const point of pointClicks.value) {
-    if(point.values.x == event.values.x) return;
-  }
-  pointClicks.value.push(event);
-}
-
 async function handleClearAll() {
   const ok = await confirmDialog(
     'Delete All Widgets',
