@@ -125,6 +125,9 @@ function syncData(resetScales: boolean) {
   publishVisibleSampleRates()
 }
 
+function handlePointDataResize() {
+}
+
 function handlePlotClick() {
   const u = chart.value
   const idx = u?.cursor.idx
@@ -184,6 +187,7 @@ function initChart() {
 
   resizeObserver ??= new ResizeObserver(() => {
     if (!chart.value || !plotHost.value) return
+    handlePointDataResize();
     chart.value.setSize({
       width: Math.max(10, plotHost.value.clientWidth),
       height: Math.max(10, plotHost.value.clientHeight),

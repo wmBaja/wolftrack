@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
-import BaseWidget from '@/components/widgets/BaseWidget.vue'
 import UplotChart from '@/components/UplotChart.vue'
-import { useWidgetStore } from '@/stores/widgetStore'
+import BaseWidget from '@/components/widgets/BaseWidget.vue'
 import { useTimeSeriesData } from '@/composables/useTimeSeriesData'
 import type { ChartSampleRate } from '@/lib/chartData'
+import { useWidgetStore } from '@/stores/widgetStore'
+import { computed, defineExpose, defineProps, onBeforeUnmount, onMounted, ref } from 'vue'
 
 const props = defineProps<{
   widgetId: string
