@@ -50,7 +50,10 @@ const treeData = computed<TreeNode[]>(() => {
     const msgName = sig.message || 'Unknown Message'
 
     if (query) {
-      if (!sig.name.toLowerCase().includes(query) &&
+      if (!lookupName[sig.name]?.toLowerCase().includes(query) &&
+          !lookupCategory[msgName]?.toLowerCase().includes(query) &&
+          !lookupNode[nodeName]?.toLowerCase().includes(query) &&
+          !sig.name.toLowerCase().includes(query) &&
           !msgName.toLowerCase().includes(query) &&
           !nodeName.toLowerCase().includes(query)) {
         continue

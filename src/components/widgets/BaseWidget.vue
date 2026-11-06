@@ -47,19 +47,16 @@ function toggleConfig() {
 
 function removeSignal(sig: string) {
   localSignals.value = localSignals.value.filter(s => s !== sig)
+  if (!customTitle.value && widget.value) {
+    setDefaultTitle()
+  }
 }
 
 function addSignalId(sigId: string) {
   if (!localSignals.value.includes(sigId)) {
     localSignals.value.push(sigId)
     if (!customTitle.value && widget.value) {
-      const title = `${localSignals.value
-        .map(id => {
-          const signalName = id.split('.')[1]
-          return signalName ? (lookupName[signalName as keyof typeof lookupName] ?? id) : id
-        })
-        .join(' & ')} vs. Time`
-      store.updateWidget(props.widgetId, { title: title })
+      setDefaultTitle()
     }
   }
 }
@@ -70,6 +67,9 @@ function handleRefresh() {
 
 function startEditTitle() {
   if (!widget.value) return
+  if (!customTitle.value) {
+    store.updateWidget(props.widgetId, { title: "" })
+  }
   localTitle.value = widget.value.title
   isEditing.value = true
   requestAnimationFrame(() => {
@@ -85,12 +85,33 @@ function startEditTitle() {
 
 function saveTitle() {
   const trimmed = localTitle.value.trim()
+  if (trimmed === widget.value?.title && customTitle.value) {
+    isEditing.value = false
+    return
+  }
   if (trimmed && widget.value) {
     store.updateWidget(props.widgetId, { title: trimmed })
     customTitle.value = true
-    console.log('Saved title:', trimmed)
+  }
+  else {
+    setDefaultTitle()
+    customTitle.value = false
   }
   isEditing.value = false
+}
+
+function setDefaultTitle() {
+  if (!localSignals.value.length || !widget.value) {
+    store.updateWidget(props.widgetId, { title: "Chart Widget" })
+    return
+  }
+  const title = `${localSignals.value
+    .map(id => {
+      const signalName = id.split('.')[1]
+      return signalName ? (lookupName[signalName as keyof typeof lookupName] ?? id) : id
+    })
+    .join(' & ')} vs. Time`
+  store.updateWidget(props.widgetId, { title: title })
 }
 
 function cancelEdit() {
