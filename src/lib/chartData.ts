@@ -1,5 +1,6 @@
 import uPlot from 'uplot'
 import type { DbcSignal } from '@/stores/dbcStore'
+import { lookupName } from '@/stores/dbcStore'
 
 export interface SignalSamples {
   timestamps: ArrayLike<number>
@@ -95,10 +96,11 @@ export function buildChartRenderModel(
   const metadata = new Map(dbcSignals.map(signal => [signal.id, signal]))
   const series = signalIds.map((id, index) => {
     const signal = metadata.get(id)
+    const signalName = signal?.name ?? id
     const unit = signal?.unit ?? ''
     return {
       id,
-      label: signal?.name || id,
+      label: lookupName[signalName] || signalName || id,
       unit,
       color: SERIES_COLORS[index % SERIES_COLORS.length]!,
       scaleKey: scaleKeyForUnit(unit),

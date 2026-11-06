@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import type { DbcSignal } from '@/stores/dbcStore'
+import { lookupName, lookupCategory, lookupNode } from '@/stores/dbcStore';
 
 const props = defineProps<{
   signals: DbcSignal[]
@@ -129,7 +130,7 @@ function handleSignalClick(sig: TreeSignal) {
         >
           <span class="chevron" :class="{ open: expanded.has(node.name) }">▶</span>
           <span class="icon">💻</span>
-          <span class="label">{{ node.name }}</span>
+          <span class="label">{{ lookupNode[node.name] || node.name }}</span>
         </div>
 
         <div v-show="expanded.has(node.name)" class="tree-children">
@@ -140,7 +141,7 @@ function handleSignalClick(sig: TreeSignal) {
             >
               <span class="chevron" :class="{ open: expanded.has(node.name + '::' + msg.name) }">▶</span>
               <span class="icon">✉️</span>
-              <span class="label">{{ msg.name }}</span>
+              <span class="label">{{ lookupCategory[msg.name] || msg.name }}</span>
             </div>
 
             <div v-show="expanded.has(node.name + '::' + msg.name)" class="tree-children signal-level">
@@ -152,7 +153,7 @@ function handleSignalClick(sig: TreeSignal) {
                 @click="handleSignalClick(sig)"
               >
                 <span class="icon">📈</span>
-                <span class="label">{{ sig.name }}</span>
+                <span class="label">{{ lookupName[sig.name] || sig.name }}</span>
                 <span v-if="sig.unit" class="unit">({{ sig.unit }})</span>
                 <span v-if="sig.selected" class="check">✓</span>
               </div>

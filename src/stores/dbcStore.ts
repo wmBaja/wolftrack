@@ -16,32 +16,52 @@ export interface DbcFileInfo {
   mtime: number
 }
 
-export const lookup: Record<string, string> = {
-  'BrakePressure.FrontBrakePressure': 'Front Brake Pressure',
-  'BrakePressure.RearBrakePressure': 'Rear Brake Pressure',
-  'Front_Suspension.FLSuspension_raw': 'Front Left Suspension',
-  'Front_Suspension.FRSuspension_raw': 'Front Right Suspension',
-  'Rear_Suspension.RLSuspension_raw': 'Rear Left Suspension',
-  'Rear_Suspension.RRSuspension_raw': 'Rear Right Suspension',
-  'IMU_Data.IMU_Data_accel_x': 'IMU Acceleration X',
-  'IMU_Data.IMU_Data_accel_y': 'IMU Acceleration Y',
-  'IMU_Data.IMU_Data_accel_z': 'IMU Acceleration Z',
-  'IMU_Data.IMU_Data_angular_vel_x': 'IMU Angular Velocity X',
-  'IMU_Data.IMU_Data_angular_vel_y': 'IMU Angular Velocity Y',
-  'IMU_Data.IMU_Data_angular_vel_z': 'IMU Angular Velocity Z',
-  'IMU_Data.IMU_Data_linear_accel_x': 'IMU Linear Acceleration X',
-  'IMU_Data.IMU_Data_linear_accel_y': 'IMU Linear Acceleration Y',
-  'IMU_Data.IMU_Data_linear_accel_z': 'IMU Linear Acceleration Z',
-  'IMU_Data.IMU_Data_rotation_i': 'IMU Rotation I',
-  'IMU_Data.IMU_Data_rotation_j': 'IMU Rotation J',
-  'IMU_Data.IMU_Data_rotation_k': 'IMU Rotation K',
-  'IMU_Data.IMU_Data_rotation_real': 'IMU Rotation Real',
-  'SteeringAngleData.SteeringAngleData_angleDegrees': 'Steering Angle',
-  'IRCVTTempData.IRCVTTempData_ambientDegreesC': 'IRCVT Ambient Temp',
-  'IRCVTTempData.IRCVTTempData_objectDegreesC': 'IRCVT Object Temp',
-  'RPMData.EngineRpmData_rpm': 'Engine RPM',
-  'RPMData.WheelSpeedRpmData_rpm': 'Wheel Speed RPM',
+export const lookupName: Record<string, string> = {
+  'FrontBrakePressure': 'Front Brake Pressure',
+  'RearBrakePressure': 'Rear Brake Pressure',
+  'FLSuspension_raw': 'Front Left Suspension',
+  'FRSuspension_raw': 'Front Right Suspension',
+  'RLSuspension_raw': 'Rear Left Suspension',
+  'RRSuspension_raw': 'Rear Right Suspension',
+  'IMU_Data_accel_x': 'Acceleration X',
+  'IMU_Data_accel_y': 'Acceleration Y',
+  'IMU_Data_accel_z': 'Acceleration Z',
+  'IMU_Data_angular_vel_x': 'Angular Velocity X',
+  'IMU_Data_angular_vel_y': 'Angular Velocity Y',
+  'IMU_Data_angular_vel_z': 'Angular Velocity Z',
+  'IMU_Data_linear_accel_x': 'Linear Acceleration X',
+  'IMU_Data_linear_accel_y': 'Linear Acceleration Y',
+  'IMU_Data_linear_accel_z': 'Linear Acceleration Z',
+  'IMU_Data_rotation_i': 'Rotation I',
+  'IMU_Data_rotation_j': 'Rotation J',
+  'IMU_Data_rotation_k': 'Rotation K',
+  'IMU_Data_rotation_real': 'Rotation Real',
+  'SteeringAngleData_angleDegrees': 'Steering Angle',
+  'IRCVTTempData_ambientDegreesC': 'IRCVT Ambient Temp',
+  'IRCVTTempData_objectDegreesC': 'IRCVT Object Temp',
+  'EngineRpmData_rpm': 'Engine RPM',
+  'WheelSpeedRpmData_rpm': 'Wheel Speed RPM',
   'ThrottlePos_raw': 'Throttle Position',
+}
+
+export const lookupCategory: Record<string, string> = {
+  'BrakePressure': 'Brake Pressure',
+  'Front_Suspension': 'Front Suspension',
+  'Rear_Suspension': 'Rear Suspension',
+  'IMU_Data': 'IMU',
+  'IMU_Stats': 'IMU Stats',
+  'SteeringAngleData': 'Steering',
+  'SteeringAngleStats': 'Steering Angle Stats',
+  'IRCVTTempData': 'CVT Temperature',
+  'IRCVTTempStats': 'CVT Temperature Stats',
+  'RPMData': 'RPM',
+  'RPMStats': 'RPM Stats',
+  'ThrottlePosition': 'Throttle',
+}
+
+export const lookupNode: Record<string, string> = {
+  'FrontNode': 'Front Node',
+  'RearNode': 'Rear Node',
 }
 
 const DBC_FILE_NAME_PATTERN = /^[^/\\]+\.dbc$/
