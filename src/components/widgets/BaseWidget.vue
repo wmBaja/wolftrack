@@ -28,6 +28,7 @@ const widget = computed(() => store.getWidgetById(props.widgetId))
 
 const isEditing = ref(false)
 const isLoading = ref(false)
+const customTitle = ref(false)
 const localTitle = ref('')
 const titleInputRef = ref<HTMLInputElement>()
 
@@ -50,6 +51,11 @@ function removeSignal(sig: string) {
 function addSignalId(sigId: string) {
   if (!localSignals.value.includes(sigId)) {
     localSignals.value.push(sigId)
+    console.log('Added signal:', sigId, 'Current signals:', localSignals.value, 'Custom title:', customTitle.value)
+    if (!customTitle.value && widget.value) {
+      const title = `${localSignals.value.join('& ')} vs. Time`
+      store.updateWidget(props.widgetId, { title: title })
+    }
   }
 }
 
@@ -76,6 +82,8 @@ function saveTitle() {
   const trimmed = localTitle.value.trim()
   if (trimmed && widget.value) {
     store.updateWidget(props.widgetId, { title: trimmed })
+    customTitle.value = true
+    console.log('Saved title:', trimmed)
   }
   isEditing.value = false
 }
