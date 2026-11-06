@@ -16,6 +16,34 @@ export interface DbcFileInfo {
   mtime: number
 }
 
+export const lookup: Record<string, string> = {
+  'BrakePressure.FrontBrakePressure': 'Front Brake Pressure',
+  'BrakePressure.RearBrakePressure': 'Rear Brake Pressure',
+  'Front_Suspension.FLSuspension_raw': 'Front Left Suspension',
+  'Front_Suspension.FRSuspension_raw': 'Front Right Suspension',
+  'Rear_Suspension.RLSuspension_raw': 'Rear Left Suspension',
+  'Rear_Suspension.RRSuspension_raw': 'Rear Right Suspension',
+  'IMU_Data.IMU_Data_accel_x': 'IMU Acceleration X',
+  'IMU_Data.IMU_Data_accel_y': 'IMU Acceleration Y',
+  'IMU_Data.IMU_Data_accel_z': 'IMU Acceleration Z',
+  'IMU_Data.IMU_Data_angular_vel_x': 'IMU Angular Velocity X',
+  'IMU_Data.IMU_Data_angular_vel_y': 'IMU Angular Velocity Y',
+  'IMU_Data.IMU_Data_angular_vel_z': 'IMU Angular Velocity Z',
+  'IMU_Data.IMU_Data_linear_accel_x': 'IMU Linear Acceleration X',
+  'IMU_Data.IMU_Data_linear_accel_y': 'IMU Linear Acceleration Y',
+  'IMU_Data.IMU_Data_linear_accel_z': 'IMU Linear Acceleration Z',
+  'IMU_Data.IMU_Data_rotation_i': 'IMU Rotation I',
+  'IMU_Data.IMU_Data_rotation_j': 'IMU Rotation J',
+  'IMU_Data.IMU_Data_rotation_k': 'IMU Rotation K',
+  'IMU_Data.IMU_Data_rotation_real': 'IMU Rotation Real',
+  'SteeringAngleData.SteeringAngleData_angleDegrees': 'Steering Angle',
+  'IRCVTTempData.IRCVTTempData_ambientDegreesC': 'IRCVT Ambient Temp',
+  'IRCVTTempData.IRCVTTempData_objectDegreesC': 'IRCVT Object Temp',
+  'RPMData.EngineRpmData_rpm': 'Engine RPM',
+  'RPMData.WheelSpeedRpmData_rpm': 'Wheel Speed RPM',
+  'ThrottlePos_raw': 'Throttle Position',
+}
+
 const DBC_FILE_NAME_PATTERN = /^[^/\\]+\.dbc$/
 
 export const useDbcStore = defineStore('dbcStore', () => {
@@ -70,7 +98,7 @@ export const useDbcStore = defineStore('dbcStore', () => {
     try {
       const formData = new FormData()
       formData.append('file', file)
-      
+
       const baseUrl = await getVisualizerBase()
       const res = await fetch(`${baseUrl}/api/dbc/upload`, {
         method: 'POST',
@@ -80,7 +108,7 @@ export const useDbcStore = defineStore('dbcStore', () => {
         const errData = await res.json()
         throw new Error(errData.detail || 'Upload failed')
       }
-      
+
       await fetchDbcs()
       await fetchSignals()
       return true
@@ -98,7 +126,7 @@ export const useDbcStore = defineStore('dbcStore', () => {
     try {
       const formData = new FormData()
       formData.append('filename', filename)
-      
+
       const baseUrl = await getVisualizerBase()
       const res = await fetch(`${baseUrl}/api/dbc/select`, {
         method: 'POST',
@@ -108,7 +136,7 @@ export const useDbcStore = defineStore('dbcStore', () => {
         const errData = await res.json()
         throw new Error(errData.detail || 'Select failed')
       }
-      
+
       await fetchDbcs()
       await fetchSignals()
       return true
@@ -132,7 +160,7 @@ export const useDbcStore = defineStore('dbcStore', () => {
       if (!res.ok) {
         throw new Error(await getResponseError(res, 'Delete failed'))
       }
-      
+
       await fetchDbcs()
       await fetchSignals()
       return true

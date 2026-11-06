@@ -47,10 +47,10 @@ const treeData = computed<TreeNode[]>(() => {
   for (const sig of props.signals) {
     const nodeName = sig.node || 'Unassigned'
     const msgName = sig.message || 'Unknown Message'
-    
+
     if (query) {
-      if (!sig.name.toLowerCase().includes(query) && 
-          !msgName.toLowerCase().includes(query) && 
+      if (!sig.name.toLowerCase().includes(query) &&
+          !msgName.toLowerCase().includes(query) &&
           !nodeName.toLowerCase().includes(query)) {
         continue
       }
@@ -60,7 +60,7 @@ const treeData = computed<TreeNode[]>(() => {
       nodesMap.set(nodeName, new Map())
     }
     const nodeMap = nodesMap.get(nodeName)!
-    
+
     if (!nodeMap.has(msgName)) {
       nodeMap.set(msgName, [])
     }
@@ -73,7 +73,7 @@ const treeData = computed<TreeNode[]>(() => {
   }
 
   const nodes: TreeNode[] = []
-  
+
   for (const [nodeName, nodeMap] of nodesMap.entries()) {
     const messages: TreeMessage[] = []
     for (const [msgName, sigList] of nodeMap.entries()) {
@@ -85,7 +85,7 @@ const treeData = computed<TreeNode[]>(() => {
     messages.sort((a, b) => a.name.localeCompare(b.name))
     nodes.push({ name: nodeName, messages })
   }
-  
+
   nodes.sort((a, b) => a.name.localeCompare(b.name))
   return nodes
 })
@@ -114,27 +114,27 @@ function handleSignalClick(sig: TreeSignal) {
 <template>
   <div class="signal-tree-container">
     <div class="search-bar">
-      <input 
-        type="text" 
-        v-model="searchQuery" 
-        placeholder="Search signals..." 
+      <input
+        type="text"
+        v-model="searchQuery"
+        placeholder="Search signals..."
         class="search-input"
       />
     </div>
     <div class="signal-tree custom-scrollbar">
       <div v-for="node in treeData" :key="node.name" class="tree-node">
-        <div 
-          class="tree-item folder" 
+        <div
+          class="tree-item folder"
           @click="toggleExpand(node.name)"
         >
           <span class="chevron" :class="{ open: expanded.has(node.name) }">▶</span>
           <span class="icon">💻</span>
           <span class="label">{{ node.name }}</span>
         </div>
-        
+
         <div v-show="expanded.has(node.name)" class="tree-children">
           <div v-for="msg in node.messages" :key="node.name + '::' + msg.name" class="tree-message">
-            <div 
+            <div
               class="tree-item folder"
               @click="toggleExpand(node.name + '::' + msg.name)"
             >
@@ -142,10 +142,10 @@ function handleSignalClick(sig: TreeSignal) {
               <span class="icon">✉️</span>
               <span class="label">{{ msg.name }}</span>
             </div>
-            
+
             <div v-show="expanded.has(node.name + '::' + msg.name)" class="tree-children signal-level">
-              <div 
-                v-for="sig in msg.signals" 
+              <div
+                v-for="sig in msg.signals"
                 :key="sig.id"
                 class="tree-item leaf"
                 :class="{ selected: sig.selected }"

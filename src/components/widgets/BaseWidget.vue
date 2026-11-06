@@ -3,6 +3,7 @@
 import { ref, computed, h } from 'vue'
 import { useWidgetStore } from '@/stores/widgetStore'
 import { useDbcStore } from '@/stores/dbcStore'
+import { lookup } from '@/stores/dbcStore'
 import ContextMenu from '@imengyu/vue3-context-menu'
 import type { MenuOptions } from '@imengyu/vue3-context-menu'
 import type { WIDGET_TYPES } from '@/types/widgets'
@@ -53,7 +54,9 @@ function addSignalId(sigId: string) {
     localSignals.value.push(sigId)
     console.log('Added signal:', sigId, 'Current signals:', localSignals.value, 'Custom title:', customTitle.value)
     if (!customTitle.value && widget.value) {
-      const title = `${localSignals.value.join('& ')} vs. Time`
+      const title = `${localSignals.value
+        .map(id => lookup[id] ?? id)
+        .join(' & ')} vs. Time`
       store.updateWidget(props.widgetId, { title: title })
     }
   }
