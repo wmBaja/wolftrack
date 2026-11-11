@@ -3,9 +3,9 @@ import { RouterView } from 'vue-router'
 import NavBar from './components/NavBar.vue'
 import DaqReconnectDialog from './components/DaqReconnectDialog.vue'
 import DialogBox from '@/components/DialogBox.vue'
-import { useLiveDataStore } from './stores/liveDataStore'
-import { useDataSourceStore } from './stores/dataSourceStore'
-import { useDaqConnectionStore } from './stores/daqConnectionStore'
+import { useLiveDataStore } from './stores/liveDataStore.ts'
+import { useDataSourceStore } from './stores/dataSourceStore.ts'
+import { useDaqConnectionStore } from './stores/daqConnectionStore.ts'
 import { onMounted, onUnmounted } from 'vue'
 
 const liveDataStore = useLiveDataStore()

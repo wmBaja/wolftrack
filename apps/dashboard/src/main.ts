@@ -4,7 +4,7 @@ import ContextMenu from '@imengyu/vue3-context-menu'
 import '@imengyu/vue3-context-menu/lib/vue3-context-menu.css'
 
 import App from './App.vue'
-import router from './router'
+import router from './router/index.ts'
 import './main.css'
 
 const app = createApp(App)
