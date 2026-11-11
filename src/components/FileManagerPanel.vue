@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { computed, ref, onBeforeUnmount, onMounted } from 'vue'
+import { confirmDialog } from '@/types/dialog'
 import { useDbcStore } from '@/stores/dbcStore'
 import { useLogStore } from '@/stores/logStore'
 import { useDaqConnectionStore } from '@/stores/daqConnectionStore'
-import ConfirmDialog from './ConfirmDialog.vue'
 
 const dbcStore = useDbcStore()
 const logStore = useLogStore()
@@ -62,10 +62,6 @@ function handleDbcUpload(e: Event) {
 
 function selectDbc(filename: string) {
   dbcStore.selectDbc(filename)
-}
-
-function deleteDbc(filename: string) {
-  deleteTarget.value = { type: 'dbc', names: [filename] }
 }
 
 function showLogsTab() {
@@ -292,6 +288,32 @@ function isActiveLog(log: { name: string; active?: boolean }) {
   return getActiveLogName() === log.name
 }
 
+async function handleDeleteTarget(allowed: boolean) {
+  if (!allowed) {
+    await confirmDialog('Error', 'Stop logging before deleting this file')
+    deleteTarget.value = null
+    return
+  }
+
+  if (!deleteTarget.value) return
+
+  const message =
+    deleteTarget.value.names.length === 1
+      ? `Delete ${deleteTarget.value.names[0]}? This cannot be undone.`
+      : `Delete ${deleteTarget.value.names.length} selected files? This cannot be undone.`
+
+  const ok = await confirmDialog('Delete Log File', message, {
+    confirmText: 'Delete',
+    danger: true,
+  })
+
+  if (ok) {
+    await confirmDelete()
+  }
+
+  deleteTarget.value = null
+}
+
 onMounted(() => {
   window.addEventListener('keydown', handleKeydown)
   dbcStore.fetchDbcs()
@@ -425,12 +447,12 @@ onBeforeUnmount(() => {
                 <button
                   class="delete-btn"
                   :disabled="isLogActionDisabled(log)"
-                  @click.stop="deleteTarget = { type: 'log', names: [log.name] }"
-                  :title="isActiveLog(log) ? 'Stop logging before deleting this file' : 'Delete'"
-                  aria-label="Delete log"
-                >
+                  @click.stop="
+                    deleteTarget = { type: 'log', names: [log.name] },
+                    handleDeleteTarget(!isActiveLog(log))
+                  ">
                   <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14" aria-hidden="true">
-                    <path fill-rule="evenodd" d="M9 2a1 1 0 0 0-.894.553L7.382 4H4a1 1 0 0 0 0 2v10a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V6a1 1 0 1 0 0-2h-3.382l-.724-1.447A1 1 0 0 0 11 2H9zM7 8a1 1 0 0 1 2 0v6a1 1 0 1 1-2 0V8zm5-1a1 1 0 0 0-1 1v6a1 1 0 1 0 2 0V8a1 1 0 0 0-1-1z" clip-rule="evenodd" />
+                    <path fill-rule="evenodd" d="M9 2a1 1 0 0 0-.894.553L7.382 4H4a1 1 0 0 0 0 2v10a2 2 0 0 0 2 2h8a2 2 0 0 0 2 2V6a1 1 0 1 0 0-2h-3.382l-.724-1.447A1 1 0 0 0 11 2H9zM7 8a1 1 0 0 1 2 0v6a1 1 0 1 1-2 0V8zm5-1a1 1 0 0 0-1 1v6a1 1 0 1 0 2 0V8a1 1 0 0 0-1-1z" clip-rule="evenodd" />
                   </svg>
                 </button>
               </div>
@@ -496,7 +518,13 @@ onBeforeUnmount(() => {
                 <button class="rename-cancel-btn" :disabled="dbcStore.mutatingName !== null" @click.stop="cancelRename">Cancel</button>
               </div>
               <div v-if="!isRenaming('dbc', filename.name)" class="file-actions">
-                <button class="delete-btn" :disabled="isDbcActionDisabled()" @click.stop="deleteDbc(filename.name)" title="Delete" aria-label="Delete DBC">
+                <button
+                class="delete-btn"
+                :disabled="isDbcActionDisabled()"
+                @click.stop="
+                deleteTarget = { type: 'dbc', names: [filename.name] },
+                handleDeleteTarget(true)
+                ">
                   <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14" aria-hidden="true">
                     <path fill-rule="evenodd" d="M9 2a1 1 0 0 0-.894.553L7.382 4H4a1 1 0 0 0 0 2v10a2 2 0 0 0 2 2h8a2 2 0 0 0 2 2V6a1 1 0 1 0 0-2h-3.382l-.724-1.447A1 1 0 0 0 11 2H9zM7 8a1 1 0 0 1 2 0v6a1 1 0 1 1-2 0V8zm5-1a1 1 0 0 0-1 1v6a1 1 0 1 0 2 0V8a1 1 0 0 0-1-1z" clip-rule="evenodd" />
                   </svg>
@@ -513,17 +541,8 @@ onBeforeUnmount(() => {
   <Transition name="fade">
     <div v-if="isOpen" class="backdrop" @click="isOpen = false"></div>
   </Transition>
-  <ConfirmDialog
-    :show="deleteTarget !== null"
-    title="Delete file?"
-    :message="deleteTarget ? `Delete ${deleteTarget.names.length === 1 ? deleteTarget.names[0] : `${deleteTarget.names.length} selected files`}? This cannot be undone.` : ''"
-    confirm-text="Delete"
-    danger
-    @confirm="confirmDelete"
-    @cancel="deleteTarget = null"
-    @close="deleteTarget = null"
-  />
 </template>
+
 
 <style scoped>
 .file-manager-drawer {

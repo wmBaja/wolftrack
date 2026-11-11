@@ -2,10 +2,11 @@
 import { onMounted, ref, h, type Component, watch } from 'vue'
 import { GridLayout, GridItem } from 'grid-layout-plus'
 import { useWidgetStore } from '@/stores/widgetStore'
+import { confirmDialog } from '@/types/dialog'
 import ContextMenu from '@imengyu/vue3-context-menu'
 import BaseWidget from '@/components/widgets/BaseWidget.vue'
-import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import ChartWidget from '@/components/widgets/ChartWidget.vue'
+import LogWindowControl from '@/components/LogWindowControl.vue'
 import { WIDGET_TYPES, type Widget } from '@/types/widgets'
 
 const widgetStore = useWidgetStore()
@@ -32,7 +33,6 @@ const componentMap: Record<string, Component> = {
 }
 
 const widgetRefs = ref<Record<string, WidgetExpose>>({})
-const showClearAllConfirm = ref(false)
 const gridWrapperRef = ref<HTMLElement>()
 const GRID_COLS = 16
 const GRID_ROW_HEIGHT = 30
@@ -43,14 +43,17 @@ onMounted(() => {
   widgetStore.loadFromLocalStorage()
 })
 
-watch(() => widgetStore.widgets.length, () => {
-  const currentIds = new Set(widgetStore.widgets.map(w => w.i))
-  Object.keys(widgetRefs.value).forEach(id => {
-    if (!currentIds.has(id)) {
-      delete widgetRefs.value[id]
-    }
-  })
-})
+watch(
+  () => widgetStore.widgets.length,
+  () => {
+    const currentIds = new Set(widgetStore.widgets.map((w) => w.i))
+    Object.keys(widgetRefs.value).forEach((id) => {
+      if (!currentIds.has(id)) {
+        delete widgetRefs.value[id]
+      }
+    })
+  },
+)
 
 function handleLayoutUpdate(newLayout: Widget[]) {
   widgetStore.updateLayout(newLayout)
@@ -82,7 +85,13 @@ function getInitialChartSize(): GridSize {
   const targetHeight = metrics.gridRect.height / 2
 
   return {
-    w: Math.max(4, Math.min(GRID_COLS, Math.round((targetWidth + GRID_MARGIN) / (metrics.colWidth + GRID_MARGIN)))),
+    w: Math.max(
+      4,
+      Math.min(
+        GRID_COLS,
+        Math.round((targetWidth + GRID_MARGIN) / (metrics.colWidth + GRID_MARGIN)),
+      ),
+    ),
     h: Math.max(4, Math.round((targetHeight + GRID_MARGIN) / (GRID_ROW_HEIGHT + GRID_MARGIN))),
   }
 }
@@ -103,8 +112,17 @@ function mouseToGridPosition(event: MouseEvent, size: GridSize = { w: 1, h: 1 })
 
   return {
     x: Math.max(0, Math.min(col, GRID_COLS - size.w)),
-    y: Math.max(0, row)
+    y: Math.max(0, row),
   }
+}
+
+async function handleClearAll() {
+  const ok = await confirmDialog(
+    'Delete All Widgets',
+    'Are you sure you want to delete all widgets?',
+    { confirmText: 'Delete', danger: true },
+  )
+  if (ok) widgetStore.clearAll()
 }
 
 function handleGridContextMenu(event: MouseEvent) {
@@ -129,22 +147,64 @@ function handleGridContextMenu(event: MouseEvent) {
         icon: h('span', '➕'),
         onClick: () => widgetStore.addWidget(WIDGET_TYPES.CHART, { ...gridPos, ...chartSize }),
       },
-      { divided: true },
+      {
+        label: 'Export Layout',
+        icon: h('span', '📤'),
+        onClick: () => widgetStore.exportLayout(),
+      },
+      {
+        label: 'Import Layout',
+        icon: h('span', '📥'),
+        onClick: () => requestImportLayout(),
+        divided: true,
+      },
       {
         label: 'Clear All Widgets',
         icon: h('span', '🗑️'),
         customClass: 'context-menu-danger',
-        onClick: () => {
-          showClearAllConfirm.value = true
-        },
+        onClick: handleClearAll,
       },
     ],
   })
+}
+
+function requestImportLayout() {
+  const input = document.createElement('input')
+  input.type = 'file'
+  input.accept = '.json'
+  input.onchange = async () => {
+    if (!input.files || !input.files[0]) return
+    const file = input.files[0]
+    try {
+      const newWidgets = await widgetStore.parseImportedLayout(file)
+      if (newWidgets) {
+        const ok = await confirmDialog(
+          'Import Layout',
+          'Are you sure you want to import this layout? This will overwrite your current layout.',
+          { confirmText: 'Import', danger: true },
+        )
+        if (ok) {
+          widgetStore.overwriteLayout(newWidgets)
+        }
+      }
+      else {
+        await confirmDialog(
+          'Import Layout',
+          'The selected file is not a valid layout.',
+          { confirmText: 'OK' , removeCancel: true },
+        )
+      }
+    } catch {
+      return
+    }
+  }
+  input.click()
 }
 </script>
 
 <template>
   <div class="dashboard-grid-container" @contextmenu="handleGridContextMenu">
+    <LogWindowControl />
     <div ref="gridWrapperRef" class="grid-wrapper custom-scrollbar">
       <GridLayout
         v-model:layout="widgetStore.widgets"
@@ -163,6 +223,9 @@ function handleGridContextMenu(event: MouseEvent) {
         <GridItem
           v-for="item in widgetStore.widgets"
           :key="item.i"
+          :resize-option="{
+            edges: { right: true, bottom: true },
+          }"
           v-bind="item"
           drag-allow-from=".base-widget__header"
           drag-ignore-from=".base-widget__content"
@@ -176,17 +239,6 @@ function handleGridContextMenu(event: MouseEvent) {
         </GridItem>
       </GridLayout>
     </div>
-
-    <ConfirmDialog
-      :show="showClearAllConfirm"
-      title="Delete All Widgets"
-      message="Are you sure you want to delete all widgets?"
-      confirm-text="Delete"
-      cancel-text="Cancel"
-      danger
-      @confirm="widgetStore.clearAll()"
-      @close="showClearAllConfirm = false"
-    />
   </div>
 </template>
 

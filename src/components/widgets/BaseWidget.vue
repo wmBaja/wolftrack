@@ -1,16 +1,12 @@
 <!-- src/components/widgets/BaseWidget.vue -->
 <script setup lang="ts">
-import { ref, computed, h} from 'vue'
+import { ref, computed, h } from 'vue'
 import { useWidgetStore } from '@/stores/widgetStore'
 import { useDbcStore } from '@/stores/dbcStore'
-import { useDataSourceStore } from '@/stores/dataSourceStore'
-import { useLiveDataStore } from '@/stores/liveDataStore'
-import { useLogDataStore } from '@/stores/logDataStore'
 import ContextMenu from '@imengyu/vue3-context-menu'
 import type { MenuOptions } from '@imengyu/vue3-context-menu'
 import type { WIDGET_TYPES } from '@/types/widgets'
 import SignalTree from '@/components/SignalTree.vue'
-import { watch } from 'vue'
 
 interface Props {
   widgetId: string
@@ -22,6 +18,9 @@ const props = withDefaults(defineProps<Props>(), {
   icon: '📦',
   customMenuItems: () => []
 })
+const emit = defineEmits<{
+  refresh: []
+}>()
 
 const store = useWidgetStore()
 const dbcStore = useDbcStore()
@@ -54,28 +53,8 @@ function addSignalId(sigId: string) {
   }
 }
 
-const dataSourceStore = useDataSourceStore()
-const liveDataStore = useLiveDataStore()
-const logDataStore = useLogDataStore()
-
-const queryLogData = () => {
-    if (dataSourceStore.config.source !== 'logfile' || logDataStore.status.status !== 'ready') return
-    const signals = widget.value?.signals || []
-    if (signals.length > 0) {
-        logDataStore.queryData(signals, logDataStore.status.start_ts, logDataStore.status.end_ts, 1000)
-    }
-}
-
-watch(() => [logDataStore.status.status, widget.value?.signals, dataSourceStore.config.source], () => {
-    queryLogData()
-})
-
-async function handleRefresh() {
-  if (dataSourceStore.config.source === 'zmq') {
-      liveDataStore.clearBuffers()
-  } else {
-      queryLogData()
-  }
+function handleRefresh() {
+  emit('refresh')
 }
 
 function startEditTitle() {
@@ -155,8 +134,8 @@ function handleContextMenu(event: MouseEvent) {
           })
         }
       },
+      divided: true,
     },
-    { divided: true },
     {
       label: 'Delete',
       icon: h('span', '🗑️'),
@@ -213,6 +192,9 @@ defineExpose({ handleRefresh, startEditTitle, setLoading, toggleConfig })
         >
           {{ widget.title }}
         </h3>
+      </div>
+      <div class="base-widget__header-actions">
+        <slot name="header-actions"></slot>
       </div>
     </header>
 
@@ -299,6 +281,12 @@ defineExpose({ handleRefresh, startEditTitle, setLoading, toggleConfig })
   gap: 10px;
   flex: 1;
   min-width: 0;
+}
+
+.base-widget__header-actions {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
 }
 
 .base-widget__icon {

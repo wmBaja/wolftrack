@@ -1,8 +1,7 @@
 import { defineStore } from 'pinia'
-import { ref, watch } from 'vue'
+import { ref } from 'vue'
 import { useDataSourceStore } from './dataSourceStore'
 import { useDaqConnectionStore } from './daqConnectionStore'
-import { useWidgetStore } from './widgetStore'
 import { getVisualizerWsUrl } from '@/lib/visualizer'
 
 export class RingBuffer {
@@ -69,39 +68,24 @@ export const useLiveDataStore = defineStore('liveData', () => {
 
   // Expose a dataVersion tick for charts that still want reactivity
   const dataVersion = ref(0)
+  const subscribedSignals = ref<string[]>([])
 
   let ws: WebSocket | null = null
 
-  function getActiveSignals() {
-    const widgetStore = useWidgetStore()
-    const activeSignals = new Set<string>()
-    widgetStore.widgets.forEach(w => {
-      w.signals?.forEach(s => activeSignals.add(s))
-    })
-    return Array.from(activeSignals)
+  function setSubscribedSignals(signals: string[]) {
+    subscribedSignals.value = [...new Set(signals.filter(Boolean))]
+    sendSubscription()
   }
 
   function sendSubscription() {
     if (!ws || ws.readyState !== WebSocket.OPEN) return
     const dataSource = useDataSourceStore()
-    const signals = getActiveSignals()
     ws.send(JSON.stringify({
       type: 'subscribe',
-      signals: signals,
+      signals: subscribedSignals.value,
       live_window_seconds: dataSource.config.live_buffer_window_seconds || 15.0
     }))
   }
-
-  // Auto-update subscription when widgets change
-  watch(
-    () => {
-      const widgetStore = useWidgetStore()
-      return widgetStore.widgets.map(w => w.signals?.join(',')).join('|')
-    },
-    () => {
-      sendSubscription()
-    }
-  )
 
   async function connect() {
     if (ws || isConnecting.value) return
@@ -197,10 +181,12 @@ export const useLiveDataStore = defineStore('liveData', () => {
     isConnected,
     buffers,
     dataVersion,
+    subscribedSignals,
     sessionStartTimestamp,
     connect,
     disconnect,
     clearBuffers,
+    setSubscribedSignals,
     sendSubscription
   }
 })

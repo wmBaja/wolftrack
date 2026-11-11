@@ -1,128 +1,47 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import BaseWidget from '@/components/widgets/BaseWidget.vue'
 import UplotChart from '@/components/UplotChart.vue'
 import { useWidgetStore } from '@/stores/widgetStore'
-import { useLiveDataStore } from '@/stores/liveDataStore'
-import { useLogDataStore } from '@/stores/logDataStore'
-import { useDataSourceStore } from '@/stores/dataSourceStore'
-import type { AlignedData } from 'uplot'
-import type { RingBuffer } from '@/stores/liveDataStore'
-
-type LogBuffer = { timestamps: number[], values: number[] }
+import { useTimeSeriesData } from '@/composables/useTimeSeriesData'
+import type { ChartSampleRate } from '@/lib/chartData'
 
 const props = defineProps<{
   widgetId: string
 }>()
 
 const widgetStore = useWidgetStore()
-const liveDataStore = useLiveDataStore()
-const logDataStore = useLogDataStore()
-const dataSourceStore = useDataSourceStore()
-
 const baseWidgetRef = ref<InstanceType<typeof BaseWidget>>()
 const widget = computed(() => widgetStore.getWidgetById(props.widgetId))
+const signals = computed(() => widget.value?.signals || [])
+const consumerId = computed(() => props.widgetId)
+const { snapshot, refresh } = useTimeSeriesData(consumerId, signals)
+const chartStatsRef = ref<HTMLElement>()
+const isStatsOpen = ref(false)
+const sampleRates = ref<ChartSampleRate[]>([])
 
-function getAlignedData(): AlignedData {
-  const isLive = dataSourceStore.config.source === 'zmq'
-  const signalsToPlot = widget.value?.signals || []
-  if (signalsToPlot.length === 0) return [[]]
-
-  if (signalsToPlot.length === 1) {
-    const firstSig = signalsToPlot[0]
-    if (!firstSig) return [[]]
-    
-    if (isLive) {
-        const buf = liveDataStore.buffers.get(firstSig)
-        if (!buf || buf.length === 0) return [[], []]
-        const { timestamps, values } = buf.getArrays()
-        return [Array.from(timestamps), Array.from(values)]
-    } else {
-        const buf = logDataStore.buffers[firstSig]
-        if (!buf) return [[], []]
-        
-        const cutoff = logDataStore.currentTime
-        let validLen = 0
-        for (let i = 0; i < buf.timestamps.length; i++) {
-            const ts = buf.timestamps[i]
-            if (ts !== undefined && ts > cutoff) break
-            validLen++
-        }
-        
-        return [buf.timestamps.slice(0, validLen), buf.values.slice(0, validLen)]
-    }
-  }
-
-  // Multi-signal alignment: O(N) bucket sampling
-  let minTime = Infinity
-  let maxTime = -Infinity
-
-  const activeBuffers = isLive 
-    ? signalsToPlot.map(sig => liveDataStore.buffers.get(sig))
-    : signalsToPlot.map(sig => logDataStore.buffers[sig])
-  
-  activeBuffers.forEach(buf => {
-    if (isLive) {
-        const liveBuf = buf as RingBuffer | undefined
-        if (liveBuf && liveBuf.length > 0) {
-          const firstTime = liveBuf.timestamps[liveBuf.tail]!
-          const lastIdx = (liveBuf.head - 1 + liveBuf.capacity) % liveBuf.capacity
-          const lastTime = liveBuf.timestamps[lastIdx]!
-          if (firstTime < minTime) minTime = firstTime
-          if (lastTime > maxTime) maxTime = lastTime
-        }
-    } else {
-        const logBuf = buf as LogBuffer | undefined
-        if (logBuf && logBuf.timestamps.length > 0) {
-          const firstTime = logBuf.timestamps[0]!
-          const lastFileTime = logBuf.timestamps[logBuf.timestamps.length - 1]!
-          const lastTime = Math.min(lastFileTime, logDataStore.currentTime)
-          if (firstTime < minTime) minTime = firstTime
-          if (lastTime > maxTime) maxTime = lastTime
-        }
-    }
-  })
-
-  if (minTime === Infinity) return [[]]
-
-  const numBuckets = 1000 // roughly 2x pixel width
-  const bucketSize = (maxTime - minTime) / numBuckets || 0.001
-
-  const alignedTimestamps = new Array(numBuckets)
-  for (let i = 0; i < numBuckets; i++) {
-    alignedTimestamps[i] = minTime + i * bucketSize
-  }
-
-  const aligned: (number | null)[][] = [alignedTimestamps]
-
-  activeBuffers.forEach(buf => {
-    const values = new Array(numBuckets).fill(null)
-
-    if (buf) {
-      const ts = isLive ? (buf as RingBuffer).getArrays().timestamps : (buf as LogBuffer).timestamps
-      const vs = isLive ? (buf as RingBuffer).getArrays().values : (buf as LogBuffer).values
-      
-      const cutoff = isLive ? Infinity : logDataStore.currentTime
-
-      if (ts.length > 0) {
-          for (let i = 0; i < ts.length; i++) {
-            const t = ts[i]!
-            if (t > cutoff) break
-            
-            const v = vs[i]
-            let bucketIdx = Math.floor((t - minTime) / bucketSize)
-            if (bucketIdx >= numBuckets) bucketIdx = numBuckets - 1
-            if (bucketIdx >= 0) {
-                values[bucketIdx] = v // keep last value in bucket
-            }
-          }
-      }
-    }
-    aligned.push(values)
-  })
-
-  return aligned as AlignedData
+function formatSamplesPerSecond(rate: number | null) {
+  if (rate == null) return '—'
+  return `${new Intl.NumberFormat(undefined, { maximumSignificantDigits: 3 }).format(rate)} SPS`
 }
+
+function closeStatsOnOutsideClick(event: PointerEvent) {
+  if (!chartStatsRef.value?.contains(event.target as Node)) isStatsOpen.value = false
+}
+
+function closeStatsOnEscape(event: KeyboardEvent) {
+  if (event.key === 'Escape') isStatsOpen.value = false
+}
+
+onMounted(() => {
+  document.addEventListener('pointerdown', closeStatsOnOutsideClick)
+  document.addEventListener('keydown', closeStatsOnEscape)
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('pointerdown', closeStatsOnOutsideClick)
+  document.removeEventListener('keydown', closeStatsOnEscape)
+})
 
 const startEditTitle = () => {
   baseWidgetRef.value?.startEditTitle()
@@ -132,11 +51,39 @@ defineExpose({ startEditTitle })
 </script>
 
 <template>
-  <BaseWidget
-    ref="baseWidgetRef"
-    :widget-id="widgetId"
-    icon="📈"
-  >
+  <BaseWidget ref="baseWidgetRef" :widget-id="widgetId" icon="📈" @refresh="refresh">
+    <template #header-actions>
+      <div v-if="widget?.signals?.length" ref="chartStatsRef" class="chart-stats">
+        <button
+          class="chart-stats__toggle"
+          type="button"
+          aria-haspopup="dialog"
+          :aria-expanded="isStatsOpen"
+          :aria-controls="`chart-stats-${widgetId}`"
+          @pointerdown.stop
+          @click="isStatsOpen = !isStatsOpen"
+        >
+          Stats
+        </button>
+        <div
+          v-if="isStatsOpen"
+          :id="`chart-stats-${widgetId}`"
+          class="chart-stats__popover"
+          role="dialog"
+          aria-label="Visible sample rates"
+          @pointerdown.stop
+        >
+          <p class="chart-stats__heading">Visible sample rate</p>
+          <dl class="chart-stats__rates">
+            <template v-for="rate in sampleRates" :key="rate.id">
+              <dt>{{ rate.label }}</dt>
+              <dd>{{ formatSamplesPerSecond(rate.samplesPerSecond) }}</dd>
+            </template>
+          </dl>
+          <p v-if="sampleRates.length === 0" class="chart-stats__empty">Waiting for chart data…</p>
+        </div>
+      </div>
+    </template>
     <template #default>
       <div class="chart-content">
         <div v-if="!widget?.signals?.length" class="empty-state">
@@ -145,10 +92,12 @@ defineExpose({ startEditTitle })
         </div>
         <UplotChart
           v-else
-          :signals="widget?.signals || []"
-          :get-data="getAlignedData"
-          :update-version="dataSourceStore.config.source === 'zmq' ? liveDataStore.dataVersion : logDataStore.dataVersion"
-          :time-origin="dataSourceStore.config.source === 'zmq' ? liveDataStore.sessionStartTimestamp : logDataStore.status.start_ts"
+          :model="snapshot.model"
+          :viewport="snapshot.viewport"
+          :reset-view-revision="snapshot.resetViewRevision"
+          sync-key="wolftrack-dashboard-time"
+          :time-origin="snapshot.timeOrigin"
+          @sample-rates="sampleRates = $event"
         />
       </div>
     </template>
@@ -175,8 +124,6 @@ defineExpose({ startEditTitle })
   gap: 10px;
 }
 
-
-
 .save-btn {
   margin-top: 10px;
   padding: 8px 16px;
@@ -188,5 +135,75 @@ defineExpose({ startEditTitle })
 }
 .save-btn:hover {
   opacity: 0.9;
+}
+
+.chart-stats {
+  position: relative;
+}
+
+.chart-stats__toggle {
+  padding: 3px 7px;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.chart-stats__toggle:hover,
+.chart-stats__toggle:focus-visible {
+  border-color: var(--color-accent);
+  color: var(--color-text);
+  outline: none;
+}
+
+.chart-stats__popover {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 190px;
+  max-width: min(300px, 75vw);
+  padding: 9px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: var(--color-panel);
+  box-shadow: 0 8px 20px rgb(0 0 0 / 30%);
+}
+
+.chart-stats__heading,
+.chart-stats__empty {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 11px;
+}
+
+.chart-stats__heading {
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+
+.chart-stats__rates {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4px 12px;
+  margin: 0;
+  font-size: 12px;
+}
+
+.chart-stats__rates dt {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chart-stats__rates dd {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 </style>

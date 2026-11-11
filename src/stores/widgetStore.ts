@@ -125,8 +125,95 @@ export const useWidgetStore = defineStore('widgets', () => {
     }
   }
 
+  function exportLayout(): void {
+    try {
+      const jsonData = JSON.stringify(widgets.value);
+      const blob = new Blob([jsonData], { type : 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = "export.json";
+      link.click();
+      URL.revokeObjectURL(url);
+    }
+    catch (error) {
+      console.error('Failed to export widgets:', error);
+    }
+  }
+
+  async function parseImportedLayout(file: File): Promise<Widget[] | null> {
+    try {
+      const contents = await file.text()
+      const widgetsRaw = JSON.parse(contents)
+
+      if (!Array.isArray(widgetsRaw)) {
+        return null
+      }
+
+      const parsed: Widget[] = []
+
+      for (const widget of widgetsRaw) {
+        if (!widget || typeof widget !== 'object') {
+          throw new Error('Invalid widget entry')
+        }
+
+        if (!widget.type || !Object.values(WIDGET_TYPES).includes(widget.type)) {
+          throw new Error(`Invalid widget type: ${String(widget.type)}`)
+        }
+
+        if (
+          typeof widget.x !== 'number' ||
+          typeof widget.y !== 'number' ||
+          typeof widget.w !== 'number' ||
+          typeof widget.h !== 'number'
+        ) {
+          throw new Error('Invalid widget size/position')
+        }
+
+        if (!Array.isArray(widget.signals)) {
+          throw new Error('Invalid widget signals')
+        }
+
+        if (typeof widget.title !== 'string') {
+          throw new Error('Invalid widget title')
+        }
+
+        if (typeof widget.i !== 'string' && typeof widget.i !== 'number') {
+          throw new Error('Invalid widget id')
+        }
+
+        if (typeof widget.createdAt !== 'number') {
+          throw new Error('Invalid widget createdAt')
+        }
+
+        const newWidget = createWidget(widget.type, {
+          x: widget.x,
+          y: widget.y,
+          w: widget.w,
+          h: widget.h,
+        })
+
+        newWidget.signals = widget.signals
+        newWidget.title = widget.title
+        newWidget.i = String(widget.i)
+        newWidget.createdAt = widget.createdAt
+
+        parsed.push(newWidget)
+      }
+
+      return parsed
+    } catch {
+      return null
+    }
+  }
+
   function clearAll(): void {
     widgets.value = []
+    saveToLocalStorage()
+  }
+
+  function overwriteLayout(newWidgets: Widget[]): void {
+    widgets.value = newWidgets
     saveToLocalStorage()
   }
 
@@ -141,7 +228,10 @@ export const useWidgetStore = defineStore('widgets', () => {
     removeWidget,
     updateWidget,
     updateLayout,
+    exportLayout,
+    parseImportedLayout,
     loadFromLocalStorage,
-    clearAll
+    clearAll,
+    overwriteLayout,
   }
 })
