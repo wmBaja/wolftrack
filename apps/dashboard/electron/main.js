@@ -152,7 +152,7 @@ function startBackend() {
     });
   } else {
     // In development, run the python script directly
-    const visualizerDir = process.env.WOLFTRACK_VISUALIZER_DIR || path.join(__dirname, '../../wolftrack-visualizer');
+    const visualizerDir = process.env.WOLFTRACK_VISUALIZER_DIR || path.join(__dirname, '../../visualizer');
     backendPath = path.join(visualizerDir, 'src/app.py');
     backendProcess = spawn('uv', ['run', 'python', backendPath], {
       cwd: visualizerDir,

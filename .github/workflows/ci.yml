@@ -1,0 +1,199 @@
+name: Build and Release WolfTrack
+
+on:
+  push:
+    branches: [main, dev]
+    tags: ['core-v*']
+  pull_request:
+    branches: [main, dev]
+  workflow_dispatch:
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      dashboard: ${{ steps.filter.outputs.dashboard }}
+      visualizer: ${{ steps.filter.outputs.visualizer }}
+      plugins: ${{ steps.filter.outputs.plugins }}
+      packages: ${{ steps.filter.outputs.packages }}
+      shared: ${{ steps.filter.outputs.shared }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            dashboard:
+              - 'apps/dashboard/**'
+            visualizer:
+              - 'apps/visualizer/**'
+            plugins:
+              - 'plugins/**'
+            packages:
+              - 'packages/**'
+            shared:
+              - '.github/workflows/**'
+              - 'package.json'
+              - 'package-lock.json'
+
+  backend:
+    needs: changes
+    if: >-
+      github.event_name == 'workflow_dispatch' || github.ref_type == 'tag' ||
+      needs.changes.outputs.dashboard == 'true' || needs.changes.outputs.visualizer == 'true' ||
+      needs.changes.outputs.plugins == 'true' || needs.changes.outputs.packages == 'true' ||
+      needs.changes.outputs.shared == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            binary: wolftrack-visualizer
+          - os: windows-latest
+            binary: wolftrack-visualizer.exe
+          - os: macos-latest
+            binary: wolftrack-visualizer
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: astral-sh/setup-uv@v5
+      - name: Install backend dependencies
+        working-directory: apps/visualizer
+        run: uv sync
+      - name: Build backend
+        working-directory: apps/visualizer
+        run: uv run pyinstaller --name wolftrack-visualizer --onefile --noconfirm --clean --paths src src/app.py
+      - name: Upload backend artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-${{ matrix.os }}
+          path: apps/visualizer/dist/${{ matrix.binary }}
+          if-no-files-found: error
+
+  app:
+    needs: [changes, backend]
+    if: >-
+      github.event_name == 'workflow_dispatch' || github.ref_type == 'tag' ||
+      needs.changes.outputs.dashboard == 'true' || needs.changes.outputs.visualizer == 'true' ||
+      needs.changes.outputs.plugins == 'true' || needs.changes.outputs.packages == 'true' ||
+      needs.changes.outputs.shared == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - name: Install dashboard dependencies
+        run: npm ci --workspace @wolftrack/dashboard
+      - name: Download backend artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: backend-${{ matrix.os }}
+          path: apps/dashboard/backend
+      - name: Mark the backend executable
+        if: runner.os != 'Windows'
+        run: chmod +x apps/dashboard/backend/wolftrack-visualizer
+      - name: Configure backend environment
+        shell: bash
+        env:
+          ZMQ_ENABLED: ${{ secrets.ZMQ_ENABLED }}
+          ZMQ_PORT: ${{ secrets.ZMQ_PORT }}
+          ZMQ_HOST: ${{ secrets.ZMQ_HOST }}
+          FASTAPI_HOST: ${{ secrets.FASTAPI_HOST }}
+          FASTAPI_PORT: ${{ secrets.FASTAPI_PORT }}
+          APP_LOG_DIR: ${{ secrets.APP_LOG_DIR }}
+          APP_LOG_LEVEL: ${{ secrets.APP_LOG_LEVEL }}
+          APP_LOG_TO_CONSOLE: ${{ secrets.APP_LOG_TO_CONSOLE }}
+          APP_LOG_TO_FILE: ${{ secrets.APP_LOG_TO_FILE }}
+          APP_LOG_MAX_FILE_SIZE_MB: ${{ secrets.APP_LOG_MAX_FILE_SIZE_MB }}
+          APP_LOG_BACKUP_COUNT: ${{ secrets.APP_LOG_BACKUP_COUNT }}
+          APP_LOG_FORMAT: ${{ secrets.APP_LOG_FORMAT }}
+        run: |
+          cd apps/dashboard/backend
+          echo "ZMQ_ENABLED=${ZMQ_ENABLED:-true}" >> .env
+          echo "ZMQ_PORT=${ZMQ_PORT:-5555}" >> .env
+          echo "ZMQ_HOST=${ZMQ_HOST:-127.0.0.1}" >> .env
+          echo "FASTAPI_HOST=${FASTAPI_HOST:-127.0.0.1}" >> .env
+          echo "FASTAPI_PORT=${FASTAPI_PORT:-0}" >> .env
+          echo "APP_LOG_DIR=${APP_LOG_DIR:-./app_logs}" >> .env
+          echo "APP_LOG_LEVEL=${APP_LOG_LEVEL:-INFO}" >> .env
+          echo "APP_LOG_TO_CONSOLE=${APP_LOG_TO_CONSOLE:-true}" >> .env
+          echo "APP_LOG_TO_FILE=${APP_LOG_TO_FILE:-true}" >> .env
+          echo "APP_LOG_MAX_FILE_SIZE_MB=${APP_LOG_MAX_FILE_SIZE_MB:-10}" >> .env
+          echo "APP_LOG_BACKUP_COUNT=${APP_LOG_BACKUP_COUNT:-5}" >> .env
+          echo "APP_LOG_FORMAT=${APP_LOG_FORMAT:-detailed}" >> .env
+      - name: Type-check dashboard
+        run: npm run type-check --workspace @wolftrack/dashboard
+      - name: Run dashboard unit tests
+        run: npm run test:unit --workspace @wolftrack/dashboard -- --run
+      - name: Build dashboard for end-to-end tests
+        run: npm run build --workspace @wolftrack/dashboard
+      - name: Install Playwright browsers on Linux
+        if: runner.os == 'Linux'
+        working-directory: apps/dashboard
+        run: npx playwright install --with-deps
+      - name: Install Playwright browsers
+        if: runner.os != 'Linux'
+        working-directory: apps/dashboard
+        run: npx playwright install
+      - name: Run dashboard end-to-end tests
+        run: npm run test:e2e --workspace @wolftrack/dashboard
+      - name: Build Electron installer
+        working-directory: apps/dashboard
+        run: npx electron-builder --publish never
+      - name: Upload Electron installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: wolftrack-app-${{ matrix.os }}
+          path: |
+            apps/dashboard/release/*.exe
+            apps/dashboard/release/*.dmg
+            apps/dashboard/release/*.AppImage
+          if-no-files-found: error
+          retention-days: 7
+
+  release:
+    if: github.ref == 'refs/heads/dev' || startsWith(github.ref, 'refs/tags/core-v')
+    needs: app
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download installers
+        uses: actions/download-artifact@v4
+        with:
+          pattern: wolftrack-app-*
+          path: artifacts
+      - name: Select release metadata
+        id: release
+        shell: bash
+        run: |
+          if [ "$GITHUB_REF" = "refs/heads/dev" ]; then
+            echo "tag_name=nightly" >> "$GITHUB_OUTPUT"
+            echo "name=Nightly" >> "$GITHUB_OUTPUT"
+            echo "prerelease=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag_name=$GITHUB_REF_NAME" >> "$GITHUB_OUTPUT"
+            echo "name=$GITHUB_REF_NAME" >> "$GITHUB_OUTPUT"
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.release.outputs.tag_name }}
+          name: ${{ steps.release.outputs.name }}
+          prerelease: ${{ steps.release.outputs.prerelease }}
+          overwrite_files: true
+          files: |
+            artifacts/wolftrack-app-ubuntu-latest/*.AppImage
+            artifacts/wolftrack-app-windows-latest/*.exe
+            artifacts/wolftrack-app-macos-latest/*.dmg

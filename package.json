@@ -1,0 +1,21 @@
+{
+  "name": "wolftrack",
+  "version": "1.1.2",
+  "private": true,
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0"
+  },
+  "workspaces": [
+    "apps/dashboard"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace @wolftrack/dashboard",
+    "build": "npm run build --workspace @wolftrack/dashboard",
+    "type-check": "npm run type-check --workspace @wolftrack/dashboard",
+    "test:unit": "npm run test:unit --workspace @wolftrack/dashboard",
+    "test:e2e": "npm run test:e2e --workspace @wolftrack/dashboard",
+    "lint": "npm run lint --workspace @wolftrack/dashboard",
+    "format": "npm run format --workspace @wolftrack/dashboard",
+    "electron:build": "npm run electron:build --workspace @wolftrack/dashboard"
+  }
+}
