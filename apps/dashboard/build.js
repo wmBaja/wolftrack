@@ -7,7 +7,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const dashboardDir = __dirname;
-const visualizerDir = path.join(__dirname, '../wolftrack-visualizer');
+const visualizerDir = path.join(__dirname, '../visualizer');
 const backendDir = path.join(dashboardDir, 'backend');
 
 function runCommand(command, cwd) {

@@ -8,9 +8,12 @@ import electron from 'vite-plugin-electron'
 import renderer from 'vite-plugin-electron-renderer'
 import path from 'path'
 
+const dashboardRoot = fileURLToPath(new URL('.', import.meta.url))
+
 // https://vite.dev/config/
 export default defineConfig({
   base: './',
+  root: dashboardRoot,
 
   server: {
     // This makes the server accessible via IP address as well as localhost
@@ -44,7 +47,7 @@ export default defineConfig({
   build: {
     rollupOptions: {
       input: {
-        main: path.resolve(__dirname, 'index.html'),
+        main: path.resolve(dashboardRoot, 'index.html'),
       },
     },
   },

@@ -1,6 +1,0 @@
-{
-  "dependencies": {
-    "uplot": "^1.6.32",
-    "uplot-vue": "^1.2.4"
-  }
-}
