@@ -83,6 +83,9 @@ function mountEditor(props: {
 }) {
   return mount(SignalEditorModal, {
     props: { mode: props.mode, initialDefinition: props.initialDefinition ?? null },
+    // The overlay teleports to <body> for real stacking reasons; keep it in
+    // the component tree so queries stay scoped to the wrapper.
+    global: { stubs: { teleport: true, Teleport: true } },
   })
 }
 
@@ -191,7 +194,7 @@ describe('SignalEditorModal', () => {
         description: '',
         inputs: ['Brakes.Front_Psi', 'Brakes.Rear_Psi'],
         // combine-only chain: exactly one operation, no post-head steps
-        operations: [{ type: 'combine', params: { operator: 'add' } }],
+        operations: [{ type: 'combine', operator: 'add' }],
       },
     })
   })
@@ -204,8 +207,8 @@ describe('SignalEditorModal', () => {
         name: 'Bias',
         inputs: ['Brakes.Front_Psi', 'Brakes.Rear_Psi'],
         operations: [
-          { type: 'combine', params: { operator: 'subtract' } },
-          { type: 'scale', params: { factor: 2 } },
+          { type: 'combine', operator: 'subtract' },
+          { type: 'scale', factor: 2 },
         ],
       },
     })

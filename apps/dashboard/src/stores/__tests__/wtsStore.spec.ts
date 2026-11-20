@@ -21,7 +21,7 @@ function jsonResponse(status: number, body: unknown) {
 const TOTAL: VirtualSignalDefinition = {
   name: 'Total',
   inputs: ['Brakes.Front_Psi', 'Brakes.Rear_Psi'],
-  operations: [{ type: 'combine', params: { operator: 'add' } }],
+  operations: [{ type: 'combine', operator: 'add' }],
   def_hash: 'hash-1',
 }
 

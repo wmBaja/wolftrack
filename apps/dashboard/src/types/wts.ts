@@ -2,10 +2,20 @@
 // (docs/wts/api.md). All backend fields are additive: older backends omit
 // them, so everything except the core identity fields is optional here.
 
-/** One operation in a definition chain, e.g. {type: "lowpass", params:{cutoff_hz:5}}. */
+/** One operation on the wire and in .wts files: params are FLATTENED
+ * alongside `type` (schema.py `to_json`), e.g. {type: "lowpass", cutoff_hz: 5}. */
 export interface OperationDef {
   type: string
-  params: Record<string, string | number | boolean | null>
+  [param: string]: string | number | boolean | null | undefined
+}
+
+/** Split a wire operation into type + params record. */
+export function opParams(operation: OperationDef): Record<string, string | number | boolean | null> {
+  const params: Record<string, string | number | boolean | null> = {}
+  for (const [key, value] of Object.entries(operation)) {
+    if (key !== 'type' && value !== undefined) params[key] = value
+  }
+  return params
 }
 
 /** Parameter spec from the operation catalog (GET /api/wts/operations). */

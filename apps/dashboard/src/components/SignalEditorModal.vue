@@ -8,6 +8,7 @@ import type {
   VirtualSignalDefinition,
   WtsValidationErrorDetail,
 } from '@/types/wts'
+import { opParams } from '@/types/wts'
 
 const props = defineProps<{
   mode: 'create' | 'edit'
@@ -31,10 +32,12 @@ const description = ref(props.initialDefinition?.description ?? '')
 const inputs = ref<string[]>([...(props.initialDefinition?.inputs ?? [])])
 
 // Combine operator (only relevant with >1 input) and the post-head chain.
+// Wire ops flatten params next to `type`; the editor keeps them in a
+// record and re-flattens on save.
 const initialOps = props.initialDefinition?.operations ?? []
 const startsWithCombine = initialOps[0]?.type === 'combine'
 const combineOperator = ref<string>(
-  String(initialOps[0]?.params?.operator ?? 'add'),
+  String(opParams(initialOps[0] ?? ({ type: '' })).operator ?? 'add'),
 )
 interface OpStep {
   type: string
@@ -43,7 +46,7 @@ interface OpStep {
 const operations = ref<OpStep[]>(
   (startsWithCombine ? initialOps.slice(1) : initialOps).map(op => ({
     type: op.type,
-    params: { ...op.params },
+    params: opParams(op),
   })),
 )
 
@@ -158,9 +161,10 @@ function setParam(step: OpStep, spec: ParamSpec, raw: string) {
 // --- save ------------------------------------------------------------------
 
 const definition = computed<VirtualSignalDefinition>(() => {
+  // Flatten params next to type (the backend's wire shape).
   const chain: OperationDef[] = operations.value.map(step => ({
     type: step.type,
-    params: { ...step.params },
+    ...step.params,
   }))
   return {
     name: name.value,
@@ -170,7 +174,7 @@ const definition = computed<VirtualSignalDefinition>(() => {
     description: description.value,
     inputs: inputs.value,
     operations: showCombine.value
-      ? [{ type: 'combine', params: { operator: combineOperator.value } }, ...chain]
+      ? [{ type: 'combine', operator: combineOperator.value }, ...chain]
       : chain,
   }
 })
@@ -216,6 +220,8 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
+  <!-- body-level: grid items create stacking contexts that would trap the overlay -->
+  <Teleport to="body">
   <div class="editor-overlay" @click.self="emit('close')">
     <div ref="modalRef" class="editor-modal" tabindex="-1" role="dialog" aria-modal="true"
          :aria-label="mode === 'create' ? 'New WT signal' : `Edit WTS.${name}`">
@@ -388,6 +394,7 @@ onBeforeUnmount(() => {
       </footer>
     </div>
   </div>
+  </Teleport>
 </template>
 
 <style scoped>
