@@ -53,7 +53,7 @@ Parts 3 and 4 can be built in parallel, and Part 5 can start against a mocked AP
 - [x] Part 1: signal engine
 - [x] Part 2: `.wts` file and API
 - [ ] Part 3: log path
-- [ ] Part 4: live path
+- [x] Part 4: live path — LiveWtsRuntime, clock steps, hot reload
 - [ ] Part 5: frontend foundation
 - [ ] Part 6: minimal signal editor
 

@@ -59,12 +59,12 @@ No history buffers, no event signals, no recording of live sessions (Part 7). Th
 
 ## Tasks
 
-- [ ] 4.1 `src/wts/live.py` runtime (gap/clock-step logic) with unit tests.
-- [ ] 4.2 `PipelineManager` integration: gating, fast-path bypass when `not runtime.raw_inputs`, per-frame update, hot reload via `get_wts_version()`, DBC/`arb_id_cache` refresh, reset on start/reconnect.
-- [ ] 4.3 Replace silent exception swallowing with counted/logged handling.
-- [ ] 4.4 Test helper `tests/helpers/fake_source.py`: a `DataSource` that yields scripted `can_batch` messages built from a synthetic DBC.
-- [ ] 4.5 Benchmark script; paste results in the PR.
-- [ ] 4.6 `docs/wts/live.md`: time semantics (D11). **Verify against a real DAQ capture** that `timestamp` is in seconds (not ms/ns) and is present on every frame; record the result in the PR.
+- [x] 4.1 `src/wts/live.py` runtime (gap/clock-step logic) with unit tests.
+- [x] 4.2 `PipelineManager` integration: gating, fast-path bypass when `not runtime.raw_inputs`, per-frame update, hot reload via `get_wts_version()`, DBC/`arb_id_cache` refresh, reset on start/reconnect.
+- [x] 4.3 Replace silent exception swallowing with counted/logged handling.
+- [x] 4.4 Test helper `tests/helpers/fake_source.py`: a `DataSource` that yields scripted `can_batch` messages built from a synthetic DBC.
+- [x] 4.5 Benchmark script; paste results in the PR.
+- [x] 4.6 `docs/wts/live.md`: time semantics (D11). **Verify against a real DAQ capture** that `timestamp` is in seconds (not ms/ns) and is present on every frame; record the result in the PR.
 
 ## Tests (fake source + synthetic DBC)
 
@@ -95,3 +95,14 @@ No history buffers, no event signals, no recording of live sessions (Part 7). Th
 - Per-signal arrays in `live_batch` must keep timestamps non-decreasing; with the monotonic rule they are strictly increasing per virtual signal.
 - Rebuilding the runtime allocates; only do it on a version change, never per frame.
 - `ws_manager.subscribed_signals` may contain ids that no longer exist (a deleted virtual signal still charted); ignore unknown ids and never raise.
+## Notes from implementation
+
+- Q1/V1 verified against real captures (see docs/wts/live.md): seconds,
+  present on every frame.
+- A clock step flushes the in-flight batch first so per-signal arrays on
+  the wire stay non-decreasing (I8); the `clock_step` flag rides the next
+  batch.
+- Hot reload also refreshes `db` + `arb_id_cache`, fixing the pre-existing
+  "DBC switch while live does nothing" limitation.
+- Benchmarks (dev laptop): 30 defs p99 0.103 ms/frame, ~555 frames per
+  50 ms window — target met without mitigations.
