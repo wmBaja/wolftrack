@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { getVisualizerBase } from '@/lib/visualizer'
 import { useDbcStore } from '@/stores/dbcStore'
+import { useWidgetStore } from '@/stores/widgetStore'
 import { invalidateSignalsEverywhere } from '@/stores/wtsRefresh'
 import {
   isWtsDependentsDetail,
@@ -90,6 +91,47 @@ export const useWtsStore = defineStore('wts', () => {
       const result = payload as WtsMutationResult
       await afterMutation(result)
       return { ok: true, promotedTo: result?.promoted_to ?? null }
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : String(e)
+      error.value = message
+      return { ok: false, message }
+    } finally {
+      isSaving.value = false
+    }
+  }
+
+  /** Rename a virtual signal; widgets, inputs, and signal_info follow. */
+  async function rename(name: string, newName: string): Promise<WtsSaveResult> {
+    isSaving.value = true
+    error.value = null
+    try {
+      const baseUrl = await getVisualizerBase()
+      const res = await fetch(
+        `${baseUrl}/api/wts/signals/${encodeURIComponent(name)}/rename`,
+        {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ new_name: newName }),
+        },
+      )
+      const payload = await res.json().catch(() => null)
+      if (!res.ok) {
+        const detail = payload?.detail
+        if (res.status === 422 && isWtsValidationErrorDetail(detail)) {
+          return { ok: false, validation: detail }
+        }
+        const message =
+          typeof detail === 'string' ? detail : `Rename failed (${res.status})`
+        error.value = message
+        return { ok: false, message }
+      }
+
+      const result = payload as WtsMutationResult
+      // Charts reference signals by id; swap the id in every widget, then
+      // treat the old + new + dependent ids as changed for cache invalidation.
+      useWidgetStore().renameSignalId(`WTS.${name}`, `WTS.${newName}`)
+      await afterMutation(result)
+      return { ok: true, promotedTo: null }
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : String(e)
       error.value = message
@@ -189,6 +231,7 @@ export const useWtsStore = defineStore('wts', () => {
     fetchCatalog,
     fetchDefinitions,
     save,
+    rename,
     remove,
     dependentsOf,
   }

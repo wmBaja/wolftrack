@@ -258,6 +258,58 @@ describe('SignalEditorModal', () => {
     expect(wrapper.text()).toContain('(W)') // unit from ParamSpec, not hardcoded
   })
 
+  it('renames then saves when the name is edited', async () => {
+    setupStores()
+    const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+      if (String(url).endsWith('/api/wts/signals/Bias/rename') && init?.method === 'PUT') {
+        return jsonResponse(200, {
+          signal: 'Bias2', wts_version: 3, renamed_from: 'Bias', dependents: [],
+        })
+      }
+      if (String(url).endsWith('/api/wts/signals/Bias2') && init?.method === 'PUT') {
+        return jsonResponse(200, { signal: 'Bias2', wts_version: 4 })
+      }
+      if (String(url).includes('/api/wts/signals')) {
+        return jsonResponse(200, { signals: [], issues: [], wts_version: 4 })
+      }
+      return jsonResponse(200, { signals: SIGNALS })
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const wrapper = mountEditor({
+      mode: 'edit',
+      initialDefinition: {
+        name: 'Bias',
+        inputs: ['Brakes.Front_Psi'],
+        operations: [{ type: 'scale', factor: 2 }],
+      },
+    })
+    await wrapper.find('[data-testid="signal-name"]').setValue('Bias2')
+    await wrapper.find('[data-testid="save-btn"]').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.emitted('saved')).toBeTruthy()
+    const urls = fetchMock.mock.calls.map(call => String(call[0]))
+    const renameAt = urls.findIndex(url => url.endsWith('/rename'))
+    const putAt = urls.findIndex(url => url.endsWith('/api/wts/signals/Bias2'))
+    expect(renameAt).toBeGreaterThanOrEqual(0)
+    expect(putAt).toBeGreaterThan(renameAt) // rename first, then the update
+    const renameCall = fetchMock.mock.calls[renameAt]!
+    expect(JSON.parse(String((renameCall[1] as RequestInit).body)))
+      .toEqual({ new_name: 'Bias2' })
+  })
+
+  it('shows the rename note and keeps the name editable in edit mode', () => {
+    setupStores()
+    const wrapper = mountEditor({
+      mode: 'edit',
+      initialDefinition: { name: 'Bias', inputs: ['Brakes.Front_Psi'], operations: [] },
+    })
+    const input = wrapper.find('[data-testid="signal-name"]')
+    expect((input.element as HTMLInputElement).readOnly).toBe(false)
+    expect(wrapper.find('[data-testid="rename-note"]').exists()).toBe(true)
+  })
+
   it('closes on Escape and saves nothing', async () => {
     setupStores()
     const wrapper = mountEditor({ mode: 'create' })

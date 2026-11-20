@@ -8,6 +8,8 @@ saves their first signal, at which point it is *promoted* (D3): a new
 ``wts/<stem>.wts`` embedding the DBC is created and selected, and the
 original ``.dbc`` is never modified.
 """
+import json
+from dataclasses import replace
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
@@ -17,7 +19,7 @@ from logging_config import get_logger
 from wts.analysis import analyze
 from wts.errors import WtsValidationError
 from wts.graph import compute_definition_hashes, transitive_dependents
-from wts.schema import NAME_PATTERN, VirtualSignalDef
+from wts.schema import NAME_PATTERN, WTS_PREFIX, VirtualSignalDef
 from wts.wts_file import WtsFile, atomic_write
 
 logger = get_logger(__name__)
@@ -50,11 +52,35 @@ class DBCManager:
         self.active_wts: Optional[WtsFile] = None
         self._wts_version = 0
         self._on_changed: Optional[Callable[[Optional[set[str]]], None]] = None
+        self._last_active_file = Path(user_data_dir) / "wts_last_active.json"
 
-        # Load initially if there is one available
+        # Load the previously active setup if it still exists, else the
+        # first available one.
         setups = self.get_available_dbcs()
         if setups:
+            preferred = self._read_last_active()
+            if preferred and any(s["name"] == preferred for s in setups):
+                if self.select_dbc(preferred):
+                    return
             self.select_dbc(setups[0]["name"])
+
+    # ------------------------------------------------- last-active memory
+
+    def _read_last_active(self) -> Optional[str]:
+        try:
+            with open(self._last_active_file, "r", encoding="utf-8") as handle:
+                return json.load(handle).get("filename")
+        except (OSError, ValueError, AttributeError):
+            return None
+
+    def _write_last_active(self, filename: Optional[str]) -> None:
+        try:
+            tmp = self._last_active_file.with_suffix(".tmp")
+            with open(tmp, "w", encoding="utf-8") as handle:
+                json.dump({"filename": filename}, handle)
+            tmp.replace(self._last_active_file)
+        except OSError:
+            logger.warning("Could not persist last active setup")
 
     # ----------------------------------------------------------- versions
 
@@ -159,6 +185,7 @@ class DBCManager:
         self.db = db
         self.active_wts = wts
         self.active_dbc_filename = filename
+        self._write_last_active(filename)
         self._notify_changed(None)
         logger.info(f"Setup selected and loaded: {filename}")
         return True
@@ -333,6 +360,7 @@ class DBCManager:
             bak_path.rename(Path(str(new_file_path) + ".bak"))
         if self.active_dbc_filename == filename:
             self.active_dbc_filename = new_filename
+            self._write_last_active(new_filename)
             if self.active_wts is not None:
                 self.active_wts.source_path = str(new_file_path)
                 self.active_wts.name = Path(new_filename).stem
@@ -471,6 +499,120 @@ class DBCManager:
         self._save_active_wts()
         self._notify_changed({f"WTS.{name}"})
         return {"wts_version": self._wts_version}
+
+    def rename_virtual_signal(self, name: str, new_name: str) -> Dict[str, Any]:
+        """Rename a virtual signal, rewriting every reference to it.
+
+        Returns ``{signal, def_hash, wts_version, renamed_from, dependents}``.
+        Raises :class:`FileNotFoundError` for unknown names, ``ValueError``
+        for invalid/colliding names or un-renamable broken definitions, and
+        :class:`WtsValidationError` when the renamed set would be invalid.
+        """
+        if self.active_wts is None:
+            raise ValueError("No active setup file")
+        if not NAME_PATTERN.match(name):
+            raise ValueError(f"Invalid signal name {name!r}")
+        if not NAME_PATTERN.match(new_name):
+            raise WtsValidationError([{
+                "code": "name_invalid",
+                "signal": new_name,
+                "message": "name must match ^[A-Za-z_][A-Za-z0-9_]{0,63}$",
+            }])
+        if name == new_name:
+            raise ValueError("New name must differ from the current name")
+
+        wts = self.active_wts
+        existing = next(
+            (item for item in wts.signals if item.name == name), None
+        )
+        if existing is None:
+            broken_only = any(
+                isinstance(item, dict) and item.get("name") == name
+                for item in wts.raw_signals
+            )
+            if broken_only:
+                raise ValueError(
+                    f"{name} is broken and cannot be renamed; delete and recreate it"
+                )
+            raise FileNotFoundError(name)
+        if any(item.name == new_name for item in wts.signals):
+            raise ValueError(f"A signal named {new_name} already exists")
+
+        old_id, new_id = f"{WTS_PREFIX}{name}", f"{WTS_PREFIX}{new_name}"
+        renamed = replace(existing, name=new_name)
+        dependents = transitive_dependents(list(wts.signals), name)
+
+        rewritten = [
+            replace(item, inputs=tuple(
+                new_id if input_id == old_id else input_id
+                for input_id in item.inputs
+            ))
+            for item in wts.signals
+            if item.name != name
+        ]
+        from wts.analysis import check_definition_write
+
+        issues = check_definition_write(
+            renamed, rewritten, self._dbc_signal_ids(),
+            raw_broken={
+                error["signal"]: error["message"]
+                for error in wts.parse_errors
+                if error.get("signal")
+            },
+        )
+        if issues:
+            raise WtsValidationError(issues)
+
+        wts.signals = [
+            renamed if item.name == name
+            else replace(item, inputs=tuple(
+                new_id if input_id == old_id else input_id
+                for input_id in item.inputs
+            ))
+            for item in wts.signals
+        ]
+        # Preserve file position of the renamed entry.
+        index = wts.signal_indexes.pop(name, None)
+        if index is not None:
+            wts.signal_indexes[new_name] = index
+
+        def swap_ids(value: Any) -> Any:
+            if isinstance(value, str):
+                return new_id if value == old_id else value
+            if isinstance(value, list):
+                return [swap_ids(item) for item in value]
+            if isinstance(value, dict):
+                return {
+                    (new_id if key == old_id else key): swap_ids(item)
+                    for key, item in value.items()
+                }
+            return value
+
+        for item in wts.raw_signals:
+            if isinstance(item, dict):
+                for key, value in list(item.items()):
+                    item[key] = swap_ids(value)
+        if old_id in wts.signal_info:
+            info = wts.signal_info.pop(old_id)
+            wts.signal_info.setdefault(new_id, info)
+        wts.parse_errors = [
+            error for error in wts.parse_errors
+            if error.get("signal") != name
+        ]
+
+        self._save_active_wts()
+        self._notify_changed(
+            {old_id, new_id} | {f"WTS.{item}" for item in dependents}
+        )
+        definition_hash = self.get_definition_hashes().get(new_name)
+        logger.info("Virtual signal renamed: %s -> %s", name, new_name)
+        return {
+            "signal": renamed.to_json(),
+            "def_hash": definition_hash,
+            "wts_version": self._wts_version,
+            "renamed_from": name,
+            "dependents": [f"WTS.{item}" for item in dependents],
+        }
 
     # --------------------------------------------------------- helpers
 

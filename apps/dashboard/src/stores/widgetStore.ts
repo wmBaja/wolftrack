@@ -92,6 +92,22 @@ export const useWidgetStore = defineStore('widgets', () => {
     }
   }
 
+  /** Swap a signal id in every widget (virtual-signal rename). */
+  function renameSignalId(oldId: string, newId: string): void {
+    let touched = false
+    widgets.value.forEach((widget) => {
+      if (!widget.signals.includes(oldId)) return
+      // De-dupe in case a widget somehow already plotted both ids.
+      widget.signals = [
+        ...new Set(
+          widget.signals.map((id) => (id === oldId ? newId : id)),
+        ),
+      ]
+      touched = true
+    })
+    if (touched) saveToLocalStorage()
+  }
+
   function updateLayout(newLayout: Widget[]): void {
     // GridLayout passes back updated layout with new positions
     newLayout.forEach(item => {
@@ -227,6 +243,7 @@ export const useWidgetStore = defineStore('widgets', () => {
     findAvailablePosition,
     removeWidget,
     updateWidget,
+    renameSignalId,
     updateLayout,
     exportLayout,
     parseImportedLayout,

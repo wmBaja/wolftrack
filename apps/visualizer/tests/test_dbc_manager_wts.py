@@ -237,6 +237,114 @@ class TestMutations:
             manager.upsert_virtual_signal(scale_sig())
 
 
+class TestRenameVirtualSignal:
+    def test_rename_updates_definition_and_file(self, manager, dbc_bytes):
+        manager.upload_dbc("a.dbc", dbc_bytes)
+        manager.upsert_virtual_signal(scale_sig(name="Old_Name"))
+        result = manager.rename_virtual_signal("Old_Name", "New_Name")
+        assert result["renamed_from"] == "Old_Name"
+        assert result["def_hash"]
+        defs = manager.get_virtual_signals()
+        assert [definition.name for definition in defs] == ["New_Name"]
+        # The first save promoted the legacy .dbc to a.wts; the file on disk
+        # holds the renamed definition and no trace of the old name.
+        assert manager.active_dbc_filename == "a.wts"
+        text = (manager.wts_dir / "a.wts").read_text()
+        assert "New_Name" in text and "Old_Name" not in text
+
+    def test_rename_rewrites_dependent_inputs(self, manager, dbc_bytes):
+        manager.upload_dbc("a.dbc", dbc_bytes)
+        manager.upsert_virtual_signal(scale_sig(name="A"))
+        manager.upsert_virtual_signal(
+            VirtualSignalDef(
+                "B", inputs=("WTS.A",),
+                operations=(OperationDef(type="bias", params={"offset": 1}),),
+            )
+        )
+        result = manager.rename_virtual_signal("A", "A2")
+        assert result["dependents"] == ["WTS.B"]
+        defs = {definition.name: definition for definition in
+                manager.get_virtual_signals()}
+        assert defs["B"].inputs == ("WTS.A2",)
+        assert defs["A2"].inputs == ("Brakes.Front_Psi",)
+
+    def test_rename_moves_signal_info(self, manager, dbc_bytes):
+        manager.upload_dbc("a.dbc", dbc_bytes)
+        manager.upsert_virtual_signal(scale_sig(name="S"))
+        manager.active_wts.signal_info["WTS.S"] = {"display_name": "Speedo"}
+        manager.rename_virtual_signal("S", "S2")
+        assert manager.active_wts.signal_info.get("WTS.S2") == {
+            "display_name": "Speedo"
+        }
+        assert "WTS.S" not in manager.active_wts.signal_info
+
+    def test_rename_collisions_and_invalid(self, manager, dbc_bytes):
+        manager.upload_dbc("a.dbc", dbc_bytes)
+        manager.upsert_virtual_signal(scale_sig(name="A"))
+        manager.upsert_virtual_signal(scale_sig(name="B"))
+        with pytest.raises(ValueError, match="already exists"):
+            manager.rename_virtual_signal("A", "B")
+        with pytest.raises(ValueError, match="differ"):
+            manager.rename_virtual_signal("A", "A")
+        with pytest.raises(FileNotFoundError):
+            manager.rename_virtual_signal("Ghost", "X")
+        with pytest.raises(WtsValidationError):
+            manager.rename_virtual_signal("A", "9bad")
+
+    def test_rename_blocked_by_cycle(self, manager, dbc_bytes):
+        manager.upload_dbc("a.dbc", dbc_bytes)
+        manager.upsert_virtual_signal(scale_sig(name="A"))
+        manager.upsert_virtual_signal(
+            VirtualSignalDef(
+                "B", inputs=("WTS.A", "Brakes.Front_Psi"),
+                operations=(
+                    OperationDef(type="combine", params={"operator": "add"}),
+                ),
+            )
+        )
+        # An existing signal is literally named WTS.Target: renaming A to it
+        # would collide with that name.
+        manager.upsert_virtual_signal(
+            scale_sig(name="Target", input_id="Brakes.Front_Psi")
+        )
+        with pytest.raises(ValueError, match="already exists"):
+            manager.rename_virtual_signal("A", "Target")
+
+    def test_rename_notifies_changed_ids(self, manager, dbc_bytes):
+        seen = []
+        manager.set_changed_callback(lambda ids: seen.append(ids))
+        manager.upload_dbc("a.dbc", dbc_bytes)
+        manager.upsert_virtual_signal(scale_sig(name="A"))
+        manager.upsert_virtual_signal(
+            VirtualSignalDef(
+                "B", inputs=("WTS.A",),
+                operations=(OperationDef(type="bias", params={"offset": 1}),),
+            )
+        )
+        manager.rename_virtual_signal("A", "A2")
+        assert seen[-1] == {"WTS.A", "WTS.A2", "WTS.B"}
+
+
+class TestLastActiveSetup:
+    def test_restart_restores_active_setup(self, manager, dbc_bytes, tmp_user_data):
+        manager.upload_dbc("a.dbc", dbc_bytes)
+        manager.upload_dbc("z.dbc", dbc_bytes)
+        manager.select_dbc("z.dbc")
+        assert manager.active_dbc_filename == "z.dbc"
+
+        restarted = DBCManager(str(tmp_user_data))
+        # Without memory this would pick "a.dbc" (alphabetically first).
+        assert restarted.active_dbc_filename == "z.dbc"
+
+    def test_missing_last_active_falls_back(self, manager, dbc_bytes, tmp_user_data):
+        manager.upload_dbc("a.dbc", dbc_bytes)
+        (tmp_user_data / "wts_last_active.json").write_text(
+            '{"filename": "gone.dbc"}'
+        )
+        restarted = DBCManager(str(tmp_user_data))
+        assert restarted.active_dbc_filename == "a.dbc"
+
+
 class TestVersionAndHook:
     def test_version_bumps_and_hook_fires(self, manager, dbc_bytes):
         seen = []

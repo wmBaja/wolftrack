@@ -21,6 +21,10 @@ class DefinitionPayload(BaseModel):
     definition: dict[str, Any]
 
 
+class RenameSignalPayload(BaseModel):
+    new_name: str
+
+
 def _manager(request: Request):
     dbc_manager = getattr(request.app.state, "dbc_manager", None)
     if dbc_manager is None:
@@ -114,6 +118,26 @@ async def put_wts_signal(
         raise HTTPException(status_code=422, detail=_validation_detail(error))
     except ValueError as error:
         raise HTTPException(status_code=400, detail=str(error))
+    return result
+
+
+@wts_router.put("/api/wts/signals/{name}/rename")
+async def rename_wts_signal(
+    request: Request, name: str, payload: RenameSignalPayload
+):
+    """Rename a virtual signal; all references (inputs, signal_info) follow."""
+    dbc_manager = _manager(request)
+    try:
+        result = dbc_manager.rename_virtual_signal(name, payload.new_name)
+    except WtsValidationError as error:
+        raise HTTPException(status_code=422, detail=_validation_detail(error))
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail=f"WTS signal {name} not found")
+    except ValueError as error:
+        detail = str(error)
+        if "already exists" in detail:
+            raise HTTPException(status_code=409, detail=detail)
+        raise HTTPException(status_code=400, detail=detail)
     return result
 
 

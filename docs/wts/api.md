@@ -52,6 +52,7 @@ Both kinds merge optional `display_name`, `description`, `min`, `max` from
 | `GET /api/wts/operations` | Op catalog (D15) | – | `{operations: [{type,label,is_head,params:[ParamSpec]}], combine_operators: ["add","subtract","multiply","divide"]}` |
 | `GET /api/wts/signals` | Definitions in the active file | – | `{signals: [def + broken + def_hash], issues: [{signal,code,message,severity}], wts_version}` |
 | `PUT /api/wts/signals/{name}` | Create or update | `{definition}` (`name` must match path) | `{signal, def_hash, wts_version, promoted_to}`; 422 `{errors, warnings}` |
+| `PUT /api/wts/signals/{name}/rename` | Rename (rewrites dependent inputs + `signal_info`) | `{new_name}` | `{signal, def_hash, wts_version, renamed_from, dependents}`; 400 invalid, 409 collision, 404 unknown |
 | `DELETE /api/wts/signals/{name}` | Delete | – | `{wts_version}`; 409 `{dependents:[...]}`; 404 unknown |
 
 `promoted_to` is non-null when saving against a legacy `.dbc` first created

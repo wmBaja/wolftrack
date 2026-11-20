@@ -85,6 +85,9 @@ export interface WtsMutationResult {
   wts_version?: number
   promoted_to?: string | null
   removed?: string[]
+  /** Rename only: previous name and affected dependent ids. */
+  renamed_from?: string
+  dependents?: string[]
 }
 
 export function isWtsValidationErrorDetail(

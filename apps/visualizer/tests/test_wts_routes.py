@@ -172,6 +172,45 @@ class TestCrud:
         assert client.delete("/api/wts/signals/B").status_code == 200
         assert client.delete("/api/wts/signals/Nope").status_code == 404
 
+    def test_rename_endpoint(self, client):
+        upload_dbc(client)
+        client.put("/api/wts/signals/A", json={"definition": definition("A")})
+        client.put("/api/wts/signals/B", json={"definition": definition(
+            "B", inputs=["WTS.A"], operations=[{"type": "scale", "factor": 2}]
+        )})
+        response = client.put(
+            "/api/wts/signals/A/rename", json={"new_name": "A2"}
+        )
+        assert response.status_code == 200
+        result = response.json()
+        assert result["renamed_from"] == "A"
+        assert result["dependents"] == ["WTS.B"]
+
+        data = client.get("/api/wts/signals").json()
+        names = {s["name"] for s in data["signals"]}
+        assert names == {"A2", "B"}
+        b = next(s for s in data["signals"] if s["name"] == "B")
+        assert b["inputs"] == ["WTS.A2"]
+
+    def test_rename_endpoint_errors(self, client):
+        upload_dbc(client)
+        client.put("/api/wts/signals/A", json={"definition": definition("A")})
+        client.put("/api/wts/signals/B", json={"definition": definition("B")})
+        assert client.put(
+            "/api/wts/signals/A/rename", json={"new_name": "B"}
+        ).status_code == 409
+        assert client.put(
+            "/api/wts/signals/Ghost/rename", json={"new_name": "X"}
+        ).status_code == 404
+        bad = client.put(
+            "/api/wts/signals/A/rename", json={"new_name": "9bad"}
+        )
+        assert bad.status_code == 422
+        assert bad.json()["detail"]["errors"][0]["code"] == "name_invalid"
+        assert client.put(
+            "/api/wts/signals/A/rename", json={"new_name": "A"}
+        ).status_code == 400
+
 
 class TestSetupEndpoints:
     def test_download_roundtrip(self, client):

@@ -2,8 +2,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import { useWtsStore } from '@/stores/wtsStore'
 import { useDbcStore } from '@/stores/dbcStore'
+import { useWidgetStore } from '@/stores/widgetStore'
 import { useLogDataStore } from '@/stores/logDataStore'
 import { useLiveDataStore } from '@/stores/liveDataStore'
+import { WIDGET_TYPES } from '@/types/widgets'
 import type { VirtualSignalDefinition } from '@/types/wts'
 
 vi.mock('@/lib/visualizer', () => ({
@@ -180,6 +182,56 @@ describe('wtsStore', () => {
     expect(liveStore.buffers.has('WTS.Total')).toBe(false)
     // a retry was scheduled; clean it up so no timer leaks into other tests
     logStore.invalidateSignals([])
+  })
+
+  it('renames: hits the rename endpoint and swaps the id in widgets', async () => {
+    const RENAMED = { ...TOTAL, name: 'Total2', def_hash: 'hash-9' }
+    const { calls } = mockFetch({
+      // ordered before the generic '/api/wts/signals' pattern (first match wins)
+      '/api/wts/signals/Total/rename': (req) =>
+        req.init?.method === 'PUT'
+          ? jsonResponse(200, {
+              signal: 'Total2', def_hash: 'hash-9', wts_version: 4,
+              renamed_from: 'Total', dependents: ['WTS.Bias'],
+            })
+          : undefined,
+      '/api/wts/signals': () =>
+        jsonResponse(200, { signals: [RENAMED], issues: [], wts_version: 4 }),
+      '/api/signals': () =>
+        jsonResponse(200, { signals: [{ id: 'WTS.Total2', is_virtual: true }] }),
+    })
+    const store = useWtsStore()
+    store.definitions = [TOTAL]
+    const widgetStore = useWidgetStore()
+    widgetStore.addWidget(WIDGET_TYPES.CHART, { x: 0, y: 0, w: 4, h: 3 })
+    const widget = widgetStore.widgets[0]!
+    widget.signals = ['WTS.Total', 'Brakes.Front_Psi']
+
+    const result = await store.rename('Total', 'Total2')
+
+    expect(result.ok).toBe(true)
+    const put = calls.find(c => c.url.includes('/rename'))
+    expect(put?.init?.method).toBe('PUT')
+    expect(JSON.parse(String(put?.init?.body))).toEqual({ new_name: 'Total2' })
+    expect(widget.signals).toEqual(['WTS.Total2', 'Brakes.Front_Psi'])
+    expect(store.definitions).toEqual([RENAMED])
+  })
+
+  it('rename failure surfaces the message and leaves widgets untouched', async () => {
+    mockFetch({
+      '/api/wts/signals/Total/rename': () =>
+        jsonResponse(409, { detail: 'A signal named Taken already exists' }),
+    })
+    const store = useWtsStore()
+    const widgetStore = useWidgetStore()
+    widgetStore.addWidget(WIDGET_TYPES.CHART, { x: 0, y: 0, w: 4, h: 3 })
+    widgetStore.widgets[0]!.signals = ['WTS.Total']
+
+    const result = await store.rename('Total', 'Taken')
+
+    expect(result.ok).toBe(false)
+    expect(result.message).toContain('already exists')
+    expect(widgetStore.widgets[0]!.signals).toEqual(['WTS.Total'])
   })
 
   it('computes transitive dependents', async () => {

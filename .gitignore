@@ -92,6 +92,8 @@ apps/visualizer/.env
 apps/visualizer/.envrc
 apps/visualizer/logs/
 apps/visualizer/dbc/uploads/
+apps/visualizer/wts/
+apps/visualizer/wts_last_active.json
 *.log
 
 # Editor and operating-system files

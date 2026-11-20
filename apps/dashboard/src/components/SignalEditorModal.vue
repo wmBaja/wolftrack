@@ -53,6 +53,8 @@ const operations = ref<OpStep[]>(
 const validationErrors = ref<WtsValidationErrorDetail | null>(null)
 const genericError = ref<string | null>(null)
 const modalRef = ref<HTMLElement>()
+/** Name the signal had when the editor opened; a change triggers rename. */
+const originalName = ref(props.initialDefinition?.name ?? '')
 
 const catalog = computed(() => wtsStore.catalog)
 const postHeadOps = computed(
@@ -190,6 +192,24 @@ const canSave = computed(() => {
 async function save() {
   validationErrors.value = null
   genericError.value = null
+
+  // Renamed in edit mode: rename first (rewrites references + charts),
+  // then fall through to a normal save of the (possibly edited) body.
+  if (
+    props.mode === 'edit' &&
+    name.value !== originalName.value &&
+    NAME_PATTERN.test(name.value)
+  ) {
+    const renamed = await wtsStore.rename(originalName.value, name.value)
+    if (!renamed.ok) {
+      if (renamed.validation) validationErrors.value = renamed.validation
+      else genericError.value = renamed.message ?? 'Rename failed'
+      return
+    }
+    // Rename took effect: from here on this is an update of the new name.
+    originalName.value = name.value
+  }
+
   const result = await wtsStore.save(definition.value)
   if (result.ok) {
     emit('saved')
@@ -201,6 +221,126 @@ async function save() {
 }
 
 // --- shell -----------------------------------------------------------------
+
+/** Drag/resize geometry; persisted so the editor opens where it was left. */
+const GEOMETRY_KEY = 'wts-editor-geometry'
+
+interface Geometry {
+  left: number | null
+  top: number | null
+  width: number | null
+  height: number | null
+}
+
+function loadGeometry(): Geometry {
+  try {
+    const saved = JSON.parse(localStorage.getItem(GEOMETRY_KEY) ?? '')
+    const num = (value: unknown) =>
+      typeof value === 'number' && Number.isFinite(value) ? value : null
+    return {
+      left: num(saved?.left),
+      top: num(saved?.top),
+      width: num(saved?.width),
+      height: num(saved?.height),
+    }
+  } catch {
+    return { left: null, top: null, width: null, height: null }
+  }
+}
+
+const geometry = ref<Geometry>(loadGeometry())
+
+const modalStyle = computed(() => {
+  const style: Record<string, string> = {}
+  const g = geometry.value
+  if (g.left !== null && g.top !== null) {
+    style.position = 'fixed'
+    style.left = `${g.left}px`
+    style.top = `${g.top}px`
+    style.margin = '0'
+  }
+  if (g.width !== null) style.width = `${g.width}px`
+  if (g.height !== null) {
+    style.height = `${g.height}px`
+    // Explicit user height replaces the vh cap (already viewport-clamped).
+    style.maxHeight = 'none'
+  }
+  return style
+})
+
+function persistGeometry() {
+  try {
+    localStorage.setItem(GEOMETRY_KEY, JSON.stringify(geometry.value))
+  } catch {
+    /* storage full or unavailable: geometry just won't persist */
+  }
+}
+
+function startDrag(event: PointerEvent) {
+  if ((event.target as HTMLElement).closest('button')) return
+  const modal = modalRef.value
+  if (!modal) return
+  const rect = modal.getBoundingClientRect()
+  const startX = event.clientX
+  const startY = event.clientY
+  const originLeft = rect.left
+  const originTop = rect.top
+
+  const onMove = (move: PointerEvent) => {
+    const left = Math.min(
+      Math.max(originLeft + move.clientX - startX, 8 - rect.width + 140),
+      window.innerWidth - 140,
+    )
+    const top = Math.min(
+      Math.max(originTop + move.clientY - startY, 4),
+      window.innerHeight - 48,
+    )
+    geometry.value = { ...geometry.value, left, top }
+  }
+  const onUp = () => {
+    window.removeEventListener('pointermove', onMove)
+    window.removeEventListener('pointerup', onUp)
+    persistGeometry()
+  }
+  window.addEventListener('pointermove', onMove)
+  window.addEventListener('pointerup', onUp)
+  event.preventDefault()
+}
+
+function startResize(event: PointerEvent) {
+  const modal = modalRef.value
+  if (!modal) return
+  const rect = modal.getBoundingClientRect()
+  const startX = event.clientX
+  const startY = event.clientY
+  if (geometry.value.left === null || geometry.value.top === null) {
+    // Pin the top-left before growing so the modal doesn't jump under
+    // flex centering.
+    geometry.value = { ...geometry.value, left: rect.left, top: rect.top }
+  }
+
+  const onMove = (move: PointerEvent) => {
+    geometry.value = {
+      ...geometry.value,
+      width: Math.min(
+        Math.max(rect.width + move.clientX - startX, 380),
+        window.innerWidth - 16,
+      ),
+      height: Math.min(
+        Math.max(rect.height + move.clientY - startY, 260),
+        window.innerHeight - 16,
+      ),
+    }
+  }
+  const onUp = () => {
+    window.removeEventListener('pointermove', onMove)
+    window.removeEventListener('pointerup', onUp)
+    persistGeometry()
+  }
+  window.addEventListener('pointermove', onMove)
+  window.addEventListener('pointerup', onUp)
+  event.preventDefault()
+}
 
 function onKeydown(event: KeyboardEvent) {
   if (event.key === 'Escape') {
@@ -224,8 +364,9 @@ onBeforeUnmount(() => {
   <Teleport to="body">
   <div class="editor-overlay" @click.self="emit('close')">
     <div ref="modalRef" class="editor-modal" tabindex="-1" role="dialog" aria-modal="true"
-         :aria-label="mode === 'create' ? 'New WT signal' : `Edit WTS.${name}`">
-      <header class="editor-header">
+         :aria-label="mode === 'create' ? 'New WT signal' : `Edit WTS.${name}`"
+         :style="modalStyle">
+      <header class="editor-header" data-testid="editor-header" @pointerdown="startDrag">
         <h3>{{ mode === 'create' ? 'New WT Signal' : `Edit WTS.${name}` }}</h3>
         <button type="button" class="close-btn" aria-label="Close" @click="emit('close')">×</button>
       </header>
@@ -239,13 +380,12 @@ onBeforeUnmount(() => {
               v-model="name"
               type="text"
               data-testid="signal-name"
-              :readonly="mode === 'edit'"
               placeholder="Brake_Bias"
             />
           </span>
-          <small v-if="mode === 'edit'" class="field-note">
-            Renaming is not supported: delete and recreate. Charts using the old
-            name will show a missing signal.
+          <small v-if="mode === 'edit'" class="field-note" data-testid="rename-note">
+            Renaming updates signals that use this signal and any charts
+            plotting it.
           </small>
         </label>
 
@@ -392,6 +532,8 @@ onBeforeUnmount(() => {
           </button>
         </div>
       </footer>
+      <span class="resize-handle" data-testid="resize-handle" aria-hidden="true"
+            title="Drag to resize" @pointerdown="startResize"></span>
     </div>
   </div>
   </Teleport>
@@ -409,6 +551,7 @@ onBeforeUnmount(() => {
 }
 
 .editor-modal {
+  position: relative;
   width: min(560px, 92vw);
   max-height: 88vh;
   display: flex;
@@ -424,12 +567,36 @@ onBeforeUnmount(() => {
   outline: none;
 }
 
+.resize-handle {
+  position: absolute;
+  right: 2px;
+  bottom: 2px;
+  width: 16px;
+  height: 16px;
+  cursor: nwse-resize;
+  touch-action: none;
+  /* corner notch glyph */
+  background:
+    linear-gradient(135deg,
+      transparent 0 45%, var(--color-border, rgba(128, 128, 128, 0.6)) 45% 55%,
+      transparent 55% 70%, var(--color-border, rgba(128, 128, 128, 0.6)) 70% 80%,
+      transparent 80%);
+  border-bottom-right-radius: 8px;
+}
+
 .editor-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 10px 14px;
   border-bottom: 1px solid var(--color-border, rgba(128, 128, 128, 0.25));
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+}
+
+.editor-header:active {
+  cursor: grabbing;
 }
 
 .editor-header h3 {
