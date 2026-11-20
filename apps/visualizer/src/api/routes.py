@@ -9,10 +9,11 @@ from typing import Optional
 from zoneinfo import ZoneInfo
 from pydantic import BaseModel
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Request, HTTPException, UploadFile, File, Form
-from fastapi.responses import StreamingResponse
+from fastapi.responses import Response, StreamingResponse
 from openpyxl import Workbook
 from openpyxl.styles import Font
 from ws_manager import manager
+from dbc_manager import DbcConflictError
 from pipeline.manager import PipelineManager
 from pipeline.source import LogFileDataSource
 from pipeline.log_query import log_query_service
@@ -194,7 +195,8 @@ async def upload_dbc_route(
         content = await file.read()
         dbc_manager.upload_dbc(file.filename or '', content)
     except ValueError as error:
-        raise HTTPException(status_code=400, detail=str(error)) from error
+        status_code = 409 if isinstance(error, DbcConflictError) else 400
+        raise HTTPException(status_code=status_code, detail=str(error)) from error
     
     pipeline_manager = getattr(request.app.state, 'pipeline_manager', None)
     if pipeline_manager and pipeline_manager.source:
@@ -223,6 +225,29 @@ async def select_dbc_route(
         pipeline_manager.source.db = dbc_manager.get_active_dbc()
         
     return {"status": "success", "message": f"DBC {filename} selected"}
+
+@router.get("/api/dbc/{filename}/download")
+async def download_dbc_route(request: Request, filename: str):
+    dbc_manager = getattr(request.app.state, 'dbc_manager', None)
+    if not dbc_manager:
+        raise HTTPException(status_code=500, detail="DBC Manager not initialized")
+
+    try:
+        file_path = dbc_manager._get_dbc_path(filename)
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail=f"Setup {filename} not found")
+
+    content = file_path.read_bytes()
+    return Response(
+        content=content,
+        media_type="application/octet-stream",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+        },
+    )
+
 
 @router.delete("/api/dbc/{filename}")
 async def delete_dbc_route(
@@ -272,7 +297,7 @@ async def rename_dbc_route(
         pipeline_manager.source.db = dbc_manager.get_active_dbc()
 
     if was_active and getattr(request.app.state.config, 'pipeline', None):
-        request.app.state.config.pipeline.dbc_file = str(dbc_manager.dbc_dir / payload.new_name)
+        request.app.state.config.pipeline.dbc_file = dbc_manager.get_active_setup_path()
 
     return {
         "status": "success",
@@ -323,16 +348,16 @@ async def upload_config(
         else:
             raise HTTPException(status_code=400, detail="Log file is required for logfile source.")
             
-    # DBC file is now handled by DBCManager, so we just use the active one.
+    # Setups are managed by DBCManager: point the config at the real path of
+    # the active setup file (.dbc or .wts), or None when none is selected.
     dbc_manager = getattr(request.app.state, 'dbc_manager', None)
     if dbc_manager and dbc_manager.active_dbc_filename:
-        # The pipeline manager will pull the DBC from the DBCManager, 
-        # but we can set it in the config just in case.
-        config.pipeline.dbc_file = os.path.join(base_dir, "dbc", dbc_manager.active_dbc_filename)
+        # The pipeline manager pulls the DBC from the DBCManager; this is
+        # informational, but the dashboard checks it is truthy before
+        # fetching signals.
+        config.pipeline.dbc_file = dbc_manager.get_active_setup_path()
     else:
         config.pipeline.dbc_file = None
-        
-    dbc_manager = getattr(request.app.state, 'dbc_manager', None)
 
     # Reinitialize pipeline manager. A logfile index is owned separately from
     # the playback pipeline, so it must be cancelled explicitly before a new

@@ -88,15 +88,15 @@ Not in this scope: dry-run validate endpoint, preview endpoint, signal-info writ
 
 ## Tasks
 
-- [ ] 2.1 `wts_file.py`: parse/serialize, canonical key order, `extras` preservation, DBC encoding handling, hash.
-- [ ] 2.2 DBC round-trip: decode bytes (`utf-8`, else `cp1252`, record which), normalize line endings, split to lines. **Test** `load_file(original)` vs `load_string(embedded)` produce identical messages/signals for `dbc/stig25(1).dbc`.
-- [ ] 2.3 Atomic write + `.bak`.
-- [ ] 2.4 `DBCManager`: dual directories, `type`, validation, `active_wts`, promotion, accessors, version.
-- [ ] 2.5 Mutations + validation (uses Part 1 `schema`/`graph`; `signal_info` unknown ids $\Rightarrow$ warnings).
-- [ ] 2.6 Routes (new `src/api/wts_routes.py` with its own `APIRouter`, registered in `app.py`), download route, `/api/signals` extension (merging `signal_info` onto both raw and virtual signals), `/api/wts/operations` from `describe_all()`.
-- [ ] 2.7 Set `config.pipeline.dbc_file` to `get_active_setup_path()` in `upload_config` and rename routes.
-- [ ] 2.8 Hook stub `on_wts_changed(changed_ids)` called after any mutation/select/DBC change (Part 3 implements the log-side recompute; Part 4 needs no hook because the live runtime polls `get_wts_version()`; here it is a no-op with a test that it is called).
-- [ ] 2.9 Write `docs/wts/api.md` from the table above and keep it in sync.
+- [x] 2.1 `wts_file.py`: parse/serialize, canonical key order, `extras` preservation, DBC encoding handling, hash.
+- [x] 2.2 DBC round-trip: decode bytes (`utf-8`, else `cp1252`, record which), normalize line endings, split to lines. **Test** `load_file(original)` vs `load_string(embedded)` produce identical messages/signals for `dbc/stig25(1).dbc`.
+- [x] 2.3 Atomic write + `.bak`.
+- [x] 2.4 `DBCManager`: dual directories, `type`, validation, `active_wts`, promotion, accessors, version.
+- [x] 2.5 Mutations + validation (uses Part 1 `schema`/`graph`; `signal_info` unknown ids $\Rightarrow$ warnings).
+- [x] 2.6 Routes (new `src/api/wts_routes.py` with its own `APIRouter`, registered in `app.py`), download route, `/api/signals` extension (merging `signal_info` onto both raw and virtual signals), `/api/wts/operations` from `describe_all()`.
+- [x] 2.7 Set `config.pipeline.dbc_file` to `get_active_setup_path()` in `upload_config` and rename routes.
+- [x] 2.8 Hook stub `on_wts_changed(changed_ids)` called after any mutation/select/DBC change (Part 3 implements the log-side recompute; Part 4 needs no hook because the live runtime polls `get_wts_version()`; here it is a no-op with a test that it is called).
+- [x] 2.9 Write `docs/wts/api.md` from the table above and keep it in sync.
 
 ## Tests
 

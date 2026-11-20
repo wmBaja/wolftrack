@@ -33,6 +33,7 @@ logger = get_logger(__name__)
 from pipeline.manager import PipelineManager
 from pipeline.log_query import log_query_service
 from api.routes import router
+from api.wts_routes import wts_router
 from dbc_manager import DBCManager
 
 @asynccontextmanager
@@ -66,6 +67,7 @@ app.add_middleware(
 )
 
 app.include_router(router)
+app.include_router(wts_router)
 
 if __name__ == "__main__":
     host = config.fastapi.host

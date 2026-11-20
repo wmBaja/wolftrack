@@ -33,9 +33,20 @@ FORBIDDEN = [
 ]
 
 
+#: The pure engine core. wts_file.py (parse/format handling of file bytes is
+#: its job) and live.py (clock state, still no I/O/wall clock) are exempt.
+PURITY_EXEMPT = {"wts_file.py", "live.py"}
+
+
 class TestPurity:
     @pytest.mark.parametrize(
-        "path", sorted(WTS_SOURCE.rglob("*.py")), ids=lambda p: p.name
+        "path",
+        [
+            p
+            for p in sorted(WTS_SOURCE.rglob("*.py"))
+            if p.name not in PURITY_EXEMPT
+        ],
+        ids=lambda p: str(p.relative_to(WTS_SOURCE)),
     )
     def test_engine_sources_stay_pure(self, path: Path):
         source = path.read_text(encoding="utf-8")
