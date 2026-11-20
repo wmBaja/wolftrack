@@ -1,10 +1,7 @@
 from pathlib import Path
-import sys
 
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-
-sys.path.append(str(Path(__file__).resolve().parents[1] / "src"))
 
 import api.routes as routes
 from config import AppConfig

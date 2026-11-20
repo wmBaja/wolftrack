@@ -1,40 +1,18 @@
 import asyncio
 import time
-from typing import List
 
 from config import AppConfig
 from logging_config import get_logger
 from ws_manager import manager as ws_manager
 from pipeline.source import DataSource, ZMQDataSource, LogFileDataSource
-from pipeline.processor import Processor
 
 logger = get_logger(__name__)
-
-class DataPipeline:
-    def __init__(self, processors: List[Processor] = None):
-        self.processors_by_signal = {}
-        if processors:
-            for processor in processors:
-                self.add_processor(processor)
-        
-    def add_processor(self, processor: Processor):
-        if processor.target_signal not in self.processors_by_signal:
-            self.processors_by_signal[processor.target_signal] = []
-        self.processors_by_signal[processor.target_signal].append(processor)
-        
-    def process_signal(self, signal: dict) -> dict:
-        signal_id = signal.get("id")
-        if signal_id in self.processors_by_signal:
-            for processor in self.processors_by_signal[signal_id]:
-                signal = processor(signal)
-        return signal
 
 class PipelineManager:
     def __init__(self, config: AppConfig, dbc_manager=None):
         self.config = config
         self.dbc_manager = dbc_manager
         self.source: DataSource = None
-        self.pipeline = DataPipeline()
         self._task = None
         
         self._setup_from_config()

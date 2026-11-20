@@ -1,5 +1,5 @@
 # Node and Electron build output
-apps/dashboard/node_modules/
+node_modules/
 apps/dashboard/dist/
 apps/dashboard/dist-ssr/
 apps/dashboard/dist-electron/
@@ -87,6 +87,7 @@ apps/visualizer/__marimo__/
 # Local configuration and logs
 .env
 .envrc
+/UntrackedContext/
 apps/visualizer/.env
 apps/visualizer/.envrc
 apps/visualizer/logs/

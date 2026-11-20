@@ -6,8 +6,6 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from openpyxl import load_workbook
 
-sys.path.append(str(Path(__file__).resolve().parents[1] / "src"))
-
 import api.routes as routes
 from config import AppConfig
 

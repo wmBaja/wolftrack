@@ -4,8 +4,6 @@ import threading
 from pathlib import Path
 from types import SimpleNamespace
 
-sys.path.append(str(Path(__file__).resolve().parents[1] / "src"))
-
 from pipeline.log_query import LogQueryService
 
 

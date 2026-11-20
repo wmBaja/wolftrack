@@ -1,0 +1,39 @@
+name: Tests
+
+on:
+  pull_request:
+    branches: [main, dev]
+  push:
+    branches: [dev]
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/visualizer
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - name: Install backend dependencies
+        run: uv sync
+      - name: Run backend tests
+        run: uv run pytest
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - name: Install dashboard dependencies
+        run: npm ci --workspace @wolftrack/dashboard
+      - name: Type-check dashboard
+        run: npm run type-check --workspace @wolftrack/dashboard
+      - name: Lint dashboard
+        run: npm run lint --workspace @wolftrack/dashboard
+      - name: Run dashboard unit tests
+        run: npm run test:unit --workspace @wolftrack/dashboard -- --run
