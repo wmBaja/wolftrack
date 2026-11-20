@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import type { DbcSignal } from '@/stores/dbcStore'
+import SignalRowActions from '@/components/SignalRowActions.vue'
+import SignalEditorModal from '@/components/SignalEditorModal.vue'
+import { useWtsStore } from '@/stores/wtsStore'
+import { confirmDialog } from '@/types/dialog'
 
 const props = defineProps<{
   signals: DbcSignal[]
@@ -12,8 +16,41 @@ const emit = defineEmits<{
   (e: 'remove', id: string): void
 }>()
 
+const wtsStore = useWtsStore()
 const expanded = ref<Set<string>>(new Set())
 const searchQuery = ref('')
+
+// --- virtual signal authoring (Part 6.4) ----------------------------------
+const editor = ref<{ mode: 'create' | 'edit'; name: string | null } | null>(null)
+const editorDefinition = computed(() => {
+  if (editor.value?.mode !== 'edit' || !editor.value.name) return null
+  return wtsStore.definitions.find(def => def.name === editor.value!.name) ?? null
+})
+
+function startCreate() {
+  editor.value = { mode: 'create', name: null }
+}
+
+function startEdit(signalName: string) {
+  editor.value = { mode: 'edit', name: signalName }
+}
+
+async function deleteVirtual(signalName: string) {
+  const confirmed = await confirmDialog(
+    'Delete Virtual Signal',
+    `Delete WTS.${signalName}? Charts using it will show a missing signal.`,
+    { confirmText: 'Delete', danger: true },
+  )
+  if (!confirmed) return
+  const result = await wtsStore.remove(signalName)
+  if (!result.ok && result.dependents) {
+    await confirmDialog(
+      'Cannot Delete',
+      `Used by: ${result.dependents.dependents.join(', ')}. Delete those first.`,
+      { confirmText: 'OK', removeCancel: true },
+    )
+  }
+}
 
 function toggleExpand(key: string) {
   if (expanded.value.has(key)) {
@@ -26,6 +63,7 @@ function toggleExpand(key: string) {
 interface TreeSignal {
   id: string
   name: string
+  definitionName: string
   unit: string
   selected: boolean
   isVirtual: boolean
@@ -71,6 +109,7 @@ const treeData = computed<TreeNode[]>(() => {
     nodeMap.get(msgName)!.push({
       id: sig.id,
       name: sig.display_name || sig.name,
+      definitionName: sig.name,
       unit: sig.unit,
       selected: props.selectedSignals.includes(sig.id),
       isVirtual: sig.is_virtual === true,
@@ -129,7 +168,12 @@ function handleSignalClick(sig: TreeSignal) {
         placeholder="Search signals..." 
         class="search-input"
       />
+      <button type="button" class="new-wt-btn" data-testid="new-wt-btn"
+              title="Create a virtual signal" @click="startCreate">+ New WT Signal</button>
     </div>
+    <p v-if="wtsStore.promotionNotice" class="promotion-notice" data-testid="promotion-notice">
+      {{ wtsStore.promotionNotice }}
+    </p>
     <div class="signal-tree custom-scrollbar">
       <div v-for="node in treeData" :key="node.name" class="tree-node">
         <div 
@@ -169,6 +213,11 @@ function handleSignalClick(sig: TreeSignal) {
                   :title="sig.tooltip || 'Broken definition'"
                 >⚠️</span>
                 <span v-if="sig.unit" class="unit" :title="sig.tooltip">({{ sig.unit }})</span>
+                <SignalRowActions
+                  v-if="sig.isVirtual"
+                  @edit="startEdit(sig.definitionName)"
+                  @delete="deleteVirtual(sig.definitionName)"
+                />
                 <span v-if="sig.selected" class="check">✓</span>
               </div>
             </div>
@@ -179,6 +228,14 @@ function handleSignalClick(sig: TreeSignal) {
         No signals found.
       </div>
     </div>
+
+    <SignalEditorModal
+      v-if="editor"
+      :mode="editor.mode"
+      :initial-definition="editorDefinition"
+      @saved="() => {}"
+      @close="editor = null"
+    />
   </div>
 </template>
 
@@ -291,6 +348,29 @@ function handleSignalClick(sig: TreeSignal) {
   border-radius: 3px;
   color: var(--color-text-muted);
   border: 1px solid var(--color-border, rgba(128, 128, 128, 0.4));
+}
+
+.new-wt-btn {
+  margin-top: 6px;
+  width: 100%;
+  border: 1px dashed var(--color-border, rgba(128, 128, 128, 0.45));
+  background: none;
+  color: var(--color-text-muted);
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.new-wt-btn:hover {
+  color: var(--color-text, inherit);
+  border-color: var(--color-accent, #3b82f6);
+}
+
+.promotion-notice {
+  margin: 6px 0 0;
+  font-size: 11px;
+  color: var(--color-text-muted);
 }
 
 .broken-icon {

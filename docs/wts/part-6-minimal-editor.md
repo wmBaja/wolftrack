@@ -43,13 +43,13 @@ Users can create, edit, and delete virtual signals from the UI. That is all. A s
 
 ## Tasks
 
-- [ ] 6.1 `SignalEditorModal.vue`: identity fields and inputs list (filtering out self and transitive dependents) wired to `wtsStore.save`.
-- [ ] 6.2 Combine select (when `inputs.length > 1`) and post-head operations list (`!op.is_head`) generated from the catalog (param inputs: number with unit/min/max, enum select, bool toggle, string), including Save payload assembly and Edit-mode splitting of `combine`.
-- [ ] 6.3 Error display for 422 (list) and generic failures; saving state.
-- [ ] 6.4 Tree integration: new button, edit/delete icons, delete flow with dependents message, promotion notice.
-- [ ] 6.5 Vitest component tests: catalog-driven rendering (including a dummy op appearing with no code change and `is_head: true` ops excluded from Field 5), add/remove/reorder inputs and ops, 2-input combine-only save payload shape, edit-mode load splitting `combine` into Field 4 and remaining ops into Field 5, 422 and 409 display.
-- [ ] 6.6 Esc to close, labels on all inputs, focus moved into the modal on open.
-- [ ] 6.7 `npm run type-check`, `lint`, `test:unit -- --run`.
+- [x] 6.1 `SignalEditorModal.vue`: identity fields and inputs list (filtering out self and transitive dependents) wired to `wtsStore.save`.
+- [x] 6.2 Combine select (when `inputs.length > 1`) and post-head operations list (`!op.is_head`) generated from the catalog (param inputs: number with unit/min/max, enum select, bool toggle, string), including Save payload assembly and Edit-mode splitting of `combine`.
+- [x] 6.3 Error display for 422 (list) and generic failures; saving state.
+- [x] 6.4 Tree integration: new button, edit/delete icons, delete flow with dependents message, promotion notice.
+- [x] 6.5 Vitest component tests: catalog-driven rendering (including a dummy op appearing with no code change and `is_head: true` ops excluded from Field 5), add/remove/reorder inputs and ops, 2-input combine-only save payload shape, edit-mode load splitting `combine` into Field 4 and remaining ops into Field 5, 422 and 409 display.
+- [x] 6.6 Esc to close, labels on all inputs, focus moved into the modal on open.
+- [x] 6.7 `npm run type-check`, `lint`, `test:unit -- --run`.
 
 ## Acceptance criteria
 
@@ -65,3 +65,17 @@ Users can create, edit, and delete virtual signals from the UI. That is all. A s
 - Parameter units come from the catalog; do not hardcode "Hz" or "s".
 - Exclude the signal being edited (and its dependents) from its own inputs list; the backend still rejects cycles and is the source of truth.
 - Keep this component's props and events narrow (`mode`, `initialDefinition`, `@saved`, `@close`) so a plugin-provided editor can replace it without touching the tree.
+## Notes from implementation
+
+- Catalog-driven proof lives in the spec: a `dummy` op exists only in the
+  mocked catalog JSON and renders with its param, default, unit, and help
+  with no component change; `is_head` ops never appear post-head.
+- Save payload: `kind: "continuous"` always; `combine` is prepended only
+  when inputs > 1 (combine-only signal => exactly one operation); edit
+  mode splits a leading `combine` into the Combine select so reopening
+  never duplicates it.
+- Param number inputs keep the raw string on invalid input — the backend
+  422 is the only validator; the modal just lists its errors verbatim.
+- Tree integration: `SignalRowActions.vue` child keeps the tree diff small;
+  delete confirm + 409 "Used by: …" dialog; promotion notice line rendered
+  from `wtsStore.promotionNotice`.
