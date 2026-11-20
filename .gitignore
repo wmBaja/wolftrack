@@ -11,6 +11,7 @@ apps/dashboard/playwright-report/
 apps/dashboard/.vscode/*
 !apps/dashboard/.vscode/extensions.json
 *.tsbuildinfo
+node_modules/*
 
 # Python environments, caches, and build output
 apps/visualizer/**/__pycache__/
@@ -92,6 +93,7 @@ apps/visualizer/.envrc
 apps/visualizer/logs/
 apps/visualizer/dbc/uploads/
 *.log
+github-accounts.json
 
 # Editor and operating-system files
 .DS_Store

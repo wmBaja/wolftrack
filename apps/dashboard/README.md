@@ -5,7 +5,7 @@ The Electron and Vue application lives here. It launches the Python visualizer f
 From the repository root, install dependencies and start the app with:
 
 ```bash
-npm install
+npm --prefix apps/dashboard install --workspaces=false
 cd apps/visualizer && uv sync
 cd ../..
 npm run dev

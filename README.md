@@ -16,7 +16,7 @@ plugins/          First-party plugins (empty during phase 1)
 Requirements: Node `^20.19.0 || >=22.12.0`, Python 3.12 or newer, and [uv](https://docs.astral.sh/uv/).
 
 ```bash
-npm install
+npm --prefix apps/dashboard install --workspaces=false
 cd apps/visualizer && uv sync
 cd ../..
 npm run dev
