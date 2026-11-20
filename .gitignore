@@ -11,7 +11,6 @@ apps/dashboard/playwright-report/
 apps/dashboard/.vscode/*
 !apps/dashboard/.vscode/extensions.json
 *.tsbuildinfo
-node_modules/*
 
 # Python environments, caches, and build output
 apps/visualizer/**/__pycache__/
