@@ -108,11 +108,11 @@ Implement exactly as specified in 00-architecture §4, plus:
 
 ## Tasks
 
-- [ ] 1.1 `errors.py`, `schema.py` (parse, validate, `canonical_json`, `def_hash` of `{kind, inputs, operations}` + upstream hashes via `graph.py`).
-- [ ] 1.2 `ops/` registry, `describe_all()` (including `is_head`), explicit submodule imports in `ops/__init__.py`, and the five ops.
-- [ ] 1.3 `graph.py` (topological order, cycle reported as a path, depth limit 16, `subgraph_defs`).
-- [ ] 1.4 `engine.py`, `batch.py`.
-- [ ] 1.5 Tests below, and `src/wts/README.md` ("add an op in 3 steps").
+- [x] 1.1 `errors.py`, `schema.py` (parse, validate, `canonical_json`, `def_hash` of `{kind, inputs, operations}` + upstream hashes via `graph.py`).
+- [x] 1.2 `ops/` registry, `describe_all()` (including `is_head`), explicit submodule imports in `ops/__init__.py`, and the five ops.
+- [x] 1.3 `graph.py` (topological order, cycle reported as a path, depth limit 16, `subgraph_defs`).
+- [x] 1.4 `engine.py`, `batch.py`.
+- [x] 1.5 Tests below, and `src/wts/README.md` ("add an op in 3 steps").
 
 ## Tests (`tests/wts/`)
 
@@ -140,3 +140,8 @@ Implement exactly as specified in 00-architecture §4, plus:
 - Timestamps are UTC epoch seconds as float64 (D11). Compute `dt` as a difference of timestamps; never convert units or subtract an offset inside ops. The engine does not handle clock steps; the live runtime does.
 - Keep per-update allocations low in the hot path where it stays readable; do not micro-optimize beyond that.
 - `moving_avg`'s deque holds `(ts, value)` pairs; the 600 s cap is deliberate.
+## Notes from implementation
+
+- Throughput sanity (this machine, 2026-11-20): 100,000 updates × 5
+  definitions (incl. lowpass + moving_avg) in ~1.05 s ≈ 95k updates/s.
+- Engine tests: `uv run pytest tests/wts -q` → 64 tests, ~0.2 s.

@@ -50,7 +50,7 @@ Parts 3 and 4 can be built in parallel, and Part 5 can start against a mocked AP
 ## Status checklist
 
 - [x] Part 0: prep and cleanup
-- [ ] Part 1: signal engine
+- [x] Part 1: signal engine
 - [ ] Part 2: `.wts` file and API
 - [ ] Part 3: log path
 - [ ] Part 4: live path
