@@ -52,9 +52,9 @@ Parts 3 and 4 can be built in parallel, and Part 5 can start against a mocked AP
 - [x] Part 0: prep and cleanup
 - [x] Part 1: signal engine
 - [x] Part 2: `.wts` file and API
-- [ ] Part 3: log path
+- [x] Part 3: log path — derived signals, cache keys, export
 - [x] Part 4: live path — LiveWtsRuntime, clock steps, hot reload
-- [ ] Part 5: frontend foundation
+- [x] Part 5: frontend foundation — wtsStore, file manager, tree, invalidation
 - [x] Part 6: minimal signal editor — SignalEditorModal
 
 ## Answered questions (and what they changed)
