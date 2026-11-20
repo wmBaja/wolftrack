@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { getVisualizerBase } from '@/lib/visualizer'
+import { useDbcStore } from '@/stores/dbcStore'
 
 export type DataSourceMode = 'zmq' | 'logfile'
 export type DataSourceStatus = 'stopped' | 'running' | 'loading' | 'error'
@@ -71,7 +72,6 @@ export const useDataSourceStore = defineStore('dataSource', () => {
     live_buffer_window_seconds: DEFAULT_LIVE_BUFFER_WINDOW_SECONDS,
   })
 
-  const dbcSignals = ref<{ id: string, message: string, name: string, unit: string }[]>([])
   const liveSource = ref<LiveSourceConfig>({
     connected: false,
     flask_host: null,
@@ -80,16 +80,11 @@ export const useDataSourceStore = defineStore('dataSource', () => {
     zmq_port: null,
   })
 
+  // The single signal list lives in dbcStore.signals (5.2); this store no
+  // longer keeps a second copy. These triggers kept: config load / apply is
+  // when the active setup changes server-side.
   async function fetchSignals(): Promise<void> {
-    try {
-      const baseUrl = await getVisualizerBase()
-      const res = await fetch(`${baseUrl}/api/signals`)
-      if (!res.ok) return
-      const data = await res.json()
-      dbcSignals.value = data.signals || []
-    } catch (e) {
-      console.error('Failed to fetch signals', e)
-    }
+    await useDbcStore().fetchSignals()
   }
 
   async function fetchConfig(): Promise<void> {
@@ -208,7 +203,6 @@ export const useDataSourceStore = defineStore('dataSource', () => {
     status,
     error,
     config,
-    dbcSignals,
     liveSource,
     fetchConfig,
     fetchLiveSource,

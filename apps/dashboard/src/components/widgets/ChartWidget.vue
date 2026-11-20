@@ -3,6 +3,8 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import BaseWidget from '@/components/widgets/BaseWidget.vue'
 import UplotChart from '@/components/UplotChart.vue'
 import { useWidgetStore } from '@/stores/widgetStore'
+import { useDbcStore } from '@/stores/dbcStore'
+import { useLogDataStore } from '@/stores/logDataStore'
 import { useTimeSeriesData } from '@/composables/useTimeSeriesData'
 import type { ChartSampleRate } from '@/lib/chartData'
 
@@ -19,6 +21,29 @@ const { snapshot, refresh } = useTimeSeriesData(consumerId, signals)
 const chartStatsRef = ref<HTMLElement>()
 const isStatsOpen = ref(false)
 const sampleRates = ref<ChartSampleRate[]>([])
+
+// Missing / calculating states (Part 5.8, 5.9). The signal list is only
+// authoritative once loaded; before that nothing counts as missing.
+const dbcStore = useDbcStore()
+const logDataStore = useLogDataStore()
+
+const missingSignals = computed(() => {
+  if (dbcStore.signals.length === 0) return []
+  const known = new Set(dbcStore.signals.map(signal => signal.id))
+  return signals.value.filter(signal => !known.has(signal))
+})
+
+const calculatingSignals = computed(() =>
+  signals.value.filter(signal => logDataStore.pendingSignals[signal]),
+)
+
+function removeMissingSignal(signalId: string) {
+  const current = widget.value
+  if (!current) return
+  widgetStore.updateWidget(props.widgetId, {
+    signals: current.signals.filter(signal => signal !== signalId),
+  })
+}
 
 function formatSamplesPerSecond(rate: number | null) {
   if (rate == null) return '—'
@@ -53,6 +78,7 @@ defineExpose({ startEditTitle })
 <template>
   <BaseWidget ref="baseWidgetRef" :widget-id="widgetId" icon="📈" @refresh="refresh">
     <template #header-actions>
+      <span v-if="calculatingSignals.length" class="calculating-indicator">calculating…</span>
       <div v-if="widget?.signals?.length" ref="chartStatsRef" class="chart-stats">
         <button
           class="chart-stats__toggle"
@@ -90,15 +116,22 @@ defineExpose({ startEditTitle })
           <p>No signals configured.</p>
           <button @click="baseWidgetRef?.toggleConfig()" class="save-btn">Configure</button>
         </div>
-        <UplotChart
-          v-else
-          :model="snapshot.model"
-          :viewport="snapshot.viewport"
-          :reset-view-revision="snapshot.resetViewRevision"
-          sync-key="wolftrack-dashboard-time"
-          :time-origin="snapshot.timeOrigin"
-          @sample-rates="sampleRates = $event"
-        />
+        <template v-else>
+          <ul v-if="missingSignals.length" class="missing-signals">
+            <li v-for="signal in missingSignals" :key="signal">
+              <span class="missing-label">{{ signal }} (missing signal)</span>
+              <button type="button" aria-label="Remove missing signal" @click="removeMissingSignal(signal)">×</button>
+            </li>
+          </ul>
+          <UplotChart
+            :model="snapshot.model"
+            :viewport="snapshot.viewport"
+            :reset-view-revision="snapshot.resetViewRevision"
+            sync-key="wolftrack-dashboard-time"
+            :time-origin="snapshot.timeOrigin"
+            @sample-rates="sampleRates = $event"
+          />
+        </template>
       </div>
     </template>
   </BaseWidget>
@@ -122,6 +155,45 @@ defineExpose({ startEditTitle })
   height: 100%;
   color: var(--color-text-muted);
   gap: 10px;
+}
+
+.calculating-indicator {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-style: italic;
+  margin-right: 6px;
+  white-space: nowrap;
+}
+
+.missing-signals {
+  list-style: none;
+  margin: 0;
+  padding: 2px 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 11px;
+}
+
+.missing-signals li {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: var(--color-text-muted);
+  background: var(--color-panel);
+  border: 1px dashed var(--color-border, rgba(128, 128, 128, 0.4));
+}
+
+.missing-signals button {
+  border: none;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1;
+  padding: 0 2px;
 }
 
 .save-btn {

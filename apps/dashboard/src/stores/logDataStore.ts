@@ -7,6 +7,12 @@ export interface LogStatus {
   progress: number
   start_ts: number
   end_ts: number
+  /** Absent on older backends (no virtual-signal support). */
+  derived?: {
+    status: 'idle' | 'computing' | 'ready' | 'error'
+    progress: number
+    pending: string[]
+  }
 }
 
 export interface LogTimeWindow {
@@ -71,7 +77,83 @@ export const useLogDataStore = defineStore('logData', () => {
   let detailRequestId = 0
   let sessionId = 0
 
+  // --- virtual-signal invalidation and "calculating…" retry (Part 5.6/5.9)
+  // Ids whose latest query answered `pending` (or that were just edited):
+  // charts show "calculating…" and a backoffed retry re-requests them.
+  const pendingSignals = ref<Record<string, true>>({})
+  let pendingRetryTimer: number | null = null
+  let pendingRetryDelayMs = 1_000
+  const pendingRetryIds = new Set<string>()
+
+  function stopPendingRetry() {
+    if (pendingRetryTimer !== null) {
+      clearTimeout(pendingRetryTimer)
+      pendingRetryTimer = null
+    }
+    pendingRetryIds.clear()
+    pendingRetryDelayMs = 1_000
+  }
+
+  function schedulePendingRetry() {
+    if (pendingRetryIds.size === 0 || pendingRetryTimer !== null) return
+    pendingRetryTimer = window.setTimeout(() => {
+      pendingRetryTimer = null
+      const ids = [...pendingRetryIds]
+      const { start_ts, end_ts } = status.value
+      void fetchQuery(ids, start_ts, end_ts, LOG_OVERVIEW_MAX_POINTS, 'overview')
+      const window = queryWindow.value
+      void fetchQuery(
+        ids,
+        window.start_ts,
+        window.end_ts,
+        getLogQueryPointBudget(window.start_ts, window.end_ts),
+        'detail',
+      )
+    }, pendingRetryDelayMs)
+    pendingRetryDelayMs = Math.min(pendingRetryDelayMs * 2, 10_000)
+  }
+
+  /**
+   * Drop cached data for edited/deleted virtual signals (and dependents)
+   * so fresh values replace stale ones; re-requests with backoff while the
+   * backend recomputes. Timers are cancelled by clearQueryCaches (log or
+   * setup switch) so nothing leaks.
+   */
+  function invalidateSignals(signalIds: string[]) {
+    if (signalIds.length === 0) return
+    for (const id of signalIds) {
+      delete overviewBuffers.value[id]
+      delete detailBuffers.value[id]
+      delete detailSignalIds.value[id]
+      pendingRetryIds.add(id)
+    }
+    overviewVersion.value++
+    detailVersion.value++
+    detailWindow.value = null
+    dataVersion.value++
+    pendingRetryDelayMs = 0
+    schedulePendingRetry()
+  }
+
+  function markPending(signalIds: string[]) {
+    for (const id of signalIds) {
+      pendingSignals.value[id] = true
+      pendingRetryIds.add(id)
+    }
+    schedulePendingRetry()
+  }
+
+  function clearPending(signalIds: string[]) {
+    for (const id of signalIds) {
+      delete pendingSignals.value[id]
+      pendingRetryIds.delete(id)
+    }
+    if (pendingRetryIds.size === 0) pendingRetryDelayMs = 1_000
+  }
+
   function clearQueryCaches() {
+    stopPendingRetry()
+    pendingSignals.value = {}
     overviewController?.abort()
     detailController?.abort()
     overviewController = null
@@ -175,6 +257,12 @@ export const useLogDataStore = defineStore('logData', () => {
         )
         status.value = data
 
+        // A backend mid-derived-compute makes those ids "calculating…" even
+        // for charts opened before the invalidation was noticed here.
+        if (data.derived?.status === 'computing' && data.derived.pending?.length) {
+          markPending(data.derived.pending)
+        }
+
         if (hasNewReadyLog) clearQueryCaches()
 
         if (data.status === 'ready' && pollInterval) {
@@ -246,6 +334,16 @@ export const useLogDataStore = defineStore('logData', () => {
           ? requestId === overviewRequestId
           : requestId === detailRequestId
         if (controller.signal.aborted || requestSession !== sessionId || !isLatest) return
+        // Virtual signals still being computed come back as empty arrays +
+        // `pending` ids: show "calculating…" and retry with backoff. Ids
+        // that answered with data are no longer pending.
+        if (Array.isArray(data.pending)) {
+          markPending(data.pending)
+          const resolved = signals.filter(
+            signal => !data.pending.includes(signal) && pendingSignals.value[signal],
+          )
+          if (resolved.length > 0) clearPending(resolved)
+        }
         if (data.data) {
           const targetBuffers = target === 'overview' ? overviewBuffers : detailBuffers
           for (const [sig, buf] of Object.entries(data.data)) {
@@ -311,8 +409,10 @@ export const useLogDataStore = defineStore('logData', () => {
     queryWindow,
     currentTime,
     isPlaying,
+    pendingSignals,
     startPollingStatus,
     stopPolling,
+    checkStatus,
     requestOverviewData,
     requestDetailData,
     setQueryWindow,
@@ -321,6 +421,9 @@ export const useLogDataStore = defineStore('logData', () => {
     endQueryWindowDrag,
     getQueryPointBudget: getLogQueryPointBudget,
     clearBuffers,
-    stopPlayback
+    stopPlayback,
+    invalidateSignals,
+    markPending,
+    clearPending,
   }
 })

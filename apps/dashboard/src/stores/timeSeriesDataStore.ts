@@ -39,7 +39,17 @@ export const useTimeSeriesDataStore = defineStore('timeSeriesData', () => {
       && logDataStore.status.end_ts > logDataStore.status.start_ts
   })
 
-  watch([activeSignals, () => dataSourceStore.config.source, () => logDataStore.status.status], ([signals, source]) => {
+  // Signals a widget may still reference that no longer exist (a deleted
+  // virtual signal survives in the localStorage layout, 5.8): never request
+  // them from the backend, but only once the signal list has actually
+  // loaded — an empty list must not blank the charts.
+  const chartableSignals = computed(() => {
+    if (dbcStore.signals.length === 0) return activeSignals.value
+    const known = new Set(dbcStore.signals.map(signal => signal.id))
+    return activeSignals.value.filter(signal => known.has(signal))
+  })
+
+  watch([chartableSignals, () => dataSourceStore.config.source, () => logDataStore.status.status], ([signals, source]) => {
     liveDataStore.setSubscribedSignals(signals)
     if (source === 'logfile' && isReadyLog.value && signals.length > 0) {
       void logDataStore.requestOverviewData(signals)
@@ -47,7 +57,7 @@ export const useTimeSeriesDataStore = defineStore('timeSeriesData', () => {
   }, { immediate: true })
 
   watch([
-    activeSignals,
+    chartableSignals,
     isReadyLog,
     () => logDataStore.queryWindow.start_ts,
     () => logDataStore.queryWindow.end_ts,

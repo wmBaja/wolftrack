@@ -115,6 +115,18 @@ export const useLiveDataStore = defineStore('liveData', () => {
 
         if (payload.type === 'live_batch' && payload.signals) {
           const dataSource = useDataSourceStore()
+
+          // Backward stream clock step (DAQ reboot, looped ZMQ replay):
+          // uPlot needs ascending x, so drop every buffer (raw included),
+          // not just virtual ones, and restart the session origin. The
+          // samples in THIS batch are already on the new time base (the
+          // backend flushed the old-base batch before flagging), so they
+          // are processed normally after the clear.
+          if (payload.clock_step === true) {
+            buffers.clear()
+            sessionStartTimestamp.value = null
+          }
+
           let latestTimestamp: number | null = null
 
           for (const [signalId, data] of Object.entries(payload.signals)) {
@@ -177,6 +189,14 @@ export const useLiveDataStore = defineStore('liveData', () => {
     dataVersion.value++
   }
 
+  /** Drop one signal's buffer: an edited definition's old values must
+   * never be mixed with new ones; the subscription is re-sent so the
+   * backend keeps (or stops) emitting it. */
+  function clearSignal(signalId: string) {
+    if (!buffers.delete(signalId)) return
+    dataVersion.value++
+  }
+
   return {
     isConnected,
     buffers,
@@ -186,6 +206,7 @@ export const useLiveDataStore = defineStore('liveData', () => {
     connect,
     disconnect,
     clearBuffers,
+    clearSignal,
     setSubscribedSignals,
     sendSubscription
   }

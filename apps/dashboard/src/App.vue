@@ -6,15 +6,24 @@ import DialogBox from '@/components/DialogBox.vue'
 import { useLiveDataStore } from './stores/liveDataStore.ts'
 import { useDataSourceStore } from './stores/dataSourceStore.ts'
 import { useDaqConnectionStore } from './stores/daqConnectionStore.ts'
+import { useDbcStore } from './stores/dbcStore.ts'
+import { useWtsStore } from './stores/wtsStore.ts'
 import { onMounted, onUnmounted } from 'vue'
 
 const liveDataStore = useLiveDataStore()
 const dataSourceStore = useDataSourceStore()
 const daqConnectionStore = useDaqConnectionStore()
+const dbcStore = useDbcStore()
+const wtsStore = useWtsStore()
 
 onMounted(async () => {
   void liveDataStore.connect()
   await dataSourceStore.fetchConfig()
+  // WTS: the op catalog belongs to this backend connection (never cached
+  // across restarts); definitions follow the active setup.
+  void wtsStore.fetchCatalog()
+  void wtsStore.fetchDefinitions()
+  void dbcStore.fetchDbcs()
   await daqConnectionStore.fetchVisualizerLiveSource()
   if (daqConnectionStore.isConnected || daqConnectionStore.isReady) {
     daqConnectionStore.startConnectionPolling()

@@ -28,6 +28,9 @@ interface TreeSignal {
   name: string
   unit: string
   selected: boolean
+  isVirtual: boolean
+  broken: boolean
+  tooltip: string
 }
 
 interface TreeMessage {
@@ -50,6 +53,7 @@ const treeData = computed<TreeNode[]>(() => {
     
     if (query) {
       if (!sig.name.toLowerCase().includes(query) && 
+          !(sig.display_name ?? '').toLowerCase().includes(query) &&
           !msgName.toLowerCase().includes(query) && 
           !nodeName.toLowerCase().includes(query)) {
         continue
@@ -66,9 +70,14 @@ const treeData = computed<TreeNode[]>(() => {
     }
     nodeMap.get(msgName)!.push({
       id: sig.id,
-      name: sig.name,
+      name: sig.display_name || sig.name,
       unit: sig.unit,
-      selected: props.selectedSignals.includes(sig.id)
+      selected: props.selectedSignals.includes(sig.id),
+      isVirtual: sig.is_virtual === true,
+      broken: sig.broken === true,
+      tooltip: [sig.description, sig.broken ? sig.broken_reason : null]
+        .filter(Boolean)
+        .join(' — '),
     })
   }
 
@@ -153,7 +162,13 @@ function handleSignalClick(sig: TreeSignal) {
               >
                 <span class="icon">📈</span>
                 <span class="label">{{ sig.name }}</span>
-                <span v-if="sig.unit" class="unit">({{ sig.unit }})</span>
+                <span v-if="sig.isVirtual" class="virtual-badge" title="Virtual signal">WT</span>
+                <span
+                  v-if="sig.broken"
+                  class="broken-icon"
+                  :title="sig.tooltip || 'Broken definition'"
+                >⚠️</span>
+                <span v-if="sig.unit" class="unit" :title="sig.tooltip">({{ sig.unit }})</span>
                 <span v-if="sig.selected" class="check">✓</span>
               </div>
             </div>
@@ -266,6 +281,20 @@ function handleSignalClick(sig: TreeSignal) {
 
 .check {
   font-weight: bold;
+}
+
+.virtual-badge {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 0 4px;
+  border-radius: 3px;
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border, rgba(128, 128, 128, 0.4));
+}
+
+.broken-icon {
+  font-size: 11px;
 }
 
 .no-results {

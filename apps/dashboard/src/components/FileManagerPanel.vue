@@ -4,6 +4,7 @@ import { confirmDialog } from '@/types/dialog'
 import { useDbcStore } from '@/stores/dbcStore'
 import { useLogStore } from '@/stores/logStore'
 import { useDaqConnectionStore } from '@/stores/daqConnectionStore'
+import { getVisualizerBase } from '@/lib/visualizer'
 
 const dbcStore = useDbcStore()
 const logStore = useLogStore()
@@ -31,7 +32,7 @@ const renameIsValid = computed(() => {
   const newName = renameFilename.value
   const isValid = type === 'log'
     ? logStore.isValidLogFilename(newName)
-    : dbcStore.isValidDbcFilename(newName)
+    : dbcStore.isValidSetupFilename(newName)
   return isValid && newName !== name
 })
 
@@ -52,12 +53,39 @@ function togglePanel() {
   }
 }
 
-// DBC Tab logic
+// DBC/WTS Tab logic
 function handleDbcUpload(e: Event) {
   const file = (e.target as HTMLInputElement).files?.[0]
   if (file) {
     dbcStore.uploadDbc(file)
   }
+  ;(e.target as HTMLInputElement).value = ''
+}
+
+/** Download a setup file (.wts or .dbc) via the existing download route. */
+async function exportSetupFile(filename: string) {
+  const baseUrl = await getVisualizerBase()
+  try {
+    const res = await fetch(`${baseUrl}/api/dbc/${encodeURIComponent(filename)}/download`)
+    if (!res.ok) {
+      dbcStore.error = `Download failed (${res.status})`
+      return
+    }
+    const blob = await res.blob()
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = filename
+    link.click()
+    URL.revokeObjectURL(url)
+  } catch (e: unknown) {
+    dbcStore.error = e instanceof Error ? e.message : String(e)
+  }
+}
+
+function setupFileType(file: { type?: 'dbc' | 'wts'; name: string }): 'dbc' | 'wts' {
+  // Older backends omit `type`; fall back to the extension.
+  return file.type ?? (file.name.endsWith('.wts') ? 'wts' : 'dbc')
 }
 
 function selectDbc(filename: string) {
@@ -467,8 +495,8 @@ onBeforeUnmount(() => {
               <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
                 <path fill-rule="evenodd" d="M10 3a1 1 0 0 1 1 1v5h5a1 1 0 1 1 0 2h-5v5a1 1 0 1 1-2 0v-5H4a1 1 0 1 1 0-2h5V4a1 1 0 0 1 1-1z" clip-rule="evenodd" />
               </svg>
-              Upload DBC
-              <input type="file" accept=".dbc" @change="handleDbcUpload" hidden />
+              Upload Setup
+              <input type="file" accept=".dbc,.wts" @change="handleDbcUpload" hidden />
             </label>
           </div>
           <div class="selection-toolbar">
@@ -502,6 +530,11 @@ onBeforeUnmount(() => {
                     title="Double-click to rename"
                     @dblclick.stop="startRename('dbc', filename.name)"
                   >{{ filename.name }}</span>
+                  <span
+                    v-if="setupFileType(filename) === 'wts'"
+                    class="file-type-badge"
+                    title="WolfTrack Signals setup (DBC + virtual signals)"
+                  >WTS</span>
                   <span class="file-stats">{{ formatSize(filename.size) }} &bull; {{ formatDate(filename.mtime) }}</span>
                 </div>
               </div>
@@ -518,6 +551,15 @@ onBeforeUnmount(() => {
                 <button class="rename-cancel-btn" :disabled="dbcStore.mutatingName !== null" @click.stop="cancelRename">Cancel</button>
               </div>
               <div v-if="!isRenaming('dbc', filename.name)" class="file-actions">
+                <button
+                  class="download-btn"
+                  title="Export setup file"
+                  aria-label="Export setup file"
+                  @click.stop="exportSetupFile(filename.name)">
+                  <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14" aria-hidden="true">
+                    <path fill-rule="evenodd" d="M10 3a1 1 0 0 1 1 1v7.586l2.293-2.293a1 1 0 1 1 1.414 1.414l-4 4a1 1 0 0 1-1.414 0l-4-4a1 1 0 1 1 1.414-1.414L9 11.586V4a1 1 0 0 1 1-1zM5 16a1 1 0 0 1 1 1h8a1 1 0 1 1 0 2H6a1 1 0 0 1-1-1 1 1 0 0 1 0-2z" clip-rule="evenodd" transform="translate(0 -2)" />
+                  </svg>
+                </button>
                 <button
                 class="delete-btn"
                 :disabled="isDbcActionDisabled()"
@@ -844,6 +886,18 @@ onBeforeUnmount(() => {
 .file-item:hover .delete-btn,
 .file-item:hover .download-btn {
   opacity: 1;
+}
+.file-type-badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 0 5px;
+  border-radius: 4px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--color-blue-text);
+  background: var(--color-blue-bg-glow);
+  vertical-align: middle;
 }
 .delete-btn:hover {
   color: var(--color-danger-text);

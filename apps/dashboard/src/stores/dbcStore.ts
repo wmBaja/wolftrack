@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { getVisualizerBase } from '@/lib/visualizer'
+import type { OperationDef } from '@/types/wts'
 
 export interface DbcSignal {
   id: string
@@ -8,15 +9,29 @@ export interface DbcSignal {
   message: string
   name: string
   unit: string
+  // Additive WTS fields (absent on older backends and on raw signals).
+  is_virtual?: boolean
+  kind?: string
+  category?: string
+  description?: string
+  inputs?: string[]
+  operations?: OperationDef[]
+  broken?: boolean
+  broken_reason?: string | null
+  display_name?: string
+  min?: number
+  max?: number
 }
 
 export interface DbcFileInfo {
   name: string
   size: number
   mtime: number
+  /** Missing on older backends ⇒ "dbc". */
+  type?: 'dbc' | 'wts'
 }
 
-const DBC_FILE_NAME_PATTERN = /^[^/\\]+\.dbc$/
+export const SETUP_FILE_NAME_PATTERN = /^[^/\\]+\.(dbc|wts)$/
 
 export const useDbcStore = defineStore('dbcStore', () => {
   const availableDbcs = ref<DbcFileInfo[]>([])
@@ -26,8 +41,14 @@ export const useDbcStore = defineStore('dbcStore', () => {
   const error = ref<string | null>(null)
   const mutatingName = ref<string | null>(null)
 
-  function isValidDbcFilename(filename: string) {
-    return filename.trim() === filename && DBC_FILE_NAME_PATTERN.test(filename) && !filename.includes('..')
+  function isValidSetupFilename(filename: string) {
+    return filename.trim() === filename && SETUP_FILE_NAME_PATTERN.test(filename) && !filename.includes('..')
+  }
+
+  /** Renaming must keep the file's extension (.dbc stays .dbc, .wts stays .wts). */
+  function isValidRename(filename: string, newName: string) {
+    const extension = filename.endsWith('.wts') ? '.wts' : '.dbc'
+    return newName.endsWith(extension) && isValidSetupFilename(newName)
   }
 
   async function getResponseError(response: Response, fallback: string) {
@@ -146,8 +167,10 @@ export const useDbcStore = defineStore('dbcStore', () => {
   }
 
   async function renameDbc(filename: string, newName: string) {
-    if (!isValidDbcFilename(newName)) {
-      error.value = 'New filename must be a .dbc file name.'
+    if (!isValidRename(filename, newName)) {
+      error.value = `New filename must be a ${
+        filename.endsWith('.wts') ? '.wts' : '.dbc'
+      } file name.`
       return false
     }
 
@@ -190,6 +213,7 @@ export const useDbcStore = defineStore('dbcStore', () => {
     selectDbc,
     deleteDbc,
     renameDbc,
-    isValidDbcFilename,
+    isValidSetupFilename,
+    isValidRename,
   }
 })

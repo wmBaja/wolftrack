@@ -98,7 +98,7 @@ export function buildChartRenderModel(
     const unit = signal?.unit ?? ''
     return {
       id,
-      label: signal?.name || id,
+      label: signal?.display_name || signal?.name || id,
       unit,
       color: SERIES_COLORS[index % SERIES_COLORS.length]!,
       scaleKey: scaleKeyForUnit(unit),
