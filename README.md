@@ -22,6 +22,13 @@ cd ../..
 npm run dev
 ```
 
+On Mac:
+```bash
+npm --prefix apps/dashboard install --workspaces=false
+npm ci --legacy-peer-deps
+npm run dev
+```
+
 The dashboard starts the visualizer from `apps/visualizer` by default. Set `WOLFTRACK_VISUALIZER_DIR` only when developing against another visualizer checkout.
 
 Useful commands from the repository root:
