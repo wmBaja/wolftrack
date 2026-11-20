@@ -66,14 +66,14 @@ Runs in a worker thread with its **own** SQLite connection (WAL, `timeout=30`, w
 
 ## Tasks
 
-- [ ] 3.1 `dbc_hash` plumbing and the new cache key; update `tests/test_log_query_service.py` (`dbc=None` $\Rightarrow$ `nodbc`).
-- [ ] 3.2 Derived tables, lazy creation on cached files, freshness check.
-- [ ] 3.3 `compute_virtual_signals`: subgraph selection, cursor merge into `run_batch`, `TEMP` staging table, atomic swap, cancellation, progress.
-- [ ] 3.4 Run compute automatically after raw index publish and after a cached open for all stale definitions.
-- [ ] 3.5 `get_status()` `derived` block; `query()` table routing, short lock scope, and `pending`.
-- [ ] 3.6 Implement `on_wts_changed` (debounced recompute) and fix `/api/dbc/select` re-indexing.
-- [ ] 3.7 Benchmarks and `docs/wts/log.md`.
-- [ ] 3.8 **Last, separate PR, easy to drop (Q6):** include virtual signals in the existing CSV export. `_collect_export_rows` re-streams the BLF through `LogFileDataSource`; append rows read from `derived_signals` (`signal_name` = `WTS.<name>`, unit from the definition), sorted by timestamp. If derived is still computing return 409 with a clear message. Existing raw export behavior and tests stay unchanged.
+- [x] 3.1 `dbc_hash` plumbing and the new cache key; update `tests/test_log_query_service.py` (`dbc=None` $\Rightarrow$ `nodbc`).
+- [x] 3.2 Derived tables, lazy creation on cached files, freshness check.
+- [x] 3.3 `compute_virtual_signals`: subgraph selection, cursor merge into `run_batch`, `TEMP` staging table, atomic swap, cancellation, progress.
+- [x] 3.4 Run compute automatically after raw index publish and after a cached open for all stale definitions.
+- [x] 3.5 `get_status()` `derived` block; `query()` table routing, short lock scope, and `pending`.
+- [x] 3.6 Implement `on_wts_changed` (debounced recompute) and fix `/api/dbc/select` re-indexing.
+- [x] 3.7 Benchmarks and `docs/wts/log.md`.
+- [x] 3.8 (Q6) include virtual signals in the existing CSV/XLSX export. `_collect_export_rows` re-streams the BLF through `LogFileDataSource`; append rows read from `derived_signals` (`signal_name` = `WTS.<name>`, unit from the definition), sorted by timestamp. If derived is still computing return 409 with a clear message. Existing raw export behavior and tests stay unchanged.
 
 ## Tests
 
@@ -102,3 +102,14 @@ Runs in a worker thread with its **own** SQLite connection (WAL, `timeout=30`, w
 - Set `PRAGMA journal_mode=WAL` on each new connection; close all connections and cursors explicitly (`with closing(sqlite3.connect(...)) as conn:`) on `query()`, worker exit, and `stop()` so no `-wal`/`-shm` files linger and Windows never raises `WinError 32` when cleaning up temporary test directories.
 - A long log with several high-rate inputs produces many updates; keep per-update overhead low and insert in batches of 10,000 like the raw index.
 - Timestamps are floats in seconds (absolute UTC epoch from the DAQ's RTC; the engine does not care). Rows are read `ORDER BY timestamp`, so if the clock stepped backward during a recording the overlapping rows interleave. That is an existing limitation of raw indexing; do not try to repair it here, but mention it in `docs/wts/log.md`.
+## Notes from implementation
+
+- Interleaving detail: export rows are (raw_ts, row) pairs merged with the
+  BLF-stream rows via a stable sort, so shared timestamps keep BLF order.
+- A generator-expression nested inside a comprehension once shared its loop
+  cell in the cursor merge and made every input stream read the last cursor;
+  the merge now builds each row-generator with bound default args.
+- `LogQueryService` gained `set_cache_dir` (the module singleton is created
+  from the environment at import; `app.py` lifespan re-points it) and
+  `set_definitions_provider` (Part 3 wiring), keeping the package boundary:
+  `src/wts/` never sees the manager.

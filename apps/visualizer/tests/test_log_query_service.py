@@ -23,7 +23,7 @@ def test_cached_index_is_ready_with_complete_progress(tmp_path):
     service = LogQueryService(tmp_path)
     cache_key = (
         f"{log_file.name}_{log_file.stat().st_size}_"
-        f"{log_file.stat().st_mtime}.sqlite"
+        f"{log_file.stat().st_mtime}_nodbc.sqlite"
     )
     connection = sqlite3.connect(tmp_path / cache_key)
     connection.execute(
@@ -36,12 +36,19 @@ def test_cached_index_is_ready_with_complete_progress(tmp_path):
     service.start_indexing(str(log_file), dbc=None)
     service._task.join(timeout=2)
 
-    assert service.get_status() == {
+    status = service.get_status()
+    assert {
+        "status": status["status"],
+        "progress": status["progress"],
+        "start_ts": status["start_ts"],
+        "end_ts": status["end_ts"],
+    } == {
         "status": "ready",
         "progress": 100,
         "start_ts": 1.0,
         "end_ts": 1.0,
     }
+    assert status["derived"] == {"status": "idle", "progress": 0, "pending": []}
 
 
 def test_indexing_handles_reader_closing_the_stream_at_eof(tmp_path, monkeypatch):
@@ -124,7 +131,13 @@ def test_stop_cancels_indexing_and_discards_temporary_cache(tmp_path, monkeypatc
 
     assert waiting_for_next_message.wait(timeout=2)
     service.stop()
-    assert service.get_status() == {
+    status = service.get_status()
+    assert {
+        "status": status["status"],
+        "progress": status["progress"],
+        "start_ts": status["start_ts"],
+        "end_ts": status["end_ts"],
+    } == {
         "status": "idle",
         "progress": 0,
         "start_ts": 0,

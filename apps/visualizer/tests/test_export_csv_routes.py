@@ -209,3 +209,97 @@ def test_export_xlsx_returns_grouped_workbook(monkeypatch, tmp_path: Path):
     assert instance.playback_speed == 0
     assert instance.connected is True
     assert instance.disconnected is True
+
+
+class StubLogQueryService:
+    """Fake log index with derived rows for export tests."""
+
+    def __init__(self, status, db_path):
+        self._status = status
+        self.db_path = str(db_path)
+
+    def get_status(self):
+        return self._status
+
+
+def build_derived_db(tmp_path):
+    import sqlite3
+
+    db_path = tmp_path / "index.sqlite"
+    connection = sqlite3.connect(db_path)
+    connection.executescript(
+        "CREATE TABLE derived_signals (timestamp REAL, signal_id TEXT, value REAL);"
+        "INSERT INTO derived_signals VALUES "
+        "(1.5, 'WTS.Total', 150.0), (2.0, 'WTS.Total', 160.0);"
+    )
+    connection.commit()
+    connection.close()
+    return db_path
+
+
+class StubWtsDbcManager(StubDbcManager):
+    def get_signals(self):
+        return [
+            {"id": "VehicleState.speed", "is_virtual": False},
+            {"id": "WTS.Total", "is_virtual": True, "unit": "psi"},
+        ]
+
+
+def test_export_csv_includes_derived_rows(monkeypatch, tmp_path: Path):
+    StubLogFileDataSource.instances.clear()
+    monkeypatch.setattr(routes, "LogFileDataSource", StubLogFileDataSource)
+    db_path = build_derived_db(tmp_path)
+    service = StubLogQueryService(
+        {"status": "ready", "derived": {"status": "ready"}}, db_path
+    )
+    monkeypatch.setattr(routes, "log_query_service", service)
+
+    client, _ = build_client(tmp_path, dbc=StubDbc())
+    client.app.state.dbc_manager = StubWtsDbcManager(StubDbc())
+    response = client.get("/api/export_csv")
+
+    assert response.status_code == 200
+    lines = response.text.splitlines()
+    derived_lines = [line for line in lines if "WTS.Total" in line]
+    # 2 derived rows, unit merged from the virtual definition
+    assert len(derived_lines) == 2
+    assert derived_lines[0].endswith("150.0,psi")
+    # interleaved by timestamp: raw 1.25, 2.5; derived 1.5, 2.0 (3.0 msg skipped)
+    names = [line.split(",")[1] for line in lines[1:]]
+    assert names == [
+        "speed", "gear",
+        "WTS.Total",
+        "WTS.Total",
+        "speed", "abcdefghijklmnopqrstuvwxyz123456789",
+        "abcdefghijklmnopqrstuvwxyz123456780",
+    ]
+
+
+def test_export_csv_409_while_derived_computing(monkeypatch, tmp_path: Path):
+    monkeypatch.setattr(routes, "LogFileDataSource", StubLogFileDataSource)
+    db_path = build_derived_db(tmp_path)
+    service = StubLogQueryService(
+        {"status": "ready", "derived": {"status": "computing"}}, db_path
+    )
+    monkeypatch.setattr(routes, "log_query_service", service)
+
+    client, _ = build_client(tmp_path, dbc=StubDbc())
+    client.app.state.dbc_manager = StubWtsDbcManager(StubDbc())
+    response = client.get("/api/export_csv")
+    assert response.status_code == 409
+    assert "computed" in response.json()["detail"]
+
+
+def test_export_csv_without_derived_is_unchanged(monkeypatch, tmp_path: Path):
+    monkeypatch.setattr(routes, "LogFileDataSource", StubLogFileDataSource)
+
+    class IdleLogQueryService:
+        def get_status(self):
+            return {"status": "idle"}
+
+    monkeypatch.setattr(routes, "log_query_service", IdleLogQueryService())
+    StubLogFileDataSource.instances.clear()
+    client, _ = build_client(tmp_path, dbc=StubDbc())
+    response = client.get("/api/export_csv")
+    assert response.status_code == 200
+    assert "WTS." not in response.text

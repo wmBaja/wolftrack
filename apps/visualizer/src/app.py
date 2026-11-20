@@ -43,7 +43,26 @@ async def lifespan(app: FastAPI):
     # Initialize global DBC manager
     user_data_dir = os.environ.get("WOLFTRACK_USER_DATA", os.getcwd())
     app.state.dbc_manager = DBCManager(user_data_dir)
-    
+
+    # WTS: the log index must use the real user-data cache dir even when the
+    # singleton was created before the environment was set, and virtual
+    # signals come from the active setup file.
+    log_query_service.set_cache_dir(os.path.join(user_data_dir, "logs", "cache"))
+
+    def wts_definitions_provider():
+        dbc_manager = app.state.dbc_manager
+        return dbc_manager.get_virtual_signals(), dbc_manager.get_definition_hashes()
+
+    log_query_service.set_definitions_provider(wts_definitions_provider)
+
+    def on_wts_changed(changed_ids):
+        # File-level changes (select/upload/delete/rename) re-index the log
+        # from the routes; signal edits recompute derived rows only.
+        if changed_ids is not None:
+            log_query_service.request_wts_recompute(changed_ids)
+
+    app.state.dbc_manager.set_changed_callback(on_wts_changed)
+
     app.state.pipeline_manager = PipelineManager(app.state.config, app.state.dbc_manager)
     
     if app.state.pipeline_manager.has_source():

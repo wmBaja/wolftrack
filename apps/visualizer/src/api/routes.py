@@ -1,7 +1,9 @@
 import csv
+import contextlib
 import io
 import os
 import shutil
+import sqlite3
 import json
 from collections import defaultdict
 from datetime import datetime, timezone
@@ -77,6 +79,31 @@ def _build_export_filename() -> str:
     return f"wolftrack-export-{timestamp}.csv"
 
 
+def _reindex_active_log(request: Request) -> None:
+    """Re-index the configured log for the current active setup (D8 cache key).
+
+    Called whenever the active setup changes (select/upload auto-select/
+    delete/rename). The DBC hash is part of the cache key, so switching
+    setups on the same log is a cache hit for a pair indexed before and
+    never serves stale or missing signals.
+    """
+    config = getattr(request.app.state, "config", None)
+    pipeline = getattr(config, "pipeline", None) if config else None
+    if not pipeline or (pipeline.source or "").lower() != "logfile":
+        return
+    log_file = getattr(pipeline, "log_file", None)
+    if not log_file or not os.path.exists(log_file):
+        return
+    dbc_manager = getattr(request.app.state, "dbc_manager", None)
+    active_dbc = dbc_manager.get_active_dbc() if dbc_manager else None
+    if not active_dbc:
+        log_query_service.stop()
+        return
+    log_query_service.start_indexing(
+        log_file, active_dbc, dbc_manager.get_active_dbc_hash()
+    )
+
+
 def _format_export_timestamp(raw_timestamp: float, timezone_name: str) -> str:
     localized = datetime.fromtimestamp(raw_timestamp, tz=timezone.utc).astimezone(ZoneInfo(timezone_name))
     return localized.isoformat()
@@ -101,7 +128,7 @@ def _validate_export_request(request: Request, timezone_name: str):
 async def _collect_export_rows(request: Request, timezone_name: str) -> list[dict[str, object]]:
     log_file, active_dbc = _validate_export_request(request, timezone_name)
     source = LogFileDataSource(log_file_path=log_file, playback_speed=0, db=active_dbc)
-    rows: list[dict[str, object]] = []
+    sortable: list[tuple[float, int, dict[str, object]]] = []
 
     try:
         await source.connect()
@@ -123,15 +150,80 @@ async def _collect_export_rows(request: Request, timezone_name: str) -> list[dic
             timestamp = float(message.get("timestamp", 0))
             formatted_timestamp = _format_export_timestamp(timestamp, timezone_name)
             for signal_name, signal_value in decoded.items():
-                rows.append({
+                sortable.append((timestamp, len(sortable), {
                     "timestamp": formatted_timestamp,
                     "signal_name": signal_name,
                     "value": signal_value,
                     "unit": signal_units.get(signal_name, ""),
-                })
+                }))
     finally:
         await source.disconnect()
 
+    # Virtual-signal rows interleaved by raw timestamp; a stable sort keeps
+    # the BLF order of raw rows that share a timestamp.
+    for timestamp, row in _collect_derived_export_rows(request, timezone_name):
+        sortable.append((timestamp, len(sortable), row))
+    sortable.sort(key=lambda item: (item[0], item[1]))
+    return [row for _, _, row in sortable]
+
+
+def _collect_derived_export_rows(
+    request: Request, timezone_name: str
+) -> list[tuple[float, dict[str, object]]]:
+    """Virtual-signal rows from the derived index (Part 3, Q6).
+
+    Raises 409 while derived compute is still running so a partial export is
+    never produced. With no virtual signals or no index this is a no-op, so
+    the raw-only export behavior is unchanged. Returns (raw_ts, row) pairs.
+    """
+    status = log_query_service.get_status()
+    if status.get("status") != "ready":
+        return []
+    derived = status.get("derived") or {}
+    if derived.get("status") == "computing":
+        raise HTTPException(
+            status_code=409,
+            detail="Virtual signals are still being computed; try the export "
+                   "again in a moment.",
+        )
+    if derived.get("status") != "ready":
+        return []
+
+    dbc_manager = getattr(request.app.state, "dbc_manager", None)
+    if dbc_manager is None:
+        return []
+    units = {
+        signal["id"]: (signal.get("unit") or "")
+        for signal in dbc_manager.get_signals()
+        if signal.get("is_virtual")
+    }
+    if not units:
+        return []
+
+    db_path = getattr(log_query_service, "db_path", None)
+    if not db_path or not os.path.exists(db_path):
+        return []
+
+    rows: list[tuple[float, dict[str, object]]] = []
+    with contextlib.closing(
+        sqlite3.connect(f"file:{db_path}?mode=ro", uri=True, timeout=30)
+    ) as connection:
+        try:
+            cursor = connection.execute(
+                "SELECT timestamp, signal_id, value FROM derived_signals "
+                "ORDER BY timestamp"
+            )
+        except sqlite3.OperationalError:
+            return []  # index predates derived tables
+        for raw_timestamp, signal_id, value in cursor:
+            raw_timestamp = float(raw_timestamp)
+            formatted = _format_export_timestamp(raw_timestamp, timezone_name)
+            rows.append((raw_timestamp, {
+                "timestamp": formatted,
+                "signal_name": signal_id,
+                "value": value,
+                "unit": units.get(signal_id, ""),
+            }))
     return rows
 
 
@@ -201,7 +293,10 @@ async def upload_dbc_route(
     pipeline_manager = getattr(request.app.state, 'pipeline_manager', None)
     if pipeline_manager and pipeline_manager.source:
         pipeline_manager.source.db = dbc_manager.get_active_dbc()
-    
+
+    # Uploading the first setup auto-selects it; re-point the log index too.
+    _reindex_active_log(request)
+
     return {"status": "success", "message": f"DBC {file.filename} uploaded successfully"}
 
 @router.post("/api/dbc/select")
@@ -223,7 +318,9 @@ async def select_dbc_route(
     pipeline_manager = getattr(request.app.state, 'pipeline_manager', None)
     if pipeline_manager and pipeline_manager.source:
         pipeline_manager.source.db = dbc_manager.get_active_dbc()
-        
+
+    _reindex_active_log(request)
+
     return {"status": "success", "message": f"DBC {filename} selected"}
 
 @router.get("/api/dbc/{filename}/download")
@@ -257,7 +354,8 @@ async def delete_dbc_route(
     dbc_manager = getattr(request.app.state, 'dbc_manager', None)
     if not dbc_manager:
         raise HTTPException(status_code=500, detail="DBC Manager not initialized")
-        
+
+    was_active = dbc_manager.active_dbc_filename == filename
     try:
         success = dbc_manager.delete_dbc(filename)
     except ValueError as error:
@@ -268,8 +366,14 @@ async def delete_dbc_route(
     pipeline_manager = getattr(request.app.state, 'pipeline_manager', None)
     if pipeline_manager and pipeline_manager.source:
         pipeline_manager.source.db = dbc_manager.get_active_dbc()
-        
-    return {"status": "success", "message": f"DBC {filename} deleted"}
+
+    if was_active:
+        _reindex_active_log(request)
+
+    return {
+        "status": "success",
+        "message": f"DBC {filename} deleted",
+    }
 
 
 @router.patch("/api/dbc/{filename}")
@@ -298,6 +402,8 @@ async def rename_dbc_route(
 
     if was_active and getattr(request.app.state.config, 'pipeline', None):
         request.app.state.config.pipeline.dbc_file = dbc_manager.get_active_setup_path()
+        # Promotion on first save rewrites dbc_file, but the index cache key
+        # is unchanged (same DBC hash) — no log re-index needed for a rename.
 
     return {
         "status": "success",
@@ -373,7 +479,11 @@ async def upload_config(
         dbc_manager = getattr(request.app.state, 'dbc_manager', None)
         active_dbc = dbc_manager.get_active_dbc() if dbc_manager else None
         if active_dbc and config.pipeline.log_file:
-            log_query_service.start_indexing(config.pipeline.log_file, active_dbc)
+            log_query_service.start_indexing(
+                config.pipeline.log_file,
+                active_dbc,
+                dbc_manager.get_active_dbc_hash(),
+            )
             
     return {"status": "success", "message": "Pipeline configuration uploaded and restarted successfully"}
 
@@ -383,8 +493,10 @@ async def get_logfile_status():
 
 @router.post("/api/logfile/query")
 async def query_logfile(payload: LogQueryRequest):
-    data = log_query_service.query(payload.signals, payload.start_ts, payload.end_ts, payload.max_points)
-    return {"data": data}
+    data, pending = log_query_service.get_results(
+        payload.signals, payload.start_ts, payload.end_ts, payload.max_points
+    )
+    return {"data": data, "pending": pending}
 
 
 @router.get("/api/export_csv")
