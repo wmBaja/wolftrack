@@ -6,7 +6,7 @@
 
 A pure-Python, I/O-free engine that evaluates virtual signal definitions over timestamped updates, with a small op registry. No FastAPI, SQLite, ZMQ, asyncio, or file access in this package. Read [00-architecture.md](00-architecture.md) §4 (semantics) and §6 (invariants) first; they are binding.
 
-The scope is deliberately small: five ops. The point is a correct, extensible foundation, not a large catalog.
+The scope is deliberately small: five ops plus the `expr` head op (`expression`: `%s` = Nth selected signal, evaluated over a whitelisted arithmetic AST — no user code execution). The point is a correct, extensible foundation, not a large catalog.
 
 ## Package layout
 
@@ -17,10 +17,11 @@ src/wts/
   schema.py        # VirtualSignalDef, OperationDef; parse/validate; canonical_json; def_hash
   graph.py         # dependency resolution: topological order, cycle path, depth limit, ancestors
   ops/
-    __init__.py    # registry: OPS dict, @register, describe_all(); explicitly imports basic, combine, filters
+    __init__.py    # registry: OPS dict, @register, describe_all(); explicitly imports basic, combine, expr, filters
     base.py        # Op base class, HeadOp base class, ParamSpec
     basic.py       # scale, bias
     combine.py     # combine
+    expr.py        # expr (+ the safe expression evaluator)
     filters.py     # moving_avg, lowpass
   engine.py        # VirtualSignalEngine
   batch.py         # run_batch helper
@@ -82,6 +83,7 @@ Include `is_head` on every entry in `operations` so the Part 6 editor knows whic
 | Op | Params | Behavior and edge cases |
 | :-- | :-- | :-- |
 | `combine` | `operator`: `add`, `subtract` ($a - b - c \dots$), `multiply`, `divide` (exactly 2 inputs) | Validate in `__init__` or schema validation: `divide` with `len(inputs) != 2` raises a validation error. `divide` by zero $\Rightarrow$ **no sample** (`None`). |
+| `expr` | `expression` | Head op: each literal `%s` binds to the Nth input in selection order; compiled once to a whitelisted arithmetic AST (numbers, `+ - * / // % **`, a fixed function table, `pi`/`e`). Arithmetic faults (`/0`, `sqrt(-1)`, overflow) $\Rightarrow$ **no sample**; more placeholders than inputs $\Rightarrow$ validation error. |
 | `scale` | `factor` | `value * factor`. |
 | `bias` | `offset` | `value + offset`. |
 | `moving_avg` | `window_seconds` ($0 < w \le 600$) | Time-based window of `(ts, value)`; running sum recomputed every 10,000 updates and whenever `len(window) <= 1` to eliminate floating-point subtraction drift. Emits from the first sample. `notify_gap` clears the window and resets the running sum to `0.0`. |
@@ -109,7 +111,7 @@ Implement exactly as specified in 00-architecture §4, plus:
 ## Tasks
 
 - [x] 1.1 `errors.py`, `schema.py` (parse, validate, `canonical_json`, `def_hash` of `{kind, inputs, operations}` + upstream hashes via `graph.py`).
-- [x] 1.2 `ops/` registry, `describe_all()` (including `is_head`), explicit submodule imports in `ops/__init__.py`, and the five ops.
+- [x] 1.2 `ops/` registry, `describe_all()` (including `is_head`), explicit submodule imports in `ops/__init__.py`, and the five ops. (`expr` head op added later; see `src/wts/README.md`.)
 - [x] 1.3 `graph.py` (topological order, cycle reported as a path, depth limit 16, `subgraph_defs`).
 - [x] 1.4 `engine.py`, `batch.py`.
 - [x] 1.5 Tests below, and `src/wts/README.md` ("add an op in 3 steps").

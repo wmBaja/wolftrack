@@ -224,7 +224,7 @@ class TestCatalog:
             for param in op["params"]:
                 assert param["name"] and param["type"]
         heads = {op["type"] for op in catalog["operations"] if op["is_head"]}
-        assert heads == {"combine"}
+        assert heads == {"combine", "expr"}
 
     def test_dummy_registration_appears(self):
         @register

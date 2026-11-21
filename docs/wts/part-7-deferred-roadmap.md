@@ -69,9 +69,11 @@ This answers "what if a live operator needs more history than the display window
 
 ## 8. Expression operation
 
-**What.** An `expression` op such as `sqrt(a*a + b*b)` with named inputs.
+**Shipped (positional variant, head position only).** The `expr` head op evaluates a user expression where each literal `%s` binds to the Nth selected input in order, over a whitelisted arithmetic AST (`src/wts/ops/expr.py`).
 
-**Constraints (D4).** Parse with Python's `ast` into a whitelisted node set (numbers, names, `+ - * / ** %`, comparisons, a small function allowlist); compile to a closure; enforce size and depth limits; no attribute access; never `eval`/`exec`; fuzz-test it. `ParamSpec` already supports a validated string parameter. Many cases are already covered by chaining definitions (D5), so do this only if users hit that limit.
+**What remains.** Named-input expressions such as `sqrt(a*a + b*b)` bound to inputs by name rather than by position.
+
+**Constraints (D4).** Parse with Python's `ast` into a whitelisted node set (numbers, names, `+ - * / ** %`, a small function allowlist; comparisons were left out of the shipped `expr` op too); compile to a closure; enforce size and depth limits; no attribute access; never `eval`/`exec`; fuzz-test it. `ParamSpec` already supports a validated string parameter. The shipped `expr` op already satisfies all of this; the open work is only the name-binding layer.
 
 ## 9. More ops and offline filters
 

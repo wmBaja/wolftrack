@@ -45,10 +45,11 @@ change needed (D15).
 | type        | params           | notes                                    |
 | :--         | :--              | :--                                      |
 | `combine`   | `operator`       | head op: add/subtract/multiply/divide     |
+| `expr`      | `expression`     | head op: %s = Nth selected signal; safe arithmetic AST |
 | `scale`     | `factor`         | value × factor                           |
 | `bias`      | `offset`         | value + offset                           |
 | `moving_avg`| `window_seconds` | time window, ≤ 600 s, drift-renormalized  |
 | `lowpass`   | `cutoff_hz`      | first-order RC, causal                   |
 
-Anything beyond this list (abs, clamp, derivative, integral, GPS timers…) is
+Anything beyond this list (clamp, derivative, integral, GPS timers…) is
 deliberately deferred — see `docs/wts/part-7-deferred-roadmap.md`.

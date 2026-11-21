@@ -141,6 +141,34 @@ class TestCrud:
         assert response.status_code == 422
         assert response.json()["detail"]["errors"][0]["code"] == "op_unknown"
 
+    def test_put_expr_roundtrip(self, client):
+        upload_dbc(client)
+        response = client.put(
+            "/api/wts/signals/Ratio",
+            json={"definition": definition(
+                "Ratio",
+                unit="",
+                operations=[{"type": "expr", "expression": "%s / %s"}],
+            )},
+        )
+        assert response.status_code == 200
+        assert response.json()["def_hash"]
+        signals = client.get("/api/signals").json()["signals"]
+        virtual = next(s for s in signals if s["id"] == "WTS.Ratio")
+        assert virtual["operations"] == [{"type": "expr", "expression": "%s / %s"}]
+
+    @pytest.mark.parametrize("expression", ["sqrt(", "(1"])
+    def test_put_expr_invalid_422(self, client, expression):
+        upload_dbc(client)
+        response = client.put(
+            "/api/wts/signals/Bad",
+            json={"definition": definition(
+                "Bad", operations=[{"type": "expr", "expression": expression}]
+            )},
+        )
+        assert response.status_code == 422
+        assert response.json()["detail"]["errors"][0]["code"] == "op_params"
+
     def test_get_signals_lists_broken(self, client):
         upload_dbc(client)
         # craft a .wts with a broken definition and upload it

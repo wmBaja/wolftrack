@@ -69,7 +69,7 @@ def describe_all() -> dict[str, Any]:
 
 
 # Explicit imports so PyInstaller bundles the modules and @register runs.
-from wts.ops import basic, combine, filters  # noqa: E402,F401
+from wts.ops import basic, combine, expr, filters  # noqa: E402,F401
 
 __all__ = [
     "OPS",

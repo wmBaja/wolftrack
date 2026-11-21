@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useWtsStore } from '@/stores/wtsStore'
 import { useDbcStore } from '@/stores/dbcStore'
 import type {
@@ -31,11 +31,23 @@ const category = ref(props.initialDefinition?.category ?? 'Custom')
 const description = ref(props.initialDefinition?.description ?? '')
 const inputs = ref<string[]>([...(props.initialDefinition?.inputs ?? [])])
 
-// Combine operator (only relevant with >1 input) and the post-head chain.
-// Wire ops flatten params next to `type`; the editor keeps them in a
-// record and re-flattens on save.
+// Head stage: an expression over the inputs (default for multi-input) or
+// the legacy combine op. Wire ops flatten params next to `type`; the editor
+// keeps them in a record and re-flattens on save.
 const initialOps = props.initialDefinition?.operations ?? []
-const startsWithCombine = initialOps[0]?.type === 'combine'
+const startsWithHead =
+  initialOps[0]?.type === 'combine' || initialOps[0]?.type === 'expr'
+type HeadMode = 'none' | 'expr' | 'combine'
+const headMode = ref<HeadMode>(
+  initialOps[0]?.type === 'combine'
+    ? 'combine'
+    : initialOps[0]?.type === 'expr'
+      ? 'expr'
+      : 'none',
+)
+const expression = ref<string>(
+  String(opParams(initialOps[0] ?? ({ type: '' })).expression ?? '%s'),
+)
 const combineOperator = ref<string>(
   String(opParams(initialOps[0] ?? ({ type: '' })).operator ?? 'add'),
 )
@@ -44,7 +56,7 @@ interface OpStep {
   params: Record<string, string | number | boolean | null>
 }
 const operations = ref<OpStep[]>(
-  (startsWithCombine ? initialOps.slice(1) : initialOps).map(op => ({
+  (startsWithHead ? initialOps.slice(1) : initialOps).map(op => ({
     type: op.type,
     params: opParams(op),
   })),
@@ -61,7 +73,17 @@ const postHeadOps = computed(
   () => catalog.value?.operations.filter(op => !op.is_head) ?? [],
 )
 const combineOperators = computed(() => catalog.value?.combine_operators ?? [])
-const showCombine = computed(() => inputs.value.length > 1)
+const showHeadRow = computed(() => inputs.value.length > 1 || headMode.value !== 'none')
+
+// Adding the second input to a signal without a head opens Expression mode.
+watch(
+  () => inputs.value.length,
+  (now, prev) => {
+    if (now > 1 && (prev ?? 0) <= 1 && headMode.value === 'none') {
+      headMode.value = 'expr'
+    }
+  },
+)
 
 // --- inputs ---------------------------------------------------------------
 
@@ -168,6 +190,12 @@ const definition = computed<VirtualSignalDefinition>(() => {
     type: step.type,
     ...step.params,
   }))
+  const head: OperationDef[] =
+    headMode.value === 'combine'
+      ? [{ type: 'combine', operator: combineOperator.value }]
+      : headMode.value === 'expr'
+        ? [{ type: 'expr', expression: expression.value }]
+        : []
   return {
     name: name.value,
     kind: 'continuous',
@@ -175,9 +203,7 @@ const definition = computed<VirtualSignalDefinition>(() => {
     unit: unit.value,
     description: description.value,
     inputs: inputs.value,
-    operations: showCombine.value
-      ? [{ type: 'combine', operator: combineOperator.value }, ...chain]
-      : chain,
+    operations: [...head, ...chain],
   }
 })
 
@@ -185,7 +211,9 @@ const canSave = computed(() => {
   if (wtsStore.isSaving) return false
   if (!NAME_PATTERN.test(name.value)) return false
   if (inputs.value.length === 0) return false
-  if (inputs.value.length === 1 && operations.value.length === 0) return false
+  if (headMode.value === 'expr' && !expression.value.trim()) return false
+  if (inputs.value.length === 1 && operations.value.length === 0 && headMode.value === 'none')
+    return false
   return true
 })
 
@@ -427,6 +455,15 @@ onBeforeUnmount(() => {
             </li>
           </ol>
           <ul v-else class="field-note">No inputs yet — pick at least one below.</ul>
+          <button
+            v-if="inputs.length === 1 && headMode === 'none'"
+            type="button"
+            class="option-btn add-expr-btn"
+            data-testid="add-expr-btn"
+            @click="headMode = 'expr'"
+          >
+            + Expression (%s)
+          </button>
           <ul class="option-list" data-testid="input-options">
             <li v-for="option in inputOptions" :key="option.id">
               <button type="button" class="option-btn" @click="addInput(option.id)">
@@ -438,14 +475,50 @@ onBeforeUnmount(() => {
           </ul>
         </div>
 
-        <label v-if="showCombine" class="field">
-          <span class="field-label">Combine</span>
-          <select v-model="combineOperator" data-testid="combine-select">
+        <div v-if="showHeadRow" class="field" data-testid="head-row">
+          <span class="field-label">Combine inputs</span>
+          <div class="head-mode-toggle" role="group" aria-label="Head operation">
+            <button
+              type="button"
+              class="mode-btn"
+              data-testid="head-expr-btn"
+              :class="{ active: headMode === 'expr' }"
+              @click="headMode = 'expr'"
+            >
+              Expression
+            </button>
+            <button
+              type="button"
+              class="mode-btn"
+              data-testid="head-combine-btn"
+              :class="{ active: headMode === 'combine' }"
+              @click="headMode = 'combine'"
+            >
+              Combine
+            </button>
+          </div>
+          <template v-if="headMode === 'expr'">
+            <input
+              v-model="expression"
+              type="text"
+              data-testid="expr-input"
+              spellcheck="false"
+              aria-label="Expression"
+              placeholder="%s / %s"
+            />
+            <ol v-if="inputs.length" class="expr-map" data-testid="expr-map">
+              <li v-for="(signalId, i) in inputs" :key="signalId">
+                {{ i + 1 }}: %s → {{ signalId }}
+              </li>
+            </ol>
+          </template>
+          <select v-else v-model="combineOperator" data-testid="combine-select"
+                  aria-label="Combine operator">
             <option v-for="operator in combineOperators" :key="operator" :value="operator">
               {{ operator }}
             </option>
           </select>
-        </label>
+        </div>
 
         <div class="field">
           <span class="field-label">Operations</span>
@@ -760,6 +833,41 @@ input[readonly] {
   border: 1px solid var(--color-border, rgba(128, 128, 128, 0.4));
   border-radius: 3px;
   padding: 0 3px;
+}
+
+.head-mode-toggle {
+  display: flex;
+  gap: 4px;
+  margin: 2px 0 4px;
+}
+
+.mode-btn {
+  border: 1px solid var(--color-border, rgba(128, 128, 128, 0.4));
+  border-radius: 4px;
+  background: none;
+  color: inherit;
+  padding: 3px 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.mode-btn.active {
+  background: var(--color-panel, rgba(255, 255, 255, 0.12));
+  font-weight: 600;
+}
+
+.expr-map {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+  font-size: 11px;
+  opacity: 0.8;
+}
+
+.add-expr-btn {
+  border: 1px dashed var(--color-border, rgba(128, 128, 128, 0.4));
+  border-radius: 4px;
+  margin: 4px 0;
 }
 
 .op-step {

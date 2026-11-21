@@ -111,9 +111,10 @@ describe('SignalEditorModal', () => {
     expect(options.map(option => option.text())).toContain('Dummy Op')
   })
 
-  it('adds inputs in order with move controls and combine select when >1 input', async () => {
+  it('auto-opens Expression mode when the second input is added', async () => {
     setupStores()
     const wrapper = mountEditor({ mode: 'create' })
+    expect(wrapper.find('[data-testid="expr-input"]').exists()).toBe(false)
     expect(wrapper.find('[data-testid="combine-select"]').exists()).toBe(false)
 
     const buttons = clickFirstInputs(wrapper)
@@ -123,7 +124,17 @@ describe('SignalEditorModal', () => {
     let items = wrapper.find('[data-testid="input-list"]').findAll('li')
     expect(items.map(item => item.find('.input-name').text()))
       .toEqual(['Brakes.Front_Psi', 'Brakes.Rear_Psi'])
+    // The second input switches the head to Expression, not Combine.
+    expect(wrapper.find('[data-testid="expr-input"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="combine-select"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="expr-map"]').text())
+      .toContain('2: %s → Brakes.Rear_Psi')
+
+    // toggle to Combine -> the legacy select appears
+    await wrapper.find('[data-testid="head-combine-btn"]').trigger('click')
     expect(wrapper.find('[data-testid="combine-select"]').exists()).toBe(true)
+    await wrapper.find('[data-testid="head-expr-btn"]').trigger('click')
+    expect(wrapper.find('[data-testid="combine-select"]').exists()).toBe(false)
 
     // reorder: second input up
     await items[1]!.findAll('button')[0]!.trigger('click')
@@ -131,9 +142,10 @@ describe('SignalEditorModal', () => {
     expect(items.map(item => item.find('.input-name').text()))
       .toEqual(['Brakes.Rear_Psi', 'Brakes.Front_Psi'])
 
-    // remove first -> single input -> combine select disappears
+    // remove first -> single input; the chosen head mode never auto-reverts
     await items[0]!.findAll('button')[2]!.trigger('click')
-    expect(wrapper.find('[data-testid="combine-select"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="head-row"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="expr-input"]').exists()).toBe(true)
   })
 
   it('excludes itself and transitive dependents from the inputs list when editing', () => {
@@ -173,6 +185,7 @@ describe('SignalEditorModal', () => {
     const buttons = clickFirstInputs(wrapper)
     await buttons[0]!.trigger('click')
     await buttons[1]!.trigger('click')
+    await wrapper.find('[data-testid="head-combine-btn"]').trigger('click')
     await wrapper.find('[data-testid="combine-select"]').setValue('add')
 
     await wrapper.find('[data-testid="save-btn"]').trigger('click')
@@ -218,6 +231,105 @@ describe('SignalEditorModal', () => {
     expect(opLabels.map(label => label.text())).toEqual(['Scale'])
     const factor = wrapper.find('[data-testid="param-scale-factor"]')
     expect((factor.element as HTMLInputElement).value).toBe('2')
+  })
+
+  it('saves an expression head with the exact wire shape', async () => {
+    setupStores()
+    const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+      if (String(url).includes('/api/wts/signals/Ratio') && init?.method === 'PUT') {
+        return jsonResponse(200, { signal: 'Ratio', wts_version: 2 })
+      }
+      if (String(url).includes('/api/wts/signals')) {
+        return jsonResponse(200, { signals: [], issues: [], wts_version: 2 })
+      }
+      return jsonResponse(200, { signals: SIGNALS })
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const wrapper = mountEditor({ mode: 'create' })
+    await wrapper.find('[data-testid="signal-name"]').setValue('Ratio')
+    const buttons = clickFirstInputs(wrapper)
+    await buttons[0]!.trigger('click')
+    await buttons[1]!.trigger('click')
+    // Expression mode is the default for the second input.
+    expect(wrapper.find('[data-testid="expr-input"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="combine-select"]').exists()).toBe(false)
+    await wrapper.find('[data-testid="expr-input"]').setValue('%s / %s')
+
+    await wrapper.find('[data-testid="save-btn"]').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.emitted('saved')).toBeTruthy()
+    const put = fetchMock.mock.calls.find(
+      call => String(call[0]).includes('/api/wts/signals/Ratio')
+        && (call[1] as RequestInit | undefined)?.method === 'PUT',
+    )
+    expect(put).toBeTruthy()
+    expect(JSON.parse(String((put![1] as RequestInit).body)).definition.operations)
+      .toEqual([{ type: 'expr', expression: '%s / %s' }])
+  })
+
+  it('edit mode opens an expr head in Expression mode prefilled', () => {
+    setupStores()
+    const wrapper = mountEditor({
+      mode: 'edit',
+      initialDefinition: {
+        name: 'Offset',
+        inputs: ['Brakes.Front_Psi'],
+        operations: [{ type: 'expr', expression: '%s - 300' }],
+      },
+    })
+    const expr = wrapper.find('[data-testid="expr-input"]')
+    expect(expr.exists()).toBe(true)
+    expect((expr.element as HTMLInputElement).value).toBe('%s - 300')
+    expect(wrapper.find('[data-testid="combine-select"]').exists()).toBe(false)
+    // head is consumed, not repeated in the post-head chain
+    expect(wrapper.find('[data-testid="op-list"]').findAll('.op-label')).toHaveLength(0)
+  })
+
+  it('adds an expression head to a single input via the add button', async () => {
+    setupStores()
+    const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+      if (String(url).includes('/api/wts/signals/Offset') && init?.method === 'PUT') {
+        return jsonResponse(200, { signal: 'Offset', wts_version: 2 })
+      }
+      if (String(url).includes('/api/wts/signals')) {
+        return jsonResponse(200, { signals: [], issues: [], wts_version: 2 })
+      }
+      return jsonResponse(200, { signals: SIGNALS })
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const wrapper = mountEditor({ mode: 'create' })
+    await wrapper.find('[data-testid="signal-name"]').setValue('Offset')
+    await clickFirstInputs(wrapper, 1)[0]!.trigger('click')
+    expect(wrapper.find('[data-testid="expr-input"]').exists()).toBe(false)
+
+    await wrapper.find('[data-testid="add-expr-btn"]').trigger('click')
+    expect(wrapper.find('[data-testid="expr-input"]').exists()).toBe(true)
+    await wrapper.find('[data-testid="expr-input"]').setValue('%s - 300')
+    await wrapper.find('[data-testid="save-btn"]').trigger('click')
+    await flushPromises()
+
+    const put = fetchMock.mock.calls.find(
+      call => String(call[0]).includes('/api/wts/signals/Offset')
+        && (call[1] as RequestInit | undefined)?.method === 'PUT',
+    )
+    expect(put).toBeTruthy()
+    expect(JSON.parse(String((put![1] as RequestInit).body)).definition.operations)
+      .toEqual([{ type: 'expr', expression: '%s - 300' }])
+  })
+
+  it('disables save while the expression is empty', async () => {
+    setupStores()
+    const wrapper = mountEditor({ mode: 'create' })
+    await wrapper.find('[data-testid="signal-name"]').setValue('Ratio')
+    const buttons = clickFirstInputs(wrapper)
+    await buttons[0]!.trigger('click')
+    await buttons[1]!.trigger('click')
+    expect(wrapper.find('[data-testid="save-btn"]').attributes('disabled')).toBeUndefined()
+    await wrapper.find('[data-testid="expr-input"]').setValue('   ')
+    expect(wrapper.find('[data-testid="save-btn"]').attributes('disabled')).toBeDefined()
   })
 
   it('lists 422 validation errors from the backend and stays open', async () => {
