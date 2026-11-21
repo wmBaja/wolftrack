@@ -17,8 +17,7 @@ Requirements: Node `^20.19.0 || >=22.12.0`, Python 3.12 or newer, and [uv](https
 
 ```bash
 npm install
-cd apps/visualizer && uv sync
-cd ../..
+uv sync --project apps/visualizer
 npm run dev
 ```
 
@@ -34,12 +33,12 @@ npm run lint
 npm run electron:build
 ```
 
-Run backend commands from `apps/visualizer`:
+Run backend commands from the repository root with `--directory apps/visualizer`:
 
 ```bash
-uv run python src/app.py
-uv run --with pytest pytest
-uv run pyinstaller --name wolftrack-visualizer --onefile --noconfirm --clean --paths src src/app.py
+uv run --directory apps/visualizer python src/app.py
+uv run --directory apps/visualizer --with pytest pytest
+uv run --directory apps/visualizer pyinstaller --name wolftrack-visualizer --onefile --noconfirm --clean --paths src src/app.py
 ```
 
 `npm run electron:build` builds the visualizer binary, copies it into the Electron package, and writes installers to `apps/dashboard/release/`.
