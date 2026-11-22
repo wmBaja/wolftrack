@@ -48,7 +48,8 @@
     },
     "linux": {
       "target": "AppImage",
-      "icon": "assets/icon.png"
+      "icon": "assets/icon.png",
+      "executableName": "WolfTrack"
     }
   },
   "dependencies": {
