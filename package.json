@@ -17,5 +17,12 @@
     "lint": "npm run lint --workspace @wolftrack/dashboard",
     "format": "npm run format --workspace @wolftrack/dashboard",
     "electron:build": "npm run electron:build --workspace @wolftrack/dashboard"
+  },
+  "allowScripts": {
+    "electron-winstaller@5.4.0": true,
+    "esbuild@0.28.2": true
+  },
+  "overrides": {
+    "minimatch@>=7 <11": "11.0.9"
   }
 }
