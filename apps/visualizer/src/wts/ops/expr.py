@@ -114,6 +114,8 @@ def compile_expression(text: str) -> tuple[ast.Expression, int]:
 
     Each literal ``%s`` is substituted left-to-right with ``v0``, ``v1``, …;
     a ``%`` not followed by ``s`` is left alone, so ``%s % 10`` stays modulo.
+    ``^`` is rewritten to ``**`` so it means calculator-style power (Python
+    would read it as bitwise xor, which stays outside the whitelist).
     Raises :class:`OpError` on a syntax error or any construct outside the
     arithmetic whitelist.
     """
@@ -125,7 +127,7 @@ def compile_expression(text: str) -> tuple[ast.Expression, int]:
         slot_count += 1
         return replacement
 
-    substituted = _PLACEHOLDER.sub(_replace, text)
+    substituted = _PLACEHOLDER.sub(_replace, text).replace("^", "**")
     try:
         tree = ast.parse(substituted, mode="eval")
     except SyntaxError as exc:
@@ -255,10 +257,11 @@ class ExprOp(HeadOp):
             default=None,
             help=(
                 "Use %s for each selected signal, in order, e.g. %s / %s or "
-                "%s - 300. Supports + - * / // % ** ( ), functions abs min "
-                "max sqrt exp log log10 sin cos tan asin acos atan atan2 "
-                "floor ceil, and constants pi, e. A sample is emitted only "
-                "once every selected signal has arrived."
+                "%s - 300. Supports + - * / // % ^ ** ( ) (^ raises to a "
+                "power), functions abs min max sqrt exp log log10 sin cos "
+                "tan asin acos atan atan2 floor ceil, and constants pi, e. "
+                "A sample is emitted only once every selected signal has "
+                "arrived."
             ),
         ),
     )

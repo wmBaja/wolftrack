@@ -38,6 +38,16 @@ class TestEvaluator:
         assert build("%s + 2 * %s").apply_vector(0, [1.0, 3.0], [0, 0]) == 7.0
         assert build("(-%s) ** 2").apply_vector(0, [3.0], [0]) == 9.0
 
+    def test_caret_is_power(self):
+        # "^" means calculator power, not Python bitwise xor.
+        assert build("%s ^ 2", inputs=("A.x",)).apply_vector(0, [3.0], [0]) == 9.0
+        mag = build("sqrt(%s ^ 2 + %s ^ 2)")
+        assert mag.apply_vector(0, [3.0, 4.0], [0, 0]) == 5.0
+        # right-associative like **
+        assert build("2 ^ %s ^ 2", inputs=("A.x",)).apply_vector(0, [3.0], [0]) == 512.0
+        # binds tighter than *
+        assert build("2 * %s ^ 2", inputs=("A.x",)).apply_vector(0, [3.0], [0]) == 18.0
+
     def test_modulo_coexists_with_placeholders(self):
         assert build("%s % 10", inputs=("A.x",)).apply_vector(0, [25.0], [0]) == 5.0
         assert build("%s % %s").apply_vector(0, [7.0, 4.0], [0, 0]) == 3.0
@@ -84,6 +94,10 @@ class TestNoSampleInvariants:
     def test_wrong_function_arity_emits_nothing(self):
         op = build("sqrt(%s, %s)")
         assert op.apply_vector(0.0, [4.0, 9.0], [0, 0]) is None
+
+    def test_caret_overflow_emits_nothing(self):
+        op = build("%s ^ 2", inputs=("A.x",))
+        assert op.apply_vector(0.0, [1e308], [0.0]) is None
 
 
 class TestValidation:

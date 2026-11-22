@@ -83,7 +83,7 @@ Include `is_head` on every entry in `operations` so the Part 6 editor knows whic
 | Op | Params | Behavior and edge cases |
 | :-- | :-- | :-- |
 | `combine` | `operator`: `add`, `subtract` ($a - b - c \dots$), `multiply`, `divide` (exactly 2 inputs) | Validate in `__init__` or schema validation: `divide` with `len(inputs) != 2` raises a validation error. `divide` by zero $\Rightarrow$ **no sample** (`None`). |
-| `expr` | `expression` | Head op: each literal `%s` binds to the Nth input in selection order; compiled once to a whitelisted arithmetic AST (numbers, `+ - * / // % **`, a fixed function table, `pi`/`e`). Arithmetic faults (`/0`, `sqrt(-1)`, overflow) $\Rightarrow$ **no sample**; more placeholders than inputs $\Rightarrow$ validation error. |
+| `expr` | `expression` | Head op: each literal `%s` binds to the Nth input in selection order; compiled once to a whitelisted arithmetic AST (numbers, `+ - * / // % **`, `^` as power, a fixed function table, `pi`/`e`). Arithmetic faults (`/0`, `sqrt(-1)`, overflow) $\Rightarrow$ **no sample**; more placeholders than inputs $\Rightarrow$ validation error. |
 | `scale` | `factor` | `value * factor`. |
 | `bias` | `offset` | `value + offset`. |
 | `moving_avg` | `window_seconds` ($0 < w \le 600$) | Time-based window of `(ts, value)`; running sum recomputed every 10,000 updates and whenever `len(window) <= 1` to eliminate floating-point subtraction drift. Emits from the first sample. `notify_gap` clears the window and resets the running sum to `0.0`. |
