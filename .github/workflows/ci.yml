@@ -18,9 +18,9 @@ jobs:
       packages: ${{ steps.filter.outputs.packages }}
       shared: ${{ steps.filter.outputs.shared }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - id: filter
-        uses: dorny/paths-filter@v3
+        uses: dorny/paths-filter@v4
         with:
           filters: |
             dashboard:
@@ -55,11 +55,13 @@ jobs:
             binary: wolftrack-visualizer
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.12'
-      - uses: astral-sh/setup-uv@v5
+      - uses: astral-sh/setup-uv@v10
+        with:
+          enable-cache: false
       - name: Install backend dependencies
         working-directory: apps/visualizer
         run: uv sync
@@ -67,7 +69,7 @@ jobs:
         working-directory: apps/visualizer
         run: uv run pyinstaller --name wolftrack-visualizer --onefile --noconfirm --clean --paths src src/app.py
       - name: Upload backend artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: backend-${{ matrix.os }}
           path: apps/visualizer/dist/${{ matrix.binary }}
@@ -86,8 +88,8 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
@@ -95,7 +97,7 @@ jobs:
       - name: Install dashboard dependencies
         run: npm ci --workspace @wolftrack/dashboard
       - name: Download backend artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: backend-${{ matrix.os }}
           path: apps/dashboard/backend
@@ -151,7 +153,7 @@ jobs:
         working-directory: apps/dashboard
         run: npx electron-builder --publish never
       - name: Upload Electron installer
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: wolftrack-app-${{ matrix.os }}
           path: |
@@ -169,7 +171,7 @@ jobs:
       contents: write
     steps:
       - name: Download installers
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           pattern: wolftrack-app-*
           path: artifacts
@@ -187,7 +189,7 @@ jobs:
             echo "prerelease=false" >> "$GITHUB_OUTPUT"
           fi
       - name: Create GitHub release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ steps.release.outputs.tag_name }}
           name: ${{ steps.release.outputs.name }}
