@@ -1,8 +1,9 @@
 import { test, expect } from '@playwright/test';
 
-// See here how to get started:
-// https://playwright.dev/docs/intro
-test('visits the app root url', async ({ page }) => {
+test('shows the dashboard navigation controls', async ({ page }) => {
   await page.goto('/');
-  await expect(page.locator('h1')).toHaveText('You did it!');
-})
+
+  await expect(page.getByRole('navigation')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Toggle File Manager' })).toBeVisible();
+  await expect(page.getByRole('textbox', { name: 'Log filename template' })).toBeVisible();
+});
