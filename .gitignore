@@ -1,5 +1,5 @@
 # Node and Electron build output
-apps/dashboard/node_modules/
+node_modules/
 apps/dashboard/dist/
 apps/dashboard/dist-ssr/
 apps/dashboard/dist-electron/
