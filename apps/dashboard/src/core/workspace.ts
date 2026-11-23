@@ -1,14 +1,16 @@
 import type { Widget } from './widgets'
 
 export const WORKSPACE_FORMAT = 'wolftrack-workspace'
-export const WORKSPACE_VERSION = 2
+export const WORKSPACE_VERSION = 3
+
+export type TileLayoutState = Record<string, unknown>
 
 export interface DashboardTab {
   id: string
   kind: 'dashboard'
   title: string
   dataContextId: 'shared'
-  layout: { type: 'grid'; widgets: Widget[] }
+  layout: { type: 'tiles'; widgets: Widget[]; state: TileLayoutState | null }
 }
 
 export interface ViewTab {
@@ -46,7 +48,7 @@ export function createDashboardTab(title: string): DashboardTab {
     kind: 'dashboard',
     title,
     dataContextId: 'shared',
-    layout: { type: 'grid', widgets: [] },
+    layout: { type: 'tiles', widgets: [], state: null },
   }
 }
 
@@ -62,20 +64,24 @@ export function createViewTab(viewType: string, pluginId: string, title: string)
   }
 }
 
-export function parseWidgets(value: unknown): Widget[] | null {
+export function parseLegacyWidgets(value: unknown): Widget[] | null {
   if (!Array.isArray(value)) return null
   const widgets: Widget[] = []
   const ids = new Set<string>()
 
-  for (const item of value) {
+  const orderedValue = value.map((item, index) => ({ item, index })).sort((a, b) => {
+    const aY = isRecord(a.item) && isFiniteNumber(a.item.y) ? a.item.y : Number.POSITIVE_INFINITY
+    const bY = isRecord(b.item) && isFiniteNumber(b.item.y) ? b.item.y : Number.POSITIVE_INFINITY
+    const aX = isRecord(a.item) && isFiniteNumber(a.item.x) ? a.item.x : Number.POSITIVE_INFINITY
+    const bX = isRecord(b.item) && isFiniteNumber(b.item.x) ? b.item.x : Number.POSITIVE_INFINITY
+    return aY - bY || aX - bX || a.index - b.index
+  })
+
+  for (const { item } of orderedValue) {
     if (!isRecord(item)
       || (typeof item.i !== 'string' && typeof item.i !== 'number')
       || typeof item.type !== 'string'
       || typeof item.title !== 'string'
-      || !isFiniteNumber(item.x)
-      || !isFiniteNumber(item.y)
-      || !isFiniteNumber(item.w)
-      || !isFiniteNumber(item.h)
       || !Array.isArray(item.signals)) {
       return null
     }
@@ -83,15 +89,19 @@ export function parseWidgets(value: unknown): Widget[] | null {
     if (ids.has(widgetId)) return null
     ids.add(widgetId)
 
+    const widget = { ...item }
+    delete widget.x
+    delete widget.y
+    delete widget.w
+    delete widget.h
+    delete widget.minW
+    delete widget.minH
+    delete widget.static
     widgets.push({
-      ...item,
+      ...widget,
       i: widgetId,
       type: item.type,
       title: item.title,
-      x: item.x,
-      y: item.y,
-      w: item.w,
-      h: item.h,
       config: isRecord(item.config) ? item.config : {},
       signals: item.signals.filter((signal): signal is string => typeof signal === 'string'),
       createdAt: isFiniteNumber(item.createdAt) ? item.createdAt : 0,
@@ -104,7 +114,7 @@ export function parseWidgets(value: unknown): Widget[] | null {
 export function parseWorkspaceDocument(value: unknown): WorkspaceDocument | null {
   if (!isRecord(value)
     || value.format !== WORKSPACE_FORMAT
-    || value.version !== WORKSPACE_VERSION
+    || (value.version !== WORKSPACE_VERSION && value.version !== 2)
     || typeof value.activeTabId !== 'string'
     || !Array.isArray(value.tabs)) {
     return null
@@ -124,9 +134,15 @@ export function parseWorkspaceDocument(value: unknown): WorkspaceDocument | null
 
     ids.add(item.id)
     if (item.kind === 'dashboard') {
-      if (!isRecord(item.layout) || item.layout.type !== 'grid') return null
-      const widgets = parseWidgets(item.layout.widgets)
+      if (!isRecord(item.layout)) return null
+      const oldGrid = item.layout.type === 'grid' && value.version === 2
+      if (!oldGrid && item.layout.type !== 'tiles') return null
+      const widgets = parseLegacyWidgets(item.layout.widgets)
       if (!widgets) return null
+      const tileState = oldGrid ? null : (item.layout.state === null || item.layout.state === undefined
+        ? null
+        : isRecord(item.layout.state) ? item.layout.state : undefined)
+      if (tileState === undefined) return null
       for (const widget of widgets) {
         const widgetId = String(widget.i)
         if (widgetIds.has(widgetId)) return null
@@ -137,7 +153,7 @@ export function parseWorkspaceDocument(value: unknown): WorkspaceDocument | null
         kind: 'dashboard',
         title: item.title,
         dataContextId: 'shared',
-        layout: { type: 'grid', widgets },
+        layout: { type: 'tiles', widgets, state: tileState },
       })
       continue
     }
@@ -176,7 +192,7 @@ export function parseWorkspaceImport(value: unknown):
   | { kind: 'legacy'; widgets: Widget[] }
   | null {
   if (Array.isArray(value)) {
-    const widgets = parseWidgets(value)
+    const widgets = parseLegacyWidgets(value)
     return widgets ? { kind: 'legacy', widgets } : null
   }
 

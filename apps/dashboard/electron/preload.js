@@ -12,6 +12,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   workspace: {
     load: () => ipcRenderer.invoke('workspace:load'),
     save: (document) => ipcRenderer.invoke('workspace:save', document),
+    popoutConfig: () => ipcRenderer.invoke('workspace:popout-config'),
   },
   daq: {
     discoverServices: () => ipcRenderer.invoke('discover-daq-services'),

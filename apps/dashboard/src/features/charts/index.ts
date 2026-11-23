@@ -14,17 +14,17 @@ export const activate: FeatureActivate = (ctx) => {
   })
   const removeBase = widgets.register({
     type: 'base', title: 'Base Widget', component: BaseWidget,
-    defaults: { w: 4, h: 4, minW: 2, minH: 2 }, icon: '📦',
+    icon: '📦',
   })
   const removeChart = widgets.register({
     type: 'chart', title: 'Chart Widget', component: ContextChartWidget,
-    defaults: { w: 5, h: 15, minW: 4, minH: 4 }, icon: '📈',
+    icon: '📈',
   })
   const removeCommand = commands.register({
     id: 'charts.add-chart', title: 'Add Chart Widget', icon: '➕', order: 10,
-    run: ({ x, y, w, h, tabId }) => {
+    run: ({ tabId }) => {
       void import('@/core/stores/widgetStore').then(({ useWidgetStore }) => {
-        useWidgetStore().addWidget('chart', { x, y, w, h }, tabId)
+        useWidgetStore().addWidget('chart', tabId)
       })
     },
   })

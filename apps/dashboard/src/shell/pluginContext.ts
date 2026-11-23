@@ -2,16 +2,13 @@ import type { PluginContext } from '@wolftrack/plugin-sdk'
 import { computed } from 'vue'
 import { useTimeSeriesData } from '@/core/composables/useTimeSeriesData'
 import { useDbcStore } from '@/core/stores/dbcStore'
-import { registerWidgetDefaults } from '@/core/widgets'
 import { commands, panels, views, widgets } from './registries'
 
 export function createPluginContext(): PluginContext {
   return {
     widgets: {
       register(contribution) {
-        const removeContribution = widgets.register(contribution)
-        const removeDefaults = registerWidgetDefaults(contribution.type, contribution)
-        return () => { removeContribution(); removeDefaults() }
+        return widgets.register(contribution)
       },
     },
     views,

@@ -5,7 +5,7 @@ import type { DockviewReadyEvent } from 'dockview-vue'
 import 'dockview-vue/dist/styles/dockview.css'
 import { useWorkspaceStore } from '@/core/stores/workspaceStore'
 import { views } from '@/shell/registries'
-import DashboardGrid from '@/shell/DashboardGrid.vue'
+import DashboardTiles from '@/shell/DashboardTiles.vue'
 import PluginErrorBoundary from '@/shell/PluginErrorBoundary.vue'
 import WorkspaceViewPanel from '@/shell/WorkspaceViewPanel.vue'
 
@@ -187,13 +187,14 @@ function disablePanel(tabId: string) {
         class="dockview-root"
         style="width: 100%; height: 100%"
         :theme="themeDark"
+        :popout-url="workspaceStore.popoutsEnabled ? workspaceStore.popoutUrl : undefined"
         :disable-floating-groups="true"
         :dnd-edges="false"
         @ready="onDockviewReady"
       >
         <template #panel-dashboard-panel="{ params }">
           <PluginErrorBoundary :owner-id="'core dashboard'" @disable="disablePanel(params.tabId)">
-            <DashboardGrid :tab-id="params.tabId" />
+          <DashboardTiles :tab-id="params.tabId" />
           </PluginErrorBoundary>
         </template>
         <template #panel-view-panel="{ params }">

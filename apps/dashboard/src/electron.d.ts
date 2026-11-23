@@ -19,6 +19,7 @@ declare global {
       workspace: {
         load: () => Promise<unknown>
         save: (document: unknown) => Promise<boolean>
+        popoutConfig: () => Promise<{ enabled: boolean; url: string }>
       }
       daq: { discoverServices: () => Promise<DaqDiscoveryService[]> }
     } | undefined

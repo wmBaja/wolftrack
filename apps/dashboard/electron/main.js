@@ -11,6 +11,7 @@ const __dirname = path.dirname(__filename);
 
 // Check if running in development
 const isDev = process.env.NODE_ENV === 'development';
+const dockviewPopoutsEnabled = process.env.WOLFTRACK_ENABLE_DOCKVIEW_POPOUTS === 'true';
 
 function createWindow() {
   const win = new BrowserWindow({
@@ -30,8 +31,11 @@ function createWindow() {
     ? path.join(process.resourcesPath, 'dist', 'index.html')
     : path.join(__dirname, '../dist/index.html')
   const appUrl = isDev ? 'http://localhost:3000/' : pathToFileURL(rendererEntry).href
+  const popoutUrl = isDev
+    ? 'http://localhost:3000/dockview-popout.html'
+    : pathToFileURL(path.join(process.resourcesPath, 'dist', 'dockview-popout.html')).href
   win.webContents.setWindowOpenHandler(({ url }) => ({
-    action: url.startsWith(appUrl) ? 'allow' : 'deny',
+    action: url.startsWith(appUrl) || (dockviewPopoutsEnabled && url.startsWith(popoutUrl)) ? 'allow' : 'deny',
   }))
 
   // In development, load from dev server
@@ -76,7 +80,7 @@ function getWorkspaceFilePath() {
 function isWorkspaceEnvelope(value) {
   return value && typeof value === 'object'
     && value.format === 'wolftrack-workspace'
-    && value.version === 2
+    && (value.version === 2 || value.version === 3)
     && Array.isArray(value.tabs)
 }
 
@@ -97,6 +101,13 @@ ipcMain.handle('workspace:load', async () => {
     }
   }
 })
+
+ipcMain.handle('workspace:popout-config', async () => ({
+  enabled: dockviewPopoutsEnabled,
+  url: isDev
+    ? 'http://localhost:3000/dockview-popout.html'
+    : pathToFileURL(path.join(process.resourcesPath, 'dist', 'dockview-popout.html')).href,
+}))
 
 ipcMain.handle('workspace:save', async (_event, value) => {
   if (!isWorkspaceEnvelope(value)) throw new Error('Invalid workspace document')

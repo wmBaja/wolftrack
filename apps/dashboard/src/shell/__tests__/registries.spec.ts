@@ -7,7 +7,6 @@ describe('contribution registries', () => {
   it('registers and removes contributions by their stable id', () => {
     const contribution = {
       type: 'test/chart', title: 'Test chart', component: {},
-      defaults: { w: 4, h: 4, minW: 1, minH: 1 },
     }
     const dispose = widgets.register(contribution)
 

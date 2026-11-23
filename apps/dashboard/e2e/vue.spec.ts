@@ -15,6 +15,31 @@ test('creates dashboard and view tabs and restores the active view state', async
   await page.getByRole('button', { name: 'Add workspace tab' }).click();
   await page.getByRole('menuitem', { name: 'New Dashboard' }).click();
   await expect(page.getByText('Dashboard 2', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Add widget' }).click();
+  await page.getByRole('menuitem', { name: '➕ Add Chart Widget' }).click();
+  await expect(page.getByText('No signals configured.')).toBeVisible();
+  await expect.poll(() => page.evaluate(() => {
+    const workspace = JSON.parse(localStorage.getItem('wolftrack-workspace-dev') ?? 'null')
+    const dashboard = workspace?.tabs?.find((tab: { kind: string; title: string }) => tab.kind === 'dashboard' && tab.title === 'Dashboard 2')
+    return workspace?.version === 3 && dashboard?.layout?.type === 'tiles' && Boolean(dashboard.layout.state?.grid)
+  })).toBe(true)
+  await page.reload()
+  await expect(page.getByText('No signals configured.')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Maximize tile' })).toBeVisible()
+  await page.getByRole('tabpanel', { name: 'Dashboard 2' }).getByRole('button', { name: 'Add widget' }).click()
+  await page.getByRole('menuitem', { name: '➕ Add Chart Widget' }).click()
+  await expect(page.locator('.tile-panel')).toHaveCount(2)
+  await page.locator('.tile-panel__drag-handle').first().dragTo(page.locator('.tile-panel').nth(1), {
+    targetPosition: { x: 260, y: 120 },
+  })
+  await expect(page.locator('.tile-panel')).toHaveCount(2)
+  await page.getByRole('button', { name: 'Replace…' }).first().click()
+  await page.getByRole('menuitem', { name: 'Base Widget' }).first().click()
+  await expect(page.locator('.tile-panel').first()).toContainText('Base Widget')
+  await page.getByRole('button', { name: 'Maximize tile' }).first().click();
+  await expect(page.locator('.tile-panel--maximized')).toBeVisible();
+  await page.getByRole('button', { name: 'Restore tile size' }).click();
+  await expect(page.locator('.tile-panel--maximized')).toHaveCount(0);
   page.once('dialog', (dialog) => dialog.accept('Test Dashboard'));
   await page.getByRole('button', { name: 'Rename active tab' }).click();
   await expect(page.getByRole('tab', { name: 'Test Dashboard' })).toBeVisible();
@@ -79,7 +104,7 @@ test('renders registered features and preserves an unavailable saved widget', as
   await page.locator('#export-panel-btn').click();
   await expect(page.getByRole('dialog', { name: 'BLF CSV Export' })).toBeVisible();
   await page.reload();
-  await page.locator('.dashboard-grid-container').click({ button: 'right', position: { x: 900, y: 500 } });
-  await page.getByText('Add Chart Widget').click();
+  await page.getByRole('button', { name: 'Add widget' }).click();
+  await page.getByRole('menuitem', { name: '➕ Add Chart Widget' }).click();
   await expect(page.getByText('No signals configured.')).toBeVisible();
 });

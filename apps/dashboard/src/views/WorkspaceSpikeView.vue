@@ -4,7 +4,7 @@ import { RouterLink, useRoute } from 'vue-router'
 import { DockviewVue, GridviewVue, Orientation, themeDark } from 'dockview-vue'
 import type { DockviewReadyEvent, GridviewReadyEvent, VueComponent } from 'dockview-vue'
 import 'dockview-vue/dist/styles/dockview.css'
-import DashboardGrid from '@/shell/DashboardGrid.vue'
+import DashboardTiles from '@/shell/DashboardTiles.vue'
 
 const route = useRoute()
 const activeCandidate = computed(() => route.query.candidate ?? 'dockview')
@@ -59,7 +59,7 @@ function setupTiles({ api }: GridviewReadyEvent) {
       @ready="setupDashboards"
     >
       <template #panel-dashboard>
-        <DashboardGrid />
+          <DashboardTiles />
       </template>
     </DockviewVue>
 

@@ -15,7 +15,7 @@
   /* New additions for consolidation */
   --color-danger: #ef4444;
   --color-hover: rgba(255, 255, 255, 0.05);
-  --navbar-height: 60px; /* Moved from DashboardGrid inline logic */
+  --navbar-height: 60px; /* Shared app navigation height */
 
   /* Modal Specific Variables matching Screenshot */
   --color-modal-bg: #2d3342;

@@ -3,18 +3,6 @@ import { defineStore } from 'pinia'
 import { createWidget, type Widget } from '@/core/widgets'
 import { useWorkspaceStore } from '@/core/stores/workspaceStore'
 
-const GRID_COLUMNS = 16
-
-interface GridPosition {
-  x: number
-  y: number
-}
-
-interface GridSize {
-  w: number
-  h: number
-}
-
 export const useWidgetStore = defineStore('widgets', () => {
   const workspaceStore = useWorkspaceStore()
   const widgets = computed(() => workspaceStore.activeDashboard?.layout.widgets ?? [])
@@ -31,60 +19,12 @@ export const useWidgetStore = defineStore('widgets', () => {
       .find(widget => String(widget.i) === id)
   }
 
-  function addWidget(
-    type: string,
-    position: { x: number; y: number; w?: number; h?: number },
-    tabId?: string,
-  ): Widget {
+  function addWidget(type: string, tabId?: string): Widget {
     const target = workspaceStore.getDashboardTab(tabId)
-    const newWidget = createWidget(type, position)
+    const newWidget = createWidget(type)
     if (!target) return newWidget
-    const availablePosition = findAvailablePosition(position, newWidget, target.id)
-    newWidget.x = availablePosition.x
-    newWidget.y = availablePosition.y
     target.layout.widgets.push(newWidget)
     return newWidget
-  }
-
-  function findAvailablePosition(preferredPosition: GridPosition, size: GridSize, tabId?: string): GridPosition {
-    const dashboardWidgets = getWidgets(tabId)
-    const maxX = Math.max(0, GRID_COLUMNS - size.w)
-    const preferred = {
-      x: Math.max(0, Math.min(Math.round(preferredPosition.x), maxX)),
-      y: Math.max(0, Math.round(preferredPosition.y)),
-    }
-
-    if (isSpaceAvailable(preferred, size, tabId)) return preferred
-
-    let closestPosition: GridPosition | undefined
-    let closestDistance = Number.POSITIVE_INFINITY
-    const maxWidgetBottom = dashboardWidgets.reduce((bottom, widget) => Math.max(bottom, widget.y + widget.h), 0)
-
-    for (let y = 0; y <= maxWidgetBottom; y += 1) {
-      for (let x = 0; x <= maxX; x += 1) {
-        const position = { x, y }
-        if (!isSpaceAvailable(position, size, tabId)) continue
-
-        const distance = Math.hypot(x - preferred.x, y - preferred.y)
-        if (distance < closestDistance) {
-          closestDistance = distance
-          closestPosition = position
-        }
-      }
-    }
-
-    return closestPosition ?? { x: preferred.x, y: maxWidgetBottom }
-  }
-
-  function isSpaceAvailable(position: GridPosition, size: GridSize, tabId?: string): boolean {
-    return getWidgets(tabId).every((widget) => !widgetsOverlap({ ...position, ...size }, widget))
-  }
-
-  function widgetsOverlap(a: GridPosition & GridSize, b: GridPosition & GridSize): boolean {
-    return a.x < b.x + b.w &&
-      a.x + a.w > b.x &&
-      a.y < b.y + b.h &&
-      a.y + a.h > b.y
   }
 
   function removeWidget(id: string, tabId?: string): void {
@@ -104,20 +44,6 @@ export const useWidgetStore = defineStore('widgets', () => {
     if (widget) Object.assign(widget, updates)
   }
 
-  function updateLayout(newLayout: Widget[], tabId?: string): void {
-    const target = workspaceStore.getDashboardTab(tabId)
-    if (!target) return
-    newLayout.forEach(item => {
-      const widget = target.layout.widgets.find(widget => String(widget.i) === String(item.i))
-      if (widget) {
-        widget.x = item.x
-        widget.y = item.y
-        widget.w = item.w
-        widget.h = item.h
-      }
-    })
-  }
-
   function clearAll(tabId?: string): void {
     const target = workspaceStore.getDashboardTab(tabId)
     if (target) target.layout.widgets = []
@@ -128,17 +54,29 @@ export const useWidgetStore = defineStore('widgets', () => {
     if (target) target.layout.widgets = newWidgets
   }
 
+  function moveWidget(widgetId: string, fromTabId: string, toTabId: string) {
+    if (fromTabId === toTabId) return false
+    const source = workspaceStore.getDashboardTab(fromTabId)
+    const destination = workspaceStore.getDashboardTab(toTabId)
+    if (!source || !destination) return false
+    const index = source.layout.widgets.findIndex(widget => String(widget.i) === widgetId)
+    if (index < 0) return false
+    const [widget] = source.layout.widgets.splice(index, 1)
+    if (!widget) return false
+    destination.layout.widgets.push(widget)
+    return true
+  }
+
   return {
     widgets,
     widgetCount,
     getWidgets,
     getWidgetById,
     addWidget,
-    findAvailablePosition,
     removeWidget,
     updateWidget,
-    updateLayout,
     clearAll,
     overwriteLayout,
+    moveWidget,
   }
 })

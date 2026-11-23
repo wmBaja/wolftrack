@@ -7,7 +7,6 @@ export interface WidgetContribution {
   type: string
   title: string
   component: unknown
-  defaults: { w: number; h: number; minW: number; minH: number }
   icon?: string
 }
 
@@ -34,7 +33,7 @@ export interface CommandContribution {
   title: string
   icon?: string
   order?: number
-  run: (context: { x: number; y: number; w: number; h: number; tabId?: string }) => void | Promise<void>
+  run: (context: { tabId?: string }) => void | Promise<void>
 }
 
 export interface PluginManifest {

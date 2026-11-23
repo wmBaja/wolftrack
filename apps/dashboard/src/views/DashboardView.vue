@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import DashboardGrid from '@/shell/DashboardGrid.vue'
+import DashboardTiles from '@/shell/DashboardTiles.vue'
 </script>
 
 <template>
-  <DashboardGrid />
+  <DashboardTiles />
 </template>

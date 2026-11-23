@@ -2,6 +2,7 @@
 <script setup lang="ts">
 import { ref, computed, h } from 'vue'
 import { useWidgetStore } from '@/core/stores/widgetStore'
+import { useWorkspaceStore } from '@/core/stores/workspaceStore'
 import { useDbcStore } from '@/core/stores/dbcStore'
 import ContextMenu from '@imengyu/vue3-context-menu'
 import type { MenuOptions } from '@imengyu/vue3-context-menu'
@@ -22,8 +23,12 @@ const emit = defineEmits<{
 }>()
 
 const store = useWidgetStore()
+const workspaceStore = useWorkspaceStore()
 const dbcStore = useDbcStore()
 const widget = computed(() => store.getWidgetById(props.widgetId))
+const widgetTabId = computed(() => workspaceStore.tabs.find(
+  tab => tab.kind === 'dashboard' && tab.layout.widgets.some(item => String(item.i) === props.widgetId),
+)?.id)
 
 const isEditing = ref(false)
 const isLoading = ref(false)
@@ -125,12 +130,7 @@ function handleContextMenu(event: MouseEvent) {
       icon: h('span', '📋'),
       onClick: () => {
         if (widget.value) {
-          store.addWidget(widget.value.type, {
-            x: widget.value.x + 1,
-            y: widget.value.y + 1,
-            w: widget.value.w,
-            h: widget.value.h,
-          })
+          store.addWidget(widget.value.type, widgetTabId.value)
         }
       },
       divided: true,
@@ -139,7 +139,7 @@ function handleContextMenu(event: MouseEvent) {
       label: 'Delete',
       icon: h('span', '🗑️'),
       customClass: 'context-menu-danger',
-      onClick: () => store.removeWidget(props.widgetId),
+      onClick: () => store.removeWidget(props.widgetId, widgetTabId.value),
     }
   )
 

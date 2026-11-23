@@ -80,8 +80,8 @@ registries instead of importing a feature's components.
   derives live signal subscriptions, and builds render-ready chart snapshots.
 - `composables/useTimeSeriesData.ts` registers a component's signal needs and unregisters
   them on unmount. Widgets should use this data hook rather than reading live/log stores.
-- `stores/widgetStore.ts` owns the current widget layout and its `dashboard-widgets`
-  `localStorage` persistence. `widgets.ts` contains the widget record and registered defaults.
+- `stores/widgetStore.ts` owns widget records in each dashboard's tile layout. `widgets.ts`
+  contains the layout-free widget record; each workspace tab stores Gridview's serialized split tree.
 - `dialog.ts` stores the app-wide dialog state rendered by `shell/DialogBox.vue`.
 
 All Pinia stores currently live under `core/stores`, including DAQ, data-source, DBC, and

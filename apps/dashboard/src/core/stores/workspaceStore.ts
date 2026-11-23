@@ -1,12 +1,13 @@
 import { computed, ref, watch } from 'vue'
 import { defineStore } from 'pinia'
 import {
+  WORKSPACE_VERSION,
   createDashboardTab,
   createViewTab,
   createWorkspaceDocument,
   parseWorkspaceDocument,
   parseWorkspaceImport,
-  parseWidgets,
+  parseLegacyWidgets,
   type WorkspaceDocument,
   type WorkspaceTab,
 } from '@/core/workspace'
@@ -21,6 +22,8 @@ const LEGACY_WIDGETS_BACKUP_KEY = 'dashboard-widgets-migrated-v1'
 export const useWorkspaceStore = defineStore('workspace', () => {
   const document = ref<WorkspaceDocument>(createWorkspaceDocument())
   const loaded = ref(false)
+  const popoutsEnabled = ref(false)
+  const popoutUrl = ref('')
   let saveTimer: ReturnType<typeof setTimeout> | undefined
 
   const tabs = computed(() => document.value.tabs)
@@ -40,6 +43,9 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     if (window.electronAPI?.workspace) {
       try {
         stored = await window.electronAPI.workspace.load()
+        const popoutConfig = await window.electronAPI.workspace.popoutConfig()
+        popoutsEnabled.value = popoutConfig.enabled
+        popoutUrl.value = popoutConfig.url
       } catch (error) {
         console.error('Failed to load workspace from app data:', error)
       }
@@ -49,6 +55,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     }
 
     const parsed = parseWorkspaceDocument(stored)
+    const workspaceNeedsMigration = Boolean(stored && typeof stored === 'object'
+      && 'version' in stored && stored.version !== WORKSPACE_VERSION)
     const legacyRaw = localStorage.getItem(LEGACY_WIDGETS_KEY)
     let migrated = false
 
@@ -57,7 +65,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     } else {
       const initial = createWorkspaceDocument()
       if (legacyRaw && !localStorage.getItem(LEGACY_WIDGETS_BACKUP_KEY)) {
-        const legacyWidgets = parseWidgets(parseJson(legacyRaw))
+        const legacyWidgets = parseLegacyWidgets(parseJson(legacyRaw))
         const firstDashboard = initial.tabs.find((tab) => tab.kind === 'dashboard')
         if (legacyWidgets && firstDashboard?.kind === 'dashboard') {
           firstDashboard.layout.widgets = legacyWidgets
@@ -69,7 +77,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
 
     archiveLegacyWidgets(legacyRaw)
     loaded.value = true
-    if (!parsed || migrated) await saveNow()
+    if (!parsed || migrated || workspaceNeedsMigration) await saveNow()
   }
 
   function scheduleSave() {
@@ -102,6 +110,11 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     const tab = getDashboardTab(tabId)
     if (!tab) return
     tab.layout.widgets = widgets
+  }
+
+  function setDashboardTileState(tabId: string, state: Record<string, unknown> | null) {
+    const tab = getDashboardTab(tabId)
+    if (tab) tab.layout.state = state
   }
 
   function addDashboard(title = `Dashboard ${tabs.value.filter(tab => tab.kind === 'dashboard').length + 1}`) {
@@ -197,6 +210,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   return {
     document,
     loaded,
+    popoutsEnabled,
+    popoutUrl,
     tabs,
     activeTab,
     activeDashboard,
@@ -206,6 +221,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     flush,
     getDashboardTab,
     setDashboardWidgets,
+    setDashboardTileState,
     addDashboard,
     addView,
     activateTab,
