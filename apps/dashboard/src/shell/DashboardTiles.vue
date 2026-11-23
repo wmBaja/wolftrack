@@ -1,12 +1,13 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
+import { computed, h, nextTick, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
 import { GridviewVue, Orientation } from 'dockview-vue'
 import type { GridviewReadyEvent, VueComponent } from 'dockview-vue'
 import type { GridviewApi } from 'dockview-vue'
 import 'dockview-vue/dist/styles/dockview.css'
+import ContextMenu from '@imengyu/vue3-context-menu'
+import { confirmDialog } from '@/core/dialog'
 import { useWidgetStore } from '@/core/stores/widgetStore'
 import { useWorkspaceStore } from '@/core/stores/workspaceStore'
-import { confirmDialog } from '@/core/dialog'
 import { commands, panels } from '@/shell/registries'
 import DashboardTilePanel from '@/shell/DashboardTilePanel.vue'
 import PluginErrorBoundary from '@/shell/PluginErrorBoundary.vue'
@@ -18,12 +19,12 @@ const widgetStore = useWidgetStore()
 const dashboardTabId = computed(() => props.tabId ?? workspaceStore.document.activeTabId)
 const dashboard = computed(() => workspaceStore.getDashboardTab(dashboardTabId.value))
 const dashboardWidgets = computed(() => dashboard.value?.layout.widgets ?? [])
+const dashboardCommands = computed(() => [...commands.entries.value].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)))
 const dashboardPanels = computed(() => panels.entries.value
   .filter((panel) => panel.location === 'dashboard')
   .sort((a, b) => (a.order ?? 0) - (b.order ?? 0)))
-const dashboardCommands = computed(() => [...commands.entries.value].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)))
 const tileComponents = { widget: DashboardTilePanel as unknown as VueComponent }
-const addMenuOpen = ref(false)
+const importInput = ref<HTMLInputElement>()
 const gridApi = shallowRef<GridviewApi>()
 let syncingPanels = false
 let saveTimer: ReturnType<typeof setTimeout> | undefined
@@ -118,9 +119,38 @@ function persistTileState() {
   workspaceStore.setDashboardTileState(dashboardTabId.value, state)
 }
 
-async function runCommand(command: (typeof dashboardCommands.value)[number]) {
-  addMenuOpen.value = false
-  await command.run({ tabId: dashboardTabId.value })
+function handleDashboardContextMenu(event: MouseEvent) {
+  event.preventDefault()
+  ContextMenu.showContextMenu({
+    x: event.x,
+    y: event.y,
+    theme: 'mac dark',
+    zIndex: 1000,
+    items: [
+      ...dashboardCommands.value.map((command) => ({
+        label: command.title,
+        icon: h('span', command.icon ?? ''),
+        onClick: () => command.run({ tabId: dashboardTabId.value }),
+      })),
+      { divided: true },
+      {
+        label: 'Export Workspace',
+        icon: h('span', '📤'),
+        onClick: () => workspaceStore.exportWorkspace(),
+      },
+      {
+        label: 'Import Workspace',
+        icon: h('span', '📥'),
+        onClick: requestImportWorkspace,
+      },
+      {
+        label: 'Clear All Widgets',
+        icon: h('span', '🗑️'),
+        customClass: 'context-menu-danger',
+        onClick: clearDashboard,
+      },
+    ],
+  })
 }
 
 async function clearDashboard() {
@@ -132,6 +162,19 @@ async function clearDashboard() {
   if (ok) widgetStore.clearAll(dashboardTabId.value)
 }
 
+function requestImportWorkspace() {
+  importInput.value?.click()
+}
+
+async function importWorkspace(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  input.value = ''
+  if (!file || !window.confirm('Replace the current workspace with this file?')) return
+  const imported = await workspaceStore.importWorkspaceFile(file)
+  if (!imported) window.alert('This file is not a valid workspace or legacy widget layout.')
+}
+
 function disablePanel(panelId: string) {
   panels.entries.value = panels.entries.value.filter((panel) => panel.id !== panelId)
 }
@@ -139,80 +182,31 @@ function disablePanel(panelId: string) {
 </script>
 
 <template>
-  <div class="dashboard-tiles-container">
-    <PluginErrorBoundary
-      v-for="panel in dashboardPanels"
-      :key="panel.id"
-      :owner-id="panel.id"
-      @disable="disablePanel(panel.id)"
-    >
-      <component :is="panel.component" />
-    </PluginErrorBoundary>
-    <header class="tiles-toolbar">
-      <div class="tiles-add-control">
-        <button type="button" aria-label="Add widget" :aria-expanded="addMenuOpen" @click="addMenuOpen = !addMenuOpen">
-          + Widget
-        </button>
-        <div v-if="addMenuOpen" class="tiles-add-menu" role="menu">
-          <button
-            v-for="command in dashboardCommands"
-            :key="command.id"
-            type="button"
-            role="menuitem"
-            @click="runCommand(command)"
-          >
-            {{ command.icon ? `${command.icon} ` : '' }}{{ command.title }}
-          </button>
-        </div>
-      </div>
-      <span>{{ dashboardWidgets.length }} tiles</span>
-      <button type="button" :disabled="dashboardWidgets.length === 0" @click="clearDashboard">Clear dashboard</button>
-    </header>
+  <div class="dashboard-tiles-container" @contextmenu="handleDashboardContextMenu">
+    <div class="dashboard-panel-host">
+      <PluginErrorBoundary
+        v-for="panel in dashboardPanels"
+        :key="panel.id"
+        :owner-id="panel.id"
+        @disable="disablePanel(panel.id)"
+      >
+        <component :is="panel.component" />
+      </PluginErrorBoundary>
+    </div>
     <GridviewVue
       class="tile-grid"
       :orientation="Orientation.VERTICAL"
       :components="tileComponents"
       @ready="onGridReady"
     />
+    <input ref="importInput" class="hidden" type="file" accept=".json,application/json" @change="importWorkspace">
   </div>
 </template>
 
 <style scoped>
-.dashboard-tiles-container { display: flex; width: 100%; height: 100%; min-width: 0; min-height: 0; flex-direction: column; }
-.tiles-toolbar {
-  display: flex;
-  min-height: 36px;
-  align-items: center;
-  gap: 8px;
-  padding: 3px 8px;
-  border-bottom: 1px solid var(--color-border);
-  background: var(--color-panel);
-  color: var(--color-text-muted);
-}
-.tiles-toolbar > span { flex: 1; }
-.tiles-toolbar button {
-  padding: 3px 8px;
-  border: 1px solid var(--color-border);
-  border-radius: 4px;
-  background: var(--color-bg);
-  color: var(--color-text);
-  cursor: pointer;
-}
-.tiles-toolbar button:disabled { cursor: not-allowed; opacity: .5; }
-.tiles-add-control { position: relative; }
-.tiles-add-menu {
-  position: absolute;
-  z-index: 30;
-  top: calc(100% + 4px);
-  left: 0;
-  display: flex;
-  min-width: 190px;
-  flex-direction: column;
-  padding: 4px;
-  border: 1px solid var(--color-border);
-  border-radius: 5px;
-  background: var(--color-panel);
-}
-.tiles-add-menu button { text-align: left; }
-.tile-grid { flex: 1; min-height: 0; }
+.dashboard-tiles-container { position: relative; display: flex; width: 100%; height: 100%; min-width: 0; min-height: 0; flex-direction: column; }
+.dashboard-panel-host { position: absolute; z-index: 5; inset: 0; pointer-events: none; }
+.dashboard-panel-host :deep(.error-content) { pointer-events: none; }
+.dashboard-panel-host :deep(.error-card) { pointer-events: auto; }
+.tile-grid { flex: 1 1 0; width: 100%; height: 100%; min-height: 0; }
 </style>

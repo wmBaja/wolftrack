@@ -15,9 +15,12 @@ test('creates dashboard and view tabs and restores the active view state', async
   await page.getByRole('button', { name: 'Add workspace tab' }).click();
   await page.getByRole('menuitem', { name: 'New Dashboard' }).click();
   await expect(page.getByText('Dashboard 2', { exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'Add widget' }).click();
-  await page.getByRole('menuitem', { name: '➕ Add Chart Widget' }).click();
+  await page.getByRole('tabpanel', { name: 'Dashboard 2' }).click({ button: 'right', position: { x: 700, y: 450 } });
+  await page.getByText('Add Chart Widget').click();
   await expect(page.getByText('No signals configured.')).toBeVisible();
+  const tileGrid = await page.locator('.tile-grid').boundingBox();
+  const dashboardBounds = await page.locator('.dashboard-tiles-container').boundingBox();
+  expect(tileGrid?.height).toBeGreaterThan((dashboardBounds?.height ?? 0) * 0.9);
   await expect.poll(() => page.evaluate(() => {
     const workspace = JSON.parse(localStorage.getItem('wolftrack-workspace-dev') ?? 'null')
     const dashboard = workspace?.tabs?.find((tab: { kind: string; title: string }) => tab.kind === 'dashboard' && tab.title === 'Dashboard 2')
@@ -26,8 +29,8 @@ test('creates dashboard and view tabs and restores the active view state', async
   await page.reload()
   await expect(page.getByText('No signals configured.')).toBeVisible()
   await expect(page.getByRole('button', { name: 'Maximize tile' })).toBeVisible()
-  await page.getByRole('tabpanel', { name: 'Dashboard 2' }).getByRole('button', { name: 'Add widget' }).click()
-  await page.getByRole('menuitem', { name: '➕ Add Chart Widget' }).click()
+  await page.locator('.tile-panel__toolbar').first().click({ button: 'right', position: { x: 50, y: 12 } })
+  await page.getByText('Add Chart Widget').click()
   await expect(page.locator('.tile-panel')).toHaveCount(2)
   await page.locator('.tile-panel__drag-handle').first().dragTo(page.locator('.tile-panel').nth(1), {
     targetPosition: { x: 260, y: 120 },
@@ -104,7 +107,7 @@ test('renders registered features and preserves an unavailable saved widget', as
   await page.locator('#export-panel-btn').click();
   await expect(page.getByRole('dialog', { name: 'BLF CSV Export' })).toBeVisible();
   await page.reload();
-  await page.getByRole('button', { name: 'Add widget' }).click();
-  await page.getByRole('menuitem', { name: '➕ Add Chart Widget' }).click();
+  await page.locator('.tile-panel__toolbar').first().click({ button: 'right', position: { x: 50, y: 12 } });
+  await page.getByText('Add Chart Widget').click();
   await expect(page.getByText('No signals configured.')).toBeVisible();
 });
