@@ -6,7 +6,8 @@ from fastapi.testclient import TestClient
 
 sys.path.append(str(Path(__file__).resolve().parents[1] / "src"))
 
-import api.routes as routes
+import api.config as routes
+import api.live_source as live_source_routes
 from config import AppConfig
 
 
@@ -29,6 +30,7 @@ class DummyLogQueryService:
 def build_client():
     app = FastAPI()
     app.include_router(routes.router)
+    app.include_router(live_source_routes.router)
     app.state.config = AppConfig()
     app.state.pipeline_manager = DummyPipelineManager()
     broadcasts = []
@@ -36,7 +38,7 @@ def build_client():
     async def fake_broadcast(payload):
         broadcasts.append(payload)
 
-    routes.manager.broadcast_json = fake_broadcast
+    live_source_routes.manager.broadcast_json = fake_broadcast
     return TestClient(app), app, broadcasts
 
 

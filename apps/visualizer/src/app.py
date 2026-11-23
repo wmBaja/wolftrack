@@ -14,6 +14,15 @@ from dotenv import load_dotenv
 
 from config import AppConfig
 from logging_config import setup_logging, get_logger
+from core.pipeline.manager import PipelineManager
+from core.pipeline.log_query import log_query_service
+from api.config import router as config_router
+from api.live_source import router as live_source_router
+from api.logfile import router as logfile_router
+from api.dbc import router as dbc_router
+from api.export import router as export_router
+from core.dbc_manager import DBCManager
+from security import ALLOWED_ORIGINS, BackendSecurityMiddleware, backend_token, is_loopback_host
 
 load_dotenv()
 config = AppConfig.from_env()
@@ -30,10 +39,10 @@ _sys_logger = setup_logging(
 
 logger = get_logger(__name__)
 
-from pipeline.manager import PipelineManager
-from pipeline.log_query import log_query_service
-from api.routes import router
-from dbc_manager import DBCManager
+if not is_loopback_host(config.fastapi.host) and os.environ.get("WOLFTRACK_ALLOW_REMOTE_BINDING") != "true":
+    raise RuntimeError("FASTAPI_HOST must be a loopback address unless WOLFTRACK_ALLOW_REMOTE_BINDING=true")
+
+AUTH_TOKEN = backend_token()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -56,16 +65,19 @@ async def lifespan(app: FastAPI):
         await app.state.pipeline_manager.stop()
 
 app = FastAPI(lifespan=lifespan)
+app.state.auth_token = AUTH_TOKEN
+app.add_middleware(BackendSecurityMiddleware, token=AUTH_TOKEN)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=sorted(ALLOWED_ORIGINS),
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-app.include_router(router)
+for feature_router in (config_router, live_source_router, logfile_router, dbc_router, export_router):
+    app.include_router(feature_router)
 
 if __name__ == "__main__":
     host = config.fastapi.host

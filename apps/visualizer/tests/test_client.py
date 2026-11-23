@@ -1,10 +1,13 @@
 import asyncio
-import websockets
 import json
 import sys
+from urllib.parse import quote
 
-async def test_stream(port):
-    uri = f"ws://127.0.0.1:{port}/ws/stream"
+import websockets
+
+
+async def manual_stream_client(port, token):
+    uri = f"ws://127.0.0.1:{port}/ws/stream?token={quote(token)}"
     print(f"Connecting to {uri}...")
     try:
         async with websockets.connect(uri) as websocket:
@@ -20,7 +23,8 @@ async def test_stream(port):
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("Usage: python test_client.py <port>")
+        print("Usage: python test_client.py <port> <token>")
         sys.exit(1)
     port = int(sys.argv[1])
-    asyncio.run(test_stream(port))
+    token = sys.argv[2]
+    asyncio.run(manual_stream_client(port, token))

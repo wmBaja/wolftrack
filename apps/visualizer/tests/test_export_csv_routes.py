@@ -8,7 +8,8 @@ from openpyxl import load_workbook
 
 sys.path.append(str(Path(__file__).resolve().parents[1] / "src"))
 
-import api.routes as routes
+import api.export as routes
+import api.common as common
 from config import AppConfig
 
 
@@ -129,7 +130,7 @@ def test_export_csv_rejects_non_us_timezones(tmp_path: Path):
 
 def test_export_csv_streams_bom_csv_and_reuses_logfile_source(monkeypatch, tmp_path: Path):
     StubLogFileDataSource.instances.clear()
-    monkeypatch.setattr(routes, "LogFileDataSource", StubLogFileDataSource)
+    monkeypatch.setattr(common, "LogFileDataSource", StubLogFileDataSource)
     client, log_file = build_client(tmp_path, dbc=StubDbc())
 
     response = client.get("/api/export_csv", params={"timezone_name": "America/Chicago"})
@@ -161,7 +162,7 @@ def test_export_xlsx_rejects_non_us_timezones(tmp_path: Path):
 
 def test_export_xlsx_returns_grouped_workbook(monkeypatch, tmp_path: Path):
     StubLogFileDataSource.instances.clear()
-    monkeypatch.setattr(routes, "LogFileDataSource", StubLogFileDataSource)
+    monkeypatch.setattr(common, "LogFileDataSource", StubLogFileDataSource)
     client, log_file = build_client(tmp_path, dbc=StubDbc())
 
     response = client.get("/api/export_xlsx", params={"timezone_name": "America/Chicago"})

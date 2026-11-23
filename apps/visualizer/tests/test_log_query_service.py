@@ -6,7 +6,7 @@ from types import SimpleNamespace
 
 sys.path.append(str(Path(__file__).resolve().parents[1] / "src"))
 
-from pipeline.log_query import LogQueryService
+from src.core.pipeline.log_query import LogQueryService
 
 
 def test_progress_uses_file_position_and_stops_before_ready(tmp_path):
