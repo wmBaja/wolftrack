@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { getVisualizerBase } from '@/lib/visualizer'
+import { getVisualizerBase, visualizerFetch } from '@/lib/visualizer'
 
 export interface DbcSignal {
   id: string
@@ -42,7 +42,7 @@ export const useDbcStore = defineStore('dbcStore', () => {
   async function fetchDbcs() {
     try {
       const baseUrl = await getVisualizerBase()
-      const res = await fetch(`${baseUrl}/api/dbc`)
+      const res = await visualizerFetch(`${baseUrl}/api/dbc`)
       if (!res.ok) throw new Error('Failed to fetch DBCs')
       const data = await res.json()
       availableDbcs.value = data.available
@@ -55,7 +55,7 @@ export const useDbcStore = defineStore('dbcStore', () => {
   async function fetchSignals() {
     try {
       const baseUrl = await getVisualizerBase()
-      const res = await fetch(`${baseUrl}/api/signals`)
+      const res = await visualizerFetch(`${baseUrl}/api/signals`)
       if (!res.ok) throw new Error('Failed to fetch signals')
       const data = await res.json()
       signals.value = data.signals || []
@@ -72,7 +72,7 @@ export const useDbcStore = defineStore('dbcStore', () => {
       formData.append('file', file)
       
       const baseUrl = await getVisualizerBase()
-      const res = await fetch(`${baseUrl}/api/dbc/upload`, {
+      const res = await visualizerFetch(`${baseUrl}/api/dbc/upload`, {
         method: 'POST',
         body: formData
       })
@@ -100,7 +100,7 @@ export const useDbcStore = defineStore('dbcStore', () => {
       formData.append('filename', filename)
       
       const baseUrl = await getVisualizerBase()
-      const res = await fetch(`${baseUrl}/api/dbc/select`, {
+      const res = await visualizerFetch(`${baseUrl}/api/dbc/select`, {
         method: 'POST',
         body: formData
       })
@@ -126,7 +126,7 @@ export const useDbcStore = defineStore('dbcStore', () => {
     error.value = null
     try {
       const baseUrl = await getVisualizerBase()
-      const res = await fetch(`${baseUrl}/api/dbc/${encodeURIComponent(filename)}`, {
+      const res = await visualizerFetch(`${baseUrl}/api/dbc/${encodeURIComponent(filename)}`, {
         method: 'DELETE'
       })
       if (!res.ok) {
@@ -156,7 +156,7 @@ export const useDbcStore = defineStore('dbcStore', () => {
     error.value = null
     try {
       const baseUrl = await getVisualizerBase()
-      const res = await fetch(`${baseUrl}/api/dbc/${encodeURIComponent(filename)}`, {
+      const res = await visualizerFetch(`${baseUrl}/api/dbc/${encodeURIComponent(filename)}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ new_name: newName }),

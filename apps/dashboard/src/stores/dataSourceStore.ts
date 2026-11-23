@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { getVisualizerBase } from '@/lib/visualizer'
+import { getVisualizerBase, visualizerFetch } from '@/lib/visualizer'
 
 export type DataSourceMode = 'zmq' | 'logfile'
 export type DataSourceStatus = 'stopped' | 'running' | 'loading' | 'error'
@@ -83,7 +83,7 @@ export const useDataSourceStore = defineStore('dataSource', () => {
   async function fetchSignals(): Promise<void> {
     try {
       const baseUrl = await getVisualizerBase()
-      const res = await fetch(`${baseUrl}/api/signals`)
+      const res = await visualizerFetch(`${baseUrl}/api/signals`)
       if (!res.ok) return
       const data = await res.json()
       dbcSignals.value = data.signals || []
@@ -95,7 +95,7 @@ export const useDataSourceStore = defineStore('dataSource', () => {
   async function fetchConfig(): Promise<void> {
     try {
       const baseUrl = await getVisualizerBase()
-      const res = await fetch(`${baseUrl}/api/config`)
+      const res = await visualizerFetch(`${baseUrl}/api/config`)
       if (!res.ok) throw new Error(`Failed to fetch config: ${res.statusText}`)
       const data = await res.json()
       config.value = normalizeDataSourceConfig(data)
@@ -112,7 +112,7 @@ export const useDataSourceStore = defineStore('dataSource', () => {
   async function fetchLiveSource(): Promise<void> {
     try {
       const baseUrl = await getVisualizerBase()
-      const res = await fetch(`${baseUrl}/api/live_source`)
+      const res = await visualizerFetch(`${baseUrl}/api/live_source`)
       if (!res.ok) throw new Error(`Failed to fetch live source: ${res.statusText}`)
 
       liveSource.value = await res.json()
@@ -148,7 +148,7 @@ export const useDataSourceStore = defineStore('dataSource', () => {
       }
 
       const baseUrl = await getVisualizerBase()
-      const res = await fetch(`${baseUrl}/api/upload_config`, {
+      const res = await visualizerFetch(`${baseUrl}/api/upload_config`, {
         method: 'POST',
         body: formData,
       })
@@ -169,7 +169,7 @@ export const useDataSourceStore = defineStore('dataSource', () => {
     error.value = null
     try {
       const baseUrl = await getVisualizerBase()
-      await fetch(`${baseUrl}/api/stop`, { method: 'POST' })
+      await visualizerFetch(`${baseUrl}/api/stop`, { method: 'POST' })
       status.value = 'stopped'
     } catch (e: unknown) {
       error.value = e instanceof Error ? e.message : String(e)

@@ -15,6 +15,7 @@ declare global {
       onMessage: (callback: (args: unknown) => void) => void
       openFile: (filters: Electron.FileFilter[]) => Promise<string | null>
       getBackendPort: () => Promise<number>
+      getBackendAuthToken: () => Promise<string>
       discoverDaqServices: () => Promise<DaqDiscoveryService[]>
       downloadFileFromUrl: (url: string, suggestedFilename: string) => Promise<boolean>
     } | undefined

@@ -1,6 +1,7 @@
 import path from 'path'
 import { promises as fs } from 'fs'
 import { spawn } from 'child_process'
+import { randomBytes } from 'crypto'
 import { app, BrowserWindow, ipcMain, dialog } from 'electron'
 import { fileURLToPath } from 'url'
 import { waitForBackendReady } from './backendReadiness.js'
@@ -105,6 +106,7 @@ ipcMain.handle('discover-daq-services', async () => {
 })
 
 let backendProcess = null;
+const backendAuthToken = randomBytes(32).toString('hex')
 let backendPortResolver = null;
 let backendPortRejecter = null;
 let backendReadinessStarted = false;
@@ -130,6 +132,8 @@ ipcMain.handle('get-backend-port', async () => {
   return await backendPortPromise;
 });
 
+ipcMain.handle('get-backend-auth-token', async () => backendAuthToken)
+
 function startBackend() {
   const isWindows = process.platform === 'win32';
   const executableName = isWindows ? 'wolftrack-visualizer.exe' : 'wolftrack-visualizer';
@@ -139,7 +143,8 @@ function startBackend() {
   const backendEnv = { 
     ...process.env,
     APP_LOG_DIR: path.join(userDataPath, 'backend_logs'),
-    WOLFTRACK_USER_DATA: userDataPath
+    WOLFTRACK_USER_DATA: userDataPath,
+    WOLFTRACK_AUTH_TOKEN: backendAuthToken
   };
 
   if (app.isPackaged) {
@@ -171,7 +176,7 @@ function startBackend() {
         const port = match[1];
         backendReadinessStarted = true
         process.env.WOLFTRACK_WS_PORT = port;
-        void waitForBackendReady({ port })
+        void waitForBackendReady({ port, token: backendAuthToken })
           .then(() => resolveBackendPort(port))
           .catch((error) => rejectBackendPort(error))
       }

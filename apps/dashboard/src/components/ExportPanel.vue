@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { getVisualizerBase } from '@/lib/visualizer'
+import { getVisualizerBase, visualizerFetch } from '@/lib/visualizer'
 
 type ExportStatus = 'idle' | 'loading' | 'success'
 type ExportFormat = 'csv' | 'xlsx'
@@ -103,7 +103,7 @@ async function exportFile() {
     uploadData.append('log_file_upload', selectedFile.value)
     uploadData.append('playback_speed', '0.0')
 
-    const uploadResponse = await fetch(`${baseUrl}/api/upload_config`, {
+    const uploadResponse = await visualizerFetch(`${baseUrl}/api/upload_config`, {
       method: 'POST',
       body: uploadData,
     })
@@ -112,7 +112,7 @@ async function exportFile() {
       throw new Error(payload.detail ?? 'Export upload failed.')
     }
 
-    const exportResponse = await fetch(buildExportUrl(baseUrl))
+    const exportResponse = await visualizerFetch(buildExportUrl(baseUrl))
     if (!exportResponse.ok) {
       const payload = await exportResponse.json()
       throw new Error(payload.detail ?? 'CSV export failed.')
