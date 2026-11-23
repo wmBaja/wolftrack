@@ -115,20 +115,19 @@ load external code, enforce plugin permissions, or isolate plugin code.
 
 ## Telemetry data flow
 
-1. A chart widget reads its configured signal IDs from the widget store.
-2. `useTimeSeriesData(consumerId, signalIds)` registers those signals with
-   `timeSeriesDataStore` and removes the registration when the widget unmounts.
-3. The store aggregates signal needs. For live data, it asks `liveDataStore` to subscribe to
-   the active signal set. For log data, it requests overview/detail windows from
-   `logDataStore` and selects the current query window for the chart snapshot.
-4. The chart renders the snapshot through `UplotChart`. Live ring buffers stay non-reactive;
-   the version counter triggers the chart to rebuild its view without wrapping the buffers
-   in Vue reactivity.
+1. A chart widget reads its configured signal IDs from the widget store and calls the typed
+   `ctx.data.useSignals(consumerId, signalIds)` API supplied by its feature activation.
+2. The core `timeSeriesDataStore` aggregates active consumers, routes live subscriptions or
+   logfile overview/detail requests, and returns a source-neutral snapshot of per-signal
+   timestamps and values. The composable follows reactive signal ID lists and unregisters
+   its consumer when the component unmounts.
+3. The chart feature adapts that snapshot to its own aligned uPlot model and sample-rate
+   statistics. Core telemetry code has no chart or uPlot dependency.
+4. Live ring buffers stay non-reactive; the source-neutral snapshot revision triggers chart
+   updates without wrapping the buffers in Vue reactivity.
 
-The context also exposes `ctx.data.useSignals` and `ctx.data.availableSignals`. The built-in
-chart currently calls the core composable directly, and `useSignals` is typed as `unknown` in
-the SDK. Treat the context API as an incomplete transition seam until its return type is
-useful and built-in widgets consume it.
+`ctx.data.availableSignals()` returns signal descriptors with IDs, names, and units. The SDK
+contracts are type-only and do not make the dashboard a runtime external-plugin framework.
 
 ## Widget layout behavior
 
@@ -144,9 +143,16 @@ workspace work; they are not implemented by these registries.
 
 ## Extension rules and current limits
 
-- Feature code should import the SDK, `core`, and files inside its own feature. Do not import
-  another feature. The ESLint config blocks common cross-feature alias paths; this is a
-  development guardrail, not a runtime security boundary.
+The dependency direction is enforced by ESLint and the dashboard CI job: shell modules may
+depend on core and the SDK; features may depend on core, the SDK, and their own modules; core
+may not depend on shell or feature code. Cross-feature services communicate through narrow
+core contracts. The data-source feature owns DAQ connection and logging orchestration, while
+the file-manager feature owns remote DAQ log browsing and mutations. Core publishes DAQ
+status and a log-refresh revision for the file manager to observe.
+
+- Feature code should import the SDK, `core`, and files inside its own feature. ESLint resolves
+  import paths and checks this rule for alias and relative imports; it is a development
+  guardrail, not a runtime security boundary.
 - Register UI through `ctx` and return cleanup functions for registrations. Avoid adding
   feature-specific imports to `NavBar.vue`, `DashboardGrid.vue`, or `App.vue`.
 - Do not give feature code the generic Electron IPC channel. The preload exposes grouped

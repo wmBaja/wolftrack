@@ -3,6 +3,7 @@ import { defineConfigWithVueTs, vueTsConfigs } from '@vue/eslint-config-typescri
 import pluginVue from 'eslint-plugin-vue'
 import pluginVitest from '@vitest/eslint-plugin'
 import pluginPlaywright from 'eslint-plugin-playwright'
+import boundaries from 'eslint-plugin-boundaries'
 import skipFormatting from '@vue/eslint-config-prettier/skip-formatting'
 
 // To allow more languages other than `ts` in `.vue` files, uncomment the following lines:
@@ -32,23 +33,43 @@ export default defineConfigWithVueTs(
   },
   skipFormatting,
   {
-    name: 'app/feature-import-boundaries',
-    files: ['src/features/**/*.{ts,vue}'],
-    rules: {
-      'no-restricted-imports': ['error', {
-        patterns: [
-          { group: ['@/components/**', '@/stores/**', '@/lib/**', '@/types/**', '@/features/**'], message: 'Features may import only the SDK, core, and files within their own feature.' },
-          { group: ['../*/**', '../../*'], message: 'Features may not import another feature by relative path.' },
-        ],
-      }],
+    name: 'app/architecture-boundaries',
+    files: ['src/**/*.{ts,vue}', '../../packages/plugin-sdk/src/**/*.ts'],
+    plugins: { boundaries },
+    settings: {
+      'boundaries/root-path': '.',
+      'boundaries/include': ['src/**/*', '../../packages/plugin-sdk/src/**/*'],
+      'import/resolver': {
+        typescript: { project: './tsconfig.app.json' },
+        node: { extensions: ['.ts', '.vue'] },
+      },
+      'boundaries/elements': [
+        { type: 'shell', pattern: 'src/shell/**' },
+        { type: 'core', pattern: 'src/core/**' },
+        { type: 'charts', pattern: 'src/features/charts/**' },
+        { type: 'data-source', pattern: 'src/features/data-source/**' },
+        { type: 'file-manager', pattern: 'src/features/file-manager/**' },
+        { type: 'export', pattern: 'src/features/export/**' },
+        { type: 'sdk', pattern: '../../packages/plugin-sdk/src/**' },
+      ],
+      'boundaries/files': [
+        { pattern: '**/__tests__/**', category: 'test' },
+        { pattern: '**/*.spec.ts', category: 'test' },
+      ],
     },
-  },
-  {
-    name: 'app/shell-import-boundaries',
-    files: ['src/shell/**/*.{ts,vue}'],
     rules: {
-      'no-restricted-imports': ['error', {
-        patterns: [{ group: ['@/features/**'], message: 'The shell must discover features through registries.' }],
+      'boundaries/dependencies': ['error', {
+        default: 'disallow',
+        policies: [
+          { from: { element: { type: 'shell' } }, allow: { to: { element: { types: ['shell', 'core', 'sdk'] } } } },
+          { from: { element: { type: 'core' } }, allow: { to: { element: { types: ['core', 'sdk'] } } } },
+          { from: { element: { type: 'charts' } }, allow: { to: { element: { types: ['charts', 'core', 'sdk'] } } } },
+          { from: { element: { type: 'data-source' } }, allow: { to: { element: { types: ['data-source', 'core', 'sdk'] } } } },
+          { from: { element: { type: 'file-manager' } }, allow: { to: { element: { types: ['file-manager', 'core', 'sdk'] } } } },
+          { from: { element: { type: 'export' } }, allow: { to: { element: { types: ['export', 'core', 'sdk'] } } } },
+          { from: { element: { type: 'sdk' } }, allow: { to: { element: { type: 'sdk' } } } },
+          { from: { file: { categories: 'test' } }, allow: { to: { element: { types: ['shell', 'core', 'charts', 'data-source', 'file-manager', 'export', 'sdk'] } } } },
+        ],
       }],
     },
   },

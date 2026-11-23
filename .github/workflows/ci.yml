@@ -138,6 +138,8 @@ jobs:
           echo "APP_LOG_FORMAT=${APP_LOG_FORMAT:-detailed}" >> .env
       - name: Type-check dashboard
         run: npm run type-check --workspace @wolftrack/dashboard
+      - name: Lint dashboard architecture and source
+        run: npm run lint --workspace @wolftrack/dashboard
       - name: Run dashboard unit tests
         run: npm run test:unit --workspace @wolftrack/dashboard -- --run
       - name: Build dashboard for end-to-end tests
