@@ -4,8 +4,13 @@ import { RouterView } from 'vue-router'
 import NavBar from './shell/NavBar.vue'
 import DialogBox from '@/shell/DialogBox.vue'
 import { panels } from '@/shell/registries'
+import PluginErrorBoundary from '@/shell/PluginErrorBoundary.vue'
 
 const overlayPanels = computed(() => panels.entries.value.filter((panel) => panel.location === 'overlay'))
+
+function disablePanel(id: string) {
+  panels.entries.value = panels.entries.value.filter((panel) => panel.id !== id)
+}
 </script>
 
 <template>
@@ -15,6 +20,13 @@ const overlayPanels = computed(() => panels.entries.value.filter((panel) => pane
       <RouterView />
       <DialogBox />
     </main>
-    <component v-for="panel in overlayPanels" :key="panel.id" :is="panel.component as Component" />
+    <PluginErrorBoundary
+      v-for="panel in overlayPanels"
+      :key="panel.id"
+      :owner-id="panel.id"
+      @disable="disablePanel(panel.id)"
+    >
+      <component :is="panel.component as Component" />
+    </PluginErrorBoundary>
   </div>
 </template>

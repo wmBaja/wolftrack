@@ -22,9 +22,9 @@ export const activate: FeatureActivate = (ctx) => {
   })
   const removeCommand = commands.register({
     id: 'charts.add-chart', title: 'Add Chart Widget', icon: '➕', order: 10,
-    run: ({ x, y, w, h }) => {
+    run: ({ x, y, w, h, tabId }) => {
       void import('@/core/stores/widgetStore').then(({ useWidgetStore }) => {
-        useWidgetStore().addWidget('chart', { x, y, w, h })
+        useWidgetStore().addWidget('chart', { x, y, w, h }, tabId)
       })
     },
   })

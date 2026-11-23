@@ -4,6 +4,7 @@ import { nextTick } from 'vue'
 
 import { RingBuffer, useLiveDataStore } from '@/core/stores/liveDataStore'
 import { useTimeSeriesDataStore } from '@/core/stores/timeSeriesDataStore'
+import { useWorkspaceStore } from '@/core/stores/workspaceStore'
 
 describe('time series data store', () => {
   beforeEach(() => {
@@ -29,6 +30,36 @@ describe('time series data store', () => {
     await nextTick()
 
     expect(timeSeries.activeSignals).toEqual(['Engine.rpm', 'Battery.voltage'])
+  })
+
+  it('keeps saved widget signals subscribed when a dashboard is not mounted', async () => {
+    const workspace = useWorkspaceStore()
+    const dashboard = workspace.tabs.find((tab) => tab.kind === 'dashboard')
+    if (!dashboard || dashboard.kind !== 'dashboard') throw new Error('Default dashboard is missing')
+    dashboard.layout.widgets.push({
+      i: 'saved-chart',
+      type: 'chart',
+      title: 'Saved chart',
+      x: 0,
+      y: 0,
+      w: 4,
+      h: 4,
+      config: {},
+      signals: ['Vehicle.speed', 'Engine.rpm'],
+      createdAt: 1,
+    })
+
+    const timeSeries = useTimeSeriesDataStore()
+    const liveData = useLiveDataStore()
+    timeSeries.registerConsumer('active-view', ['Battery.voltage'])
+    await nextTick()
+
+    expect(timeSeries.activeSignals).toEqual(['Vehicle.speed', 'Engine.rpm', 'Battery.voltage'])
+    expect(liveData.subscribedSignals).toEqual(timeSeries.activeSignals)
+
+    timeSeries.unregisterConsumer('active-view')
+    await nextTick()
+    expect(timeSeries.activeSignals).toEqual(['Vehicle.speed', 'Engine.rpm'])
   })
 
   it('advances the chart reset revision for each live data batch', () => {

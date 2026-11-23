@@ -15,6 +15,7 @@ export interface ViewContribution {
   id: string
   title: string
   component: unknown
+  pluginId?: string
   icon?: string
 }
 
@@ -33,7 +34,7 @@ export interface CommandContribution {
   title: string
   icon?: string
   order?: number
-  run: (context: { x: number; y: number; w: number; h: number }) => void | Promise<void>
+  run: (context: { x: number; y: number; w: number; h: number; tabId?: string }) => void | Promise<void>
 }
 
 export interface PluginManifest {

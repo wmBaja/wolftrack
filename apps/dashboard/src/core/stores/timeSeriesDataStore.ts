@@ -4,6 +4,7 @@ import { useDataSourceStore } from '@/core/stores/dataSourceStore'
 import { useDbcStore } from '@/core/stores/dbcStore'
 import { useLiveDataStore } from '@/core/stores/liveDataStore'
 import { useLogDataStore } from '@/core/stores/logDataStore'
+import { useWorkspaceStore } from '@/core/stores/workspaceStore'
 import type { SignalDataSnapshot, SignalSeries } from '@wolftrack/plugin-sdk'
 
 function uniqueSignals(signals: string[]) {
@@ -18,9 +19,13 @@ export const useTimeSeriesDataStore = defineStore('timeSeriesData', () => {
   const dbcStore = useDbcStore()
   const liveDataStore = useLiveDataStore()
   const logDataStore = useLogDataStore()
+  const workspaceStore = useWorkspaceStore()
   const consumers = ref<Record<string, string[]>>({})
 
-  const activeSignals = computed(() => uniqueSignals(Object.values(consumers.value).flat()))
+  const activeSignals = computed(() => uniqueSignals([
+    ...workspaceStore.widgetSignalIds,
+    ...Object.values(consumers.value).flat(),
+  ]))
   const isReadyLog = computed(() => {
     return dataSourceStore.config.source === 'logfile'
       && logDataStore.status.status === 'ready'

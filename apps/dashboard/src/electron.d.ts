@@ -16,6 +16,10 @@ declare global {
         openFile: (filters: Array<{ name: string; extensions: string[] }>) => Promise<string | null>
         downloadFromUrl: (url: string, suggestedFilename: string) => Promise<boolean>
       }
+      workspace: {
+        load: () => Promise<unknown>
+        save: (document: unknown) => Promise<boolean>
+      }
       daq: { discoverServices: () => Promise<DaqDiscoveryService[]> }
     } | undefined
   }

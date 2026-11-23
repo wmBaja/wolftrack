@@ -9,6 +9,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     openFile: (filters) => ipcRenderer.invoke('dialog:openFile', filters),
     downloadFromUrl: (url, suggestedFilename) => ipcRenderer.invoke('download:file-from-url', { url, suggestedFilename }),
   },
+  workspace: {
+    load: () => ipcRenderer.invoke('workspace:load'),
+    save: (document) => ipcRenderer.invoke('workspace:save', document),
+  },
   daq: {
     discoverServices: () => ipcRenderer.invoke('discover-daq-services'),
   },

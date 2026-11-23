@@ -69,6 +69,68 @@ ipcMain.handle('download:file-from-url', async (_event, { url, suggestedFilename
   return true
 })
 
+function getWorkspaceFilePath() {
+  return path.join(app.getPath('userData'), 'workspace.json')
+}
+
+function isWorkspaceEnvelope(value) {
+  return value && typeof value === 'object'
+    && value.format === 'wolftrack-workspace'
+    && value.version === 2
+    && Array.isArray(value.tabs)
+}
+
+ipcMain.handle('workspace:load', async () => {
+  const workspacePath = getWorkspaceFilePath()
+  const backupPath = `${workspacePath}.bak`
+  try {
+    return JSON.parse(await fs.readFile(workspacePath, 'utf8'))
+  } catch {
+    try {
+      const backup = await fs.readFile(backupPath, 'utf8')
+      const recovered = JSON.parse(backup)
+      if (!isWorkspaceEnvelope(recovered)) return null
+      await fs.copyFile(backupPath, workspacePath)
+      return recovered
+    } catch {
+      return null
+    }
+  }
+})
+
+ipcMain.handle('workspace:save', async (_event, value) => {
+  if (!isWorkspaceEnvelope(value)) throw new Error('Invalid workspace document')
+  const workspacePath = getWorkspaceFilePath()
+  const backupPath = `${workspacePath}.bak`
+  const temporaryPath = `${workspacePath}.tmp`
+  const serialized = JSON.stringify(value)
+  let hasLastGoodCopy = false
+
+  try {
+    const previous = JSON.parse(await fs.readFile(workspacePath, 'utf8'))
+    if (isWorkspaceEnvelope(previous)) {
+      await fs.copyFile(workspacePath, backupPath)
+      hasLastGoodCopy = true
+    }
+  } catch {
+    // A last-good backup may still be available when the current file is unreadable.
+  }
+
+  if (!hasLastGoodCopy) {
+    try {
+      const backup = JSON.parse(await fs.readFile(backupPath, 'utf8'))
+      hasLastGoodCopy = isWorkspaceEnvelope(backup)
+    } catch {
+      hasLastGoodCopy = false
+    }
+  }
+
+  await fs.writeFile(temporaryPath, serialized, 'utf8')
+  await fs.rename(temporaryPath, workspacePath)
+  if (!hasLastGoodCopy) await fs.copyFile(workspacePath, backupPath)
+  return true
+})
+
 async function discoverDaqServices() {
   let Bonjour
 

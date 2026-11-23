@@ -7,8 +7,17 @@ import ContextMenu from '@imengyu/vue3-context-menu'
 import MissingWidget from '@/shell/MissingWidget.vue'
 import type { Widget } from '@/core/widgets'
 import { commands, panels, widgets } from '@/shell/registries'
+import PluginErrorBoundary from '@/shell/PluginErrorBoundary.vue'
+import { useWorkspaceStore } from '@/core/stores/workspaceStore'
 
+const props = defineProps<{ tabId?: string }>()
 const widgetStore = useWidgetStore()
+const workspaceStore = useWorkspaceStore()
+const dashboardTabId = computed(() => props.tabId ?? workspaceStore.document.activeTabId)
+const dashboardWidgets = computed({
+  get: () => widgetStore.getWidgets(dashboardTabId.value),
+  set: (value: Widget[]) => workspaceStore.setDashboardWidgets(dashboardTabId.value, value),
+})
 
 interface WidgetExpose {
   handleRefresh: () => Promise<void>
@@ -38,14 +47,12 @@ const GRID_ROW_HEIGHT = 30
 const GRID_MARGIN = 5
 const FALLBACK_CHART_SIZE = { w: 5, h: 15 }
 
-onMounted(() => {
-  widgetStore.loadFromLocalStorage()
-})
+onMounted(() => { void workspaceStore.load() })
 
 watch(
-  () => widgetStore.widgets.length,
+  () => dashboardWidgets.value.length,
   () => {
-    const currentIds = new Set(widgetStore.widgets.map((w) => w.i))
+    const currentIds = new Set(dashboardWidgets.value.map((w) => w.i))
     Object.keys(widgetRefs.value).forEach((id) => {
       if (!currentIds.has(id)) {
         delete widgetRefs.value[id]
@@ -55,13 +62,17 @@ watch(
 )
 
 function handleLayoutUpdate(newLayout: Widget[]) {
-  widgetStore.updateLayout(newLayout)
+  widgetStore.updateLayout(newLayout, dashboardTabId.value)
 }
 
 function setWidgetRef(widgetId: string, el: WidgetExpose | null) {
   if (el) {
     widgetRefs.value[widgetId] = el
   }
+}
+
+function disablePanel(panelId: string) {
+  panels.entries.value = panels.entries.value.filter((panel) => panel.id !== panelId)
 }
 
 function getGridMetrics() {
@@ -121,7 +132,7 @@ async function handleClearAll() {
     'Are you sure you want to delete all widgets?',
     { confirmText: 'Delete', danger: true },
   )
-  if (ok) widgetStore.clearAll()
+  if (ok) widgetStore.clearAll(dashboardTabId.value)
 }
 
 function handleGridContextMenu(event: MouseEvent) {
@@ -144,17 +155,17 @@ function handleGridContextMenu(event: MouseEvent) {
       ...dashboardCommands.value.map((command) => ({
         label: command.title,
         icon: h('span', command.icon ?? ''),
-        onClick: () => command.run({ ...gridPos, ...chartSize }),
+        onClick: () => command.run({ ...gridPos, ...chartSize, tabId: dashboardTabId.value }),
       })),
       {
-        label: 'Export Layout',
+        label: 'Export Workspace',
         icon: h('span', '📤'),
-        onClick: () => widgetStore.exportLayout(),
+        onClick: () => workspaceStore.exportWorkspace(),
       },
       {
-        label: 'Import Layout',
+        label: 'Import Workspace',
         icon: h('span', '📥'),
-        onClick: () => requestImportLayout(),
+        onClick: () => requestImportWorkspace(),
         divided: true,
       },
       {
@@ -167,7 +178,7 @@ function handleGridContextMenu(event: MouseEvent) {
   })
 }
 
-function requestImportLayout() {
+function requestImportWorkspace() {
   const input = document.createElement('input')
   input.type = 'file'
   input.accept = '.json'
@@ -175,21 +186,17 @@ function requestImportLayout() {
     if (!input.files || !input.files[0]) return
     const file = input.files[0]
     try {
-      const newWidgets = await widgetStore.parseImportedLayout(file)
-      if (newWidgets) {
-        const ok = await confirmDialog(
-          'Import Layout',
-          'Are you sure you want to import this layout? This will overwrite your current layout.',
-          { confirmText: 'Import', danger: true },
-        )
-        if (ok) {
-          widgetStore.overwriteLayout(newWidgets)
-        }
-      }
-      else {
+      const ok = await confirmDialog(
+        'Import Workspace',
+        'Import this workspace or legacy widget layout?',
+        { confirmText: 'Import', danger: true },
+      )
+      if (!ok) return
+      const imported = await workspaceStore.importWorkspaceFile(file)
+      if (!imported) {
         await confirmDialog(
-          'Import Layout',
-          'The selected file is not a valid layout.',
+          'Import Workspace',
+          'The selected file is not a valid workspace or legacy widget layout.',
           { confirmText: 'OK' , removeCancel: true },
         )
       }
@@ -203,10 +210,17 @@ function requestImportLayout() {
 
 <template>
   <div class="dashboard-grid-container" @contextmenu="handleGridContextMenu">
-    <component v-for="panel in dashboardPanels" :key="panel.id" :is="panel.component as Component" />
+    <PluginErrorBoundary
+      v-for="panel in dashboardPanels"
+      :key="panel.id"
+      :owner-id="panel.id"
+      @disable="disablePanel(panel.id)"
+    >
+      <component :is="panel.component as Component" />
+    </PluginErrorBoundary>
     <div ref="gridWrapperRef" class="grid-wrapper custom-scrollbar">
       <GridLayout
-        v-model:layout="widgetStore.widgets"
+        v-model:layout="dashboardWidgets"
         :col-num="GRID_COLS"
         :row-height="GRID_ROW_HEIGHT"
         :is-draggable="true"
@@ -220,7 +234,7 @@ function requestImportLayout() {
         @layout-updated="handleLayoutUpdate"
       >
         <GridItem
-          v-for="item in widgetStore.widgets"
+          v-for="item in dashboardWidgets"
           :key="item.i"
           :resize-option="{
             edges: { right: true, bottom: true },
@@ -229,12 +243,14 @@ function requestImportLayout() {
           drag-allow-from=".base-widget__header"
           drag-ignore-from=".base-widget__content"
         >
-          <component
-            :is="(widgets.get((item as Widget).type)?.component as Component) || MissingWidget"
-            :ref="(el: WidgetExpose | null) => setWidgetRef(String(item.i), el)"
-            :widget-id="item.i"
-            :data-widget-id="item.i"
-          />
+          <PluginErrorBoundary :owner-id="String(item.type)" @disable="widgetStore.removeWidget(String(item.i), dashboardTabId)">
+            <component
+              :is="(widgets.get((item as Widget).type)?.component as Component) || MissingWidget"
+              :ref="(el: WidgetExpose | null) => setWidgetRef(String(item.i), el)"
+              :widget-id="item.i"
+              :data-widget-id="item.i"
+            />
+          </PluginErrorBoundary>
         </GridItem>
       </GridLayout>
     </div>
@@ -245,7 +261,7 @@ function requestImportLayout() {
 .dashboard-grid-container {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - var(--navbar-height));
+  height: 100%;
   padding: 5px;
 }
 

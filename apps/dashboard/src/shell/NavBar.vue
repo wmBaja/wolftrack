@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, type Component } from 'vue'
 import { panels } from '@/shell/registries'
+import PluginErrorBoundary from '@/shell/PluginErrorBoundary.vue'
 
 const sortPanels = (a: (typeof panels.entries.value)[number], b: (typeof panels.entries.value)[number]) => (a.order ?? 0) - (b.order ?? 0)
 const leftToolbarPanels = computed(() => panels.entries.value
@@ -9,6 +10,10 @@ const leftToolbarPanels = computed(() => panels.entries.value
 const rightToolbarPanels = computed(() => panels.entries.value
   .filter((panel) => panel.location === 'toolbar' && panel.alignment !== 'left')
   .sort(sortPanels))
+
+function disablePanel(id: string) {
+  panels.entries.value = panels.entries.value.filter((panel) => panel.id !== id)
+}
 </script>
 
 <template>
@@ -16,19 +21,25 @@ const rightToolbarPanels = computed(() => panels.entries.value
     <div class="mx-auto px-4">
       <div class="flex items-center justify-between h-14">
         <div class="flex items-center gap-4 h-full">
-          <component
+          <PluginErrorBoundary
             v-for="panel in leftToolbarPanels"
             :key="panel.id"
-            :is="panel.component as Component"
-          />
+            :owner-id="panel.id"
+            @disable="disablePanel(panel.id)"
+          >
+            <component :is="panel.component as Component" />
+          </PluginErrorBoundary>
           <img src="@/assets/images/bajaLogo-dark.png" alt="Pack Motorsports Baja SAE Logo" class="min-w h-full py-1" />
         </div>
         <div class="flex items-center gap-3">
-          <component
+          <PluginErrorBoundary
             v-for="panel in rightToolbarPanels"
             :key="panel.id"
-            :is="panel.component as Component"
-          />
+            :owner-id="panel.id"
+            @disable="disablePanel(panel.id)"
+          >
+            <component :is="panel.component as Component" />
+          </PluginErrorBoundary>
         </div>
       </div>
     </div>

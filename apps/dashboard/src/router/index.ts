@@ -1,5 +1,5 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
-import DashboardView from '@/views/DashboardView.vue'
+import WorkspaceView from '@/views/WorkspaceView.vue'
 
 const router = createRouter({
   history: createWebHashHistory(import.meta.env.BASE_URL),
@@ -7,7 +7,7 @@ const router = createRouter({
     {
       path: '/',
       name: 'dashboard',
-      component: DashboardView
+      component: WorkspaceView
     },
     ...(import.meta.env.DEV ? [{
       path: '/workspace-spike',
