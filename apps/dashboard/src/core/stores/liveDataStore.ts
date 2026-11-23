@@ -1,8 +1,11 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { useDataSourceStore } from './dataSourceStore'
-import { useDaqConnectionStore } from './daqConnectionStore'
 import { getVisualizerWsUrl } from '@/core/backendClient'
+
+export type VisualizerStatusMessage =
+  | { type: 'status'; status: 'stopped' | 'running' | 'loading' | 'error'; source?: 'zmq' | 'logfile'; detail?: string | null }
+  | { type: 'live_source'; connected: boolean; flask_host: string | null; flask_port: number | null; zmq_host: string | null; zmq_port: number | null }
 
 export class RingBuffer {
   timestamps: Float64Array
@@ -69,6 +72,7 @@ export const useLiveDataStore = defineStore('liveData', () => {
   // Expose a dataVersion tick for charts that still want reactivity
   const dataVersion = ref(0)
   const subscribedSignals = ref<string[]>([])
+  const statusMessageListeners = new Set<(message: VisualizerStatusMessage) => void>()
 
   let ws: WebSocket | null = null
 
@@ -85,6 +89,11 @@ export const useLiveDataStore = defineStore('liveData', () => {
       signals: subscribedSignals.value,
       live_window_seconds: dataSource.config.live_buffer_window_seconds || 15.0
     }))
+  }
+
+  function subscribeStatusMessages(listener: (message: VisualizerStatusMessage) => void) {
+    statusMessageListeners.add(listener)
+    return () => statusMessageListeners.delete(listener)
   }
 
   async function connect() {
@@ -107,9 +116,9 @@ export const useLiveDataStore = defineStore('liveData', () => {
 
         if (payload.type === 'live_source' || payload.type === 'status') {
           const dataSource = useDataSourceStore()
-          const daqConnection = useDaqConnectionStore()
+          const message = payload as VisualizerStatusMessage
           dataSource.handleVisualizerMessage(payload)
-          daqConnection.handleVisualizerMessage(payload)
+          for (const listener of statusMessageListeners) listener(message)
           return
         }
 
@@ -187,6 +196,7 @@ export const useLiveDataStore = defineStore('liveData', () => {
     disconnect,
     clearBuffers,
     setSubscribedSignals,
-    sendSubscription
+    sendSubscription,
+    subscribeStatusMessages,
   }
 })

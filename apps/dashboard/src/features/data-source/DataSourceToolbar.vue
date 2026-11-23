@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, ref } from 'vue'
-import { useDaqConnectionStore } from '@/core/stores/daqConnectionStore'
+import { useDaqConnectionStore } from './stores/daqConnectionStore'
 import DataSourcePanel from './components/DataSourcePanel.vue'
 
 const daqConnection = useDaqConnectionStore()

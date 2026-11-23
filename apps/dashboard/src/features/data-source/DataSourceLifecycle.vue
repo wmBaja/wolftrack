@@ -3,13 +3,17 @@ import { onMounted, onUnmounted } from 'vue'
 import DaqReconnectDialog from './components/DaqReconnectDialog.vue'
 import { useLiveDataStore } from '@/core/stores/liveDataStore'
 import { useDataSourceStore } from '@/core/stores/dataSourceStore'
-import { useDaqConnectionStore } from '@/core/stores/daqConnectionStore'
+import { useDaqConnectionStore } from './stores/daqConnectionStore'
 
 const liveDataStore = useLiveDataStore()
 const dataSourceStore = useDataSourceStore()
 const daqConnectionStore = useDaqConnectionStore()
+let unsubscribeStatus = () => {}
 
 onMounted(async () => {
+  unsubscribeStatus = liveDataStore.subscribeStatusMessages((message) => {
+    daqConnectionStore.handleVisualizerMessage(message)
+  })
   void liveDataStore.connect()
   await dataSourceStore.fetchConfig()
   await daqConnectionStore.fetchVisualizerLiveSource()
@@ -17,6 +21,7 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
+  unsubscribeStatus()
   liveDataStore.disconnect()
   daqConnectionStore.stopConnectionPolling()
   daqConnectionStore.cancelReconnect()

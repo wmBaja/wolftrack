@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useDataSourceStore } from '@/core/stores/dataSourceStore'
-import { useDaqConnectionStore, type DaqTarget } from '@/core/stores/daqConnectionStore'
+import { useDaqConnectionStore, type DaqTarget } from '@/features/data-source/stores/daqConnectionStore'
 import { useDbcStore } from '@/core/stores/dbcStore'
 import { useLiveDataStore } from '@/core/stores/liveDataStore'
 import { useLogDataStore } from '@/core/stores/logDataStore'

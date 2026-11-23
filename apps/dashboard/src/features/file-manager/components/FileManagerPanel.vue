@@ -1,13 +1,13 @@
 <script setup lang="ts">
-import { computed, ref, onBeforeUnmount, onMounted } from 'vue'
+import { computed, ref, onBeforeUnmount, onMounted, watch } from 'vue'
 import { confirmDialog } from '@/core/dialog'
 import { useDbcStore } from '@/core/stores/dbcStore'
-import { useLogStore } from '@/core/stores/logStore'
-import { useDaqConnectionStore } from '@/core/stores/daqConnectionStore'
+import { useLogStore } from '@/features/file-manager/stores/logStore'
+import { useDaqStatusStore } from '@/core/stores/daqStatusStore'
 
 const dbcStore = useDbcStore()
 const logStore = useLogStore()
-const daqConnection = useDaqConnectionStore()
+const daqStatus = useDaqStatusStore()
 
 const isOpen = ref(false)
 const activeTab = ref<'logs' | 'dbc'>('dbc')
@@ -18,6 +18,10 @@ const selectedLogNames = ref<string[]>([])
 const selectedDbcNames = ref<string[]>([])
 const selectionAnchor = ref<{ type: 'log' | 'dbc'; name: string } | null>(null)
 const isBulkDownloading = ref(false)
+
+watch(() => daqStatus.logRefreshRevision, () => {
+  if (isOpen.value && activeTab.value === 'logs') void logStore.fetchLogs()
+})
 
 const selectedLogCount = computed(() => selectedLogNames.value.length)
 const selectedDbcCount = computed(() => selectedDbcNames.value.length)
@@ -271,7 +275,7 @@ function getActiveLogName() {
     return explicitlyActive.name
   }
 
-  if (daqConnection.loggingStatus !== 'active' && daqConnection.loggingStatus !== 'starting') {
+  if (daqStatus.loggingStatus !== 'active' && daqStatus.loggingStatus !== 'starting') {
     return null
   }
 
@@ -361,7 +365,7 @@ onBeforeUnmount(() => {
             <div class="logs-source">
               <span class="logs-label">DAQ Log API</span>
               <span class="logs-target">
-                {{ daqConnection.target.host || 'No DAQ selected' }}<template v-if="daqConnection.target.port">:{{ daqConnection.target.port }}</template>/api/logs
+                {{ daqStatus.target.host || 'No DAQ selected' }}<template v-if="daqStatus.target.port">:{{ daqStatus.target.port }}</template>/api/logs
               </span>
             </div>
             <button class="refresh-btn" @click="logStore.fetchLogs" :disabled="logStore.isLoading">Refresh</button>

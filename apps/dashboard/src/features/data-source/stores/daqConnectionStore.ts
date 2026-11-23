@@ -1,8 +1,8 @@
 import { defineStore } from 'pinia'
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { getVisualizerBase, visualizerFetch } from '@/core/backendClient'
-import { useDataSourceStore, type LiveSourceConfig } from './dataSourceStore'
-import { useLogStore } from './logStore'
+import { useDataSourceStore, type LiveSourceConfig } from '@/core/stores/dataSourceStore'
+import { useDaqStatusStore } from '@/core/stores/daqStatusStore'
 
 export type DaqConnectionState =
   | 'disconnected'
@@ -111,6 +111,7 @@ async function parseJsonResponse<T>(response: Response, fallbackMessage: string)
 }
 
 export const useDaqConnectionStore = defineStore('daqConnection', () => {
+  const daqStatus = useDaqStatusStore()
   const connectionState = ref<DaqConnectionState>('disconnected')
   const error = ref<string | null>(null)
   const target = ref<DaqTarget>({ host: '', port: DEFAULT_PORT })
@@ -123,6 +124,9 @@ export const useDaqConnectionStore = defineStore('daqConnection', () => {
   const reconnectRecoveryActive = ref(false)
   const reconnectInProgress = ref(false)
   const reconnectNextAttemptAt = ref<number | null>(null)
+  watch([target, loggingActive, loggingStatus], ([nextTarget, active, status]) => {
+    daqStatus.publishStatus({ target: nextTarget, loggingActive: active, loggingStatus: status })
+  }, { immediate: true, deep: true })
   let daqHealthPollTimer: number | null = null
   let reconnectTimer: number | null = null
   let missedDaqHealthPolls = 0
@@ -677,11 +681,7 @@ export const useDaqConnectionStore = defineStore('daqConnection', () => {
     try {
       return loggingActive.value ? await stopLogging() : await startLogging(filenameTemplate)
     } finally {
-      try {
-        await useLogStore().fetchLogs()
-      } catch (logRefreshError) {
-        console.warn('Failed to refresh DAQ logs after toggling logging:', logRefreshError)
-      }
+      daqStatus.requestLogRefresh()
     }
   }
 

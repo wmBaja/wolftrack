@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { useDaqConnectionStore } from './daqConnectionStore'
+import { useDaqStatusStore } from '@/core/stores/daqStatusStore'
 
 const REQUEST_TIMEOUT_MS = 4000
 const DEFAULT_DAQ_LOG_API_PATH = '/api/logs'
@@ -24,9 +24,9 @@ function withTimeout(url: string, init?: RequestInit) {
 }
 
 function getDaqLogApiBase() {
-  const daqConnection = useDaqConnectionStore()
-  const host = daqConnection.target.host?.trim()
-  const port = Number(daqConnection.target.port)
+  const daqStatus = useDaqStatusStore()
+  const host = daqStatus.target.host?.trim()
+  const port = Number(daqStatus.target.port)
 
   if (!host || !Number.isInteger(port) || port <= 0 || port > 65535) {
     throw new Error('Select a DAQ target before browsing logs.')
