@@ -52,9 +52,40 @@ export interface PluginManifest {
   permissions?: Array<'data:read' | 'storage' | 'backend'>
 }
 
+export interface SignalDescriptor {
+  id: string
+  name: string
+  unit: string
+}
+
+export interface SignalSeries extends SignalDescriptor {
+  timestamps: ArrayLike<number>
+  values: ArrayLike<number>
+}
+
+export interface SignalDataSnapshot {
+  source: 'live' | 'logfile'
+  signals: Record<string, SignalSeries | undefined>
+  viewport: { start: number; end: number } | null
+  revision: number
+  timeOrigin: number | null
+}
+
+/** Structural ref shape keeps the SDK independent of Vue at runtime. */
+export interface ReactiveValue<T> {
+  readonly value: T
+}
+
+export type MaybeReactive<T> = T | ReactiveValue<T>
+
+export interface SignalDataHandle {
+  readonly snapshot: ReactiveValue<SignalDataSnapshot>
+  refresh(): Promise<void>
+}
+
 export interface PluginDataContext {
-  useSignals: (consumerId: string, signalIds: string[]) => unknown
-  availableSignals: () => string[]
+  useSignals: (consumerId: string, signalIds: MaybeReactive<readonly string[]>) => SignalDataHandle
+  availableSignals: () => SignalDescriptor[]
 }
 
 export interface PluginContext {

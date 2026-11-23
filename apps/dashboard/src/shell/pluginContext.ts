@@ -1,4 +1,5 @@
 import type { PluginContext } from '@wolftrack/plugin-sdk'
+import { computed } from 'vue'
 import { useTimeSeriesData } from '@/core/composables/useTimeSeriesData'
 import { useDbcStore } from '@/core/stores/dbcStore'
 import { registerWidgetDefaults } from '@/core/widgets'
@@ -18,10 +19,11 @@ export function createPluginContext(): PluginContext {
     commands,
     data: {
       useSignals(consumerId, signalIds) {
-        return useTimeSeriesData(consumerId, signalIds)
+        const signals = 'value' in signalIds ? computed(() => signalIds.value) : signalIds
+        return useTimeSeriesData(consumerId, signals)
       },
       availableSignals() {
-        return useDbcStore().signals.map((signal) => signal.id)
+        return useDbcStore().signals.map(({ id, name, unit }) => ({ id, name, unit }))
       },
     },
     electron: {

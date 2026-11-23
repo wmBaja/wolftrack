@@ -15,7 +15,7 @@ vi.mock('uplot', () => ({
   },
 }))
 
-import { buildChartRenderModel, getVisibleSampleRates } from '@/core/lib/chartData'
+import { buildChartRenderModel, getVisibleSampleRates } from './chartData'
 
 describe('buildChartRenderModel', () => {
   it('outer-joins unequal sample times without client-side bucketing', () => {
@@ -26,8 +26,8 @@ describe('buildChartRenderModel', () => {
         'Engine.rpm': { timestamps: [2, 3], values: [20, 40] },
       },
       [
-        { id: 'Vehicle.speed', name: 'speed', unit: 'km/h', node: '', message: '' },
-        { id: 'Engine.rpm', name: 'rpm', unit: 'rpm', node: '', message: '' },
+        { id: 'Vehicle.speed', name: 'speed', unit: 'km/h' },
+        { id: 'Engine.rpm', name: 'rpm', unit: 'rpm' },
       ],
     )
 
@@ -45,9 +45,9 @@ describe('buildChartRenderModel', () => {
         c: { timestamps: [1], values: [3] },
       },
       [
-        { id: 'a', name: 'A', unit: 'V', node: '', message: '' },
-        { id: 'b', name: 'B', unit: 'V', node: '', message: '' },
-        { id: 'c', name: 'C', unit: 'A', node: '', message: '' },
+        { id: 'a', name: 'A', unit: 'V' },
+        { id: 'b', name: 'B', unit: 'V' },
+        { id: 'c', name: 'C', unit: 'A' },
       ],
     )
 
@@ -67,8 +67,8 @@ describe('buildChartRenderModel', () => {
         b: { timestamps: [1, 3], values: [100, 300] },
       },
       [
-        { id: 'a', name: 'A', unit: '', node: '', message: '' },
-        { id: 'b', name: 'B', unit: '', node: '', message: '' },
+        { id: 'a', name: 'A', unit: '' },
+        { id: 'b', name: 'B', unit: '' },
       ],
     )
 

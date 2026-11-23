@@ -1,10 +1,8 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import { nextTick } from 'vue'
 
-vi.mock('uplot', () => ({ default: { join: vi.fn() } }))
-
-import { useLiveDataStore } from '@/core/stores/liveDataStore'
+import { RingBuffer, useLiveDataStore } from '@/core/stores/liveDataStore'
 import { useTimeSeriesDataStore } from '@/core/stores/timeSeriesDataStore'
 
 describe('time series data store', () => {
@@ -41,6 +39,22 @@ describe('time series data store', () => {
     liveData.dataVersion++
     const afterBatch = timeSeries.getSnapshot(['Vehicle.speed'])
 
-    expect(afterBatch.resetViewRevision).toBe(beforeBatch.resetViewRevision + 1)
+    expect(afterBatch.revision).toBe(beforeBatch.revision + 1)
+  })
+
+  it('returns source-neutral per-signal samples without a chart render model', () => {
+    const timeSeries = useTimeSeriesDataStore()
+    const liveData = useLiveDataStore()
+    const buffer = new RingBuffer(4)
+    buffer.push(10, 42)
+    liveData.buffers.set('Vehicle.speed', buffer)
+
+    const snapshot = timeSeries.getSnapshot(['Vehicle.speed'])
+
+    expect(snapshot).toMatchObject({ source: 'live', viewport: null, timeOrigin: null })
+    expect(snapshot.signals['Vehicle.speed']).toMatchObject({ id: 'Vehicle.speed', name: 'Vehicle.speed', unit: '' })
+    expect(Array.from(snapshot.signals['Vehicle.speed']!.timestamps)).toEqual([10])
+    expect(Array.from(snapshot.signals['Vehicle.speed']!.values)).toEqual([42])
+    expect(snapshot).not.toHaveProperty('model')
   })
 })

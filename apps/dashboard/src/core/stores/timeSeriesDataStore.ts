@@ -4,19 +4,7 @@ import { useDataSourceStore } from '@/core/stores/dataSourceStore'
 import { useDbcStore } from '@/core/stores/dbcStore'
 import { useLiveDataStore } from '@/core/stores/liveDataStore'
 import { useLogDataStore } from '@/core/stores/logDataStore'
-import { buildChartRenderModel, type ChartRenderModel, type SignalSamples } from '@/core/lib/chartData'
-
-export interface TimeSeriesViewport {
-  start: number
-  end: number
-}
-
-export interface TimeSeriesSnapshot {
-  model: ChartRenderModel
-  viewport: TimeSeriesViewport | null
-  resetViewRevision: number
-  timeOrigin: number | null
-}
+import type { SignalDataSnapshot, SignalSeries } from '@wolftrack/plugin-sdk'
 
 function uniqueSignals(signals: string[]) {
   return [...new Set(signals.filter(Boolean))]
@@ -68,19 +56,22 @@ export const useTimeSeriesDataStore = defineStore('timeSeriesData', () => {
     consumers.value = remaining
   }
 
-  function getLiveBuffers(signalIds: string[]): Record<string, SignalSamples | undefined> {
+  function getLiveBuffers(signalIds: string[]): Record<string, SignalSeries | undefined> {
     // Live buffers are intentionally non-reactive. dataVersion is their
     // invalidation boundary for all time-series consumers.
     void liveDataStore.dataVersion
-    const buffers: Record<string, SignalSamples | undefined> = {}
+    const buffers: Record<string, SignalSeries | undefined> = {}
     for (const signal of signalIds) {
       const buffer = liveDataStore.buffers.get(signal)
-      if (buffer) buffers[signal] = buffer.getArrays()
+      if (buffer) {
+        const metadata = dbcStore.signals.find(item => item.id === signal)
+        buffers[signal] = { id: signal, name: metadata?.name ?? signal, unit: metadata?.unit ?? '', ...buffer.getArrays() }
+      }
     }
     return buffers
   }
 
-  function getSnapshot(signalIds: string[]): TimeSeriesSnapshot {
+  function getSnapshot(signalIds: string[]): SignalDataSnapshot {
     const normalizedSignals = uniqueSignals(signalIds)
     if (dataSourceStore.config.source === 'zmq') {
       // Each WebSocket batch advances this revision. Unlike a log viewport,
@@ -88,9 +79,10 @@ export const useTimeSeriesDataStore = defineStore('timeSeriesData', () => {
       // recalculate its scales as the ring buffer advances.
       const liveRevision = liveDataStore.dataVersion
       return {
-        model: buildChartRenderModel(normalizedSignals, getLiveBuffers(normalizedSignals), dbcStore.signals),
+        source: 'live',
+        signals: getLiveBuffers(normalizedSignals),
         viewport: null,
-        resetViewRevision: liveRevision,
+        revision: liveRevision,
         timeOrigin: liveDataStore.sessionStartTimestamp,
       }
     }
@@ -115,9 +107,14 @@ export const useTimeSeriesDataStore = defineStore('timeSeriesData', () => {
       : selectedEnd
 
     return {
-      model: buildChartRenderModel(normalizedSignals, buffers, dbcStore.signals),
+      source: 'logfile',
+      signals: Object.fromEntries(normalizedSignals.map((id) => {
+        const metadata = dbcStore.signals.find(item => item.id === id)
+        const samples = buffers[id]
+        return [id, samples ? { id, name: metadata?.name ?? id, unit: metadata?.unit ?? '', ...samples } : undefined]
+      })),
       viewport: { start, end: Math.max(start + 0.001, end) },
-      resetViewRevision: revision,
+      revision,
       timeOrigin: logDataStore.status.start_ts,
     }
   }

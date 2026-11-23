@@ -2,7 +2,7 @@
 import { onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
 import uPlot from 'uplot'
 import 'uplot/dist/uPlot.min.css'
-import { getVisibleSampleRates, type ChartRenderModel, type ChartSampleRate } from '@/core/lib/chartData'
+import { getVisibleSampleRates, type ChartRenderModel, type ChartSampleRate } from '../lib/chartData'
 
 interface Viewport {
   start: number

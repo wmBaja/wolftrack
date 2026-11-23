@@ -3,19 +3,33 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import BaseWidget from './BaseWidget.vue'
 import UplotChart from './UplotChart.vue'
 import { useWidgetStore } from '@/core/stores/widgetStore'
-import { useTimeSeriesData } from '@/core/composables/useTimeSeriesData'
-import type { ChartSampleRate } from '@/core/lib/chartData'
+import { buildChartRenderModel, type ChartSampleRate, type SignalSamples } from '../lib/chartData'
+import type { PluginDataContext } from '@wolftrack/plugin-sdk'
 
 const props = defineProps<{
   widgetId: string
+  dataApi: PluginDataContext
 }>()
 
 const widgetStore = useWidgetStore()
 const baseWidgetRef = ref<InstanceType<typeof BaseWidget>>()
 const widget = computed(() => widgetStore.getWidgetById(props.widgetId))
 const signals = computed(() => widget.value?.signals || [])
-const consumerId = computed(() => props.widgetId)
-const { snapshot, refresh } = useTimeSeriesData(consumerId, signals)
+const { snapshot: dataSnapshot, refresh } = props.dataApi.useSignals(props.widgetId, signals)
+const snapshot = computed(() => {
+  const data = dataSnapshot.value
+  const samples: Record<string, SignalSamples | undefined> = Object.fromEntries(
+    Object.entries(data.signals).map(([id, series]) => [id, series && { timestamps: series.timestamps, values: series.values }]),
+  )
+  const descriptors = Object.values(data.signals)
+    .filter((series): series is NonNullable<typeof series> => series !== undefined)
+    .map(({ id, name, unit }) => ({ id, name, unit }))
+  return {
+    ...data,
+    model: buildChartRenderModel(signals.value, samples, descriptors),
+    resetViewRevision: data.revision,
+  }
+})
 const chartStatsRef = ref<HTMLElement>()
 const isStatsOpen = ref(false)
 const sampleRates = ref<ChartSampleRate[]>([])

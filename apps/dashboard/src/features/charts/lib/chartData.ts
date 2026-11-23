@@ -1,5 +1,5 @@
 import uPlot from 'uplot'
-import type { DbcSignal } from '@/core/stores/dbcStore'
+import type { SignalDescriptor } from '@wolftrack/plugin-sdk'
 
 export interface SignalSamples {
   timestamps: ArrayLike<number>
@@ -90,7 +90,7 @@ export function getVisibleSampleRates(
 export function buildChartRenderModel(
   signalIds: string[],
   buffers: Record<string, SignalSamples | undefined>,
-  dbcSignals: DbcSignal[],
+  dbcSignals: SignalDescriptor[],
 ): ChartRenderModel {
   const metadata = new Map(dbcSignals.map(signal => [signal.id, signal]))
   const series = signalIds.map((id, index) => {
