@@ -9,6 +9,7 @@ import {
 
 vi.mock('@/lib/visualizer', () => ({
   getVisualizerBase: vi.fn().mockResolvedValue('http://visualizer.test'),
+  visualizerFetch: vi.fn((input: RequestInfo | URL, init?: RequestInit) => fetch(input, init)),
 }))
 
 describe('log data store caches', () => {
