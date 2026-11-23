@@ -31,4 +31,30 @@ export default defineConfigWithVueTs(
     files: ['e2e/**/*.{test,spec}.{js,ts,jsx,tsx}'],
   },
   skipFormatting,
+  {
+    name: 'app/feature-import-boundaries',
+    files: ['src/features/**/*.{ts,vue}'],
+    rules: {
+      'no-restricted-imports': ['error', {
+        patterns: [
+          { group: ['@/components/**', '@/stores/**', '@/lib/**', '@/types/**', '@/features/**'], message: 'Features may import only the SDK, core, and files within their own feature.' },
+          { group: ['../*/**', '../../*'], message: 'Features may not import another feature by relative path.' },
+        ],
+      }],
+    },
+  },
+  {
+    name: 'app/shell-import-boundaries',
+    files: ['src/shell/**/*.{ts,vue}'],
+    rules: {
+      'no-restricted-imports': ['error', {
+        patterns: [{ group: ['@/features/**'], message: 'The shell must discover features through registries.' }],
+      }],
+    },
+  },
+  {
+    name: 'app/shell-test-feature-activation',
+    files: ['src/shell/__tests__/**/*.ts'],
+    rules: { 'no-restricted-imports': 'off' },
+  },
 )

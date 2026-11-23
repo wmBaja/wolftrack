@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import DashboardGrid from '@/components/DashboardGrid.vue'
+import DashboardGrid from '@/shell/DashboardGrid.vue'
 </script>
 
 <template>

@@ -6,7 +6,8 @@
     "node": ">=22.12.0"
   },
   "workspaces": [
-    "apps/dashboard"
+    "apps/dashboard",
+    "packages/*"
   ],
   "scripts": {
     "dev": "npm run dev --workspace @wolftrack/dashboard",
