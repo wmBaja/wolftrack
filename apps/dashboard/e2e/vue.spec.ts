@@ -8,6 +8,27 @@ test('shows the dashboard navigation controls', async ({ page }) => {
   await expect(page.getByRole('textbox', { name: 'Log filename template' })).toBeVisible();
 });
 
+test('compares Dockview dashboards and Gridview tiles in the workspace spike', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem('dashboard-widgets', JSON.stringify([{
+      i: 'spike-chart', type: 'chart', title: 'Spike chart',
+      x: 0, y: 0, w: 8, h: 12, minW: 2, minH: 2,
+      config: {}, signals: ['fixture-signal'], createdAt: 1,
+    }]));
+  });
+  await page.goto('/#/workspace-spike?candidate=dockview');
+
+  await expect(page.getByRole('heading', { name: 'Workspace spike' })).toBeVisible();
+  await expect(page.getByText('Dashboard A', { exact: true })).toBeVisible();
+  await expect(page.getByText('Dashboard B', { exact: true })).toBeVisible();
+  await expect(page.locator('.uplot').first()).toBeVisible();
+
+  await page.getByRole('link', { name: 'Gridview tiles' }).click();
+  await expect(page.getByText('Tile A')).toBeVisible();
+  await expect(page.getByText('Tile B')).toBeVisible();
+  await expect(page.getByText('Tile C')).toBeVisible();
+});
+
 test('renders registered features and preserves an unavailable saved widget', async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.setItem('dashboard-widgets', JSON.stringify([{

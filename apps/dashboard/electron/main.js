@@ -3,7 +3,7 @@ import { promises as fs } from 'fs'
 import { spawn } from 'child_process'
 import { randomBytes } from 'crypto'
 import { app, BrowserWindow, ipcMain, dialog } from 'electron'
-import { fileURLToPath } from 'url'
+import { fileURLToPath, pathToFileURL } from 'url'
 import { waitForBackendReady } from './backendReadiness.js'
 
 const __filename = fileURLToPath(import.meta.url);
@@ -26,16 +26,21 @@ function createWindow() {
       : path.join(__dirname, '../public/icon.png')
   });
 
+  const rendererEntry = app.isPackaged
+    ? path.join(process.resourcesPath, 'dist', 'index.html')
+    : path.join(__dirname, '../dist/index.html')
+  const appUrl = isDev ? 'http://localhost:3000/' : pathToFileURL(rendererEntry).href
+  win.webContents.setWindowOpenHandler(({ url }) => ({
+    action: url.startsWith(appUrl) ? 'allow' : 'deny',
+  }))
+
   // In development, load from dev server
   // In production, load from built files
   if (isDev) {
     win.loadURL('http://localhost:3000'); // Adjust port to match your Vue dev server
     win.webContents.openDevTools();
   } else {
-    const indexPath = app.isPackaged
-      ? path.join(process.resourcesPath, 'dist', 'index.html')
-      : path.join(__dirname, '../dist/index.html');
-    win.loadFile(indexPath);
+    win.loadFile(rendererEntry);
   }
 }
 

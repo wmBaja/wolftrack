@@ -128,7 +128,10 @@ function initChart() {
   applyViewport()
   publishVisibleSampleRates()
 
-  resizeObserver ??= new ResizeObserver(() => {
+  const chartWindow = plotHost.value.ownerDocument.defaultView
+  if (!chartWindow) return
+
+  resizeObserver ??= new chartWindow.ResizeObserver(() => {
     if (!chart.value || !plotHost.value) return
     chart.value.setSize({
       width: Math.max(10, plotHost.value.clientWidth),

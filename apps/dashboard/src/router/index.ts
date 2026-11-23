@@ -8,7 +8,12 @@ const router = createRouter({
       path: '/',
       name: 'dashboard',
       component: DashboardView
-    }
+    },
+    ...(import.meta.env.DEV ? [{
+      path: '/workspace-spike',
+      name: 'workspace-spike',
+      component: () => import('@/views/WorkspaceSpikeView.vue'),
+    }] : []),
   ],
 })
 
