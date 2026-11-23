@@ -11,13 +11,12 @@ declare global {
 
   interface Window {
     electronAPI: {
-      sendMessage: (message: unknown) => void
-      onMessage: (callback: (args: unknown) => void) => void
-      openFile: (filters: Electron.FileFilter[]) => Promise<string | null>
-      getBackendPort: () => Promise<number>
-      getBackendAuthToken: () => Promise<string>
-      discoverDaqServices: () => Promise<DaqDiscoveryService[]>
-      downloadFileFromUrl: (url: string, suggestedFilename: string) => Promise<boolean>
+      backend: { getPort: () => Promise<number>; getAuthToken: () => Promise<string> }
+      files: {
+        openFile: (filters: Array<{ name: string; extensions: string[] }>) => Promise<string | null>
+        downloadFromUrl: (url: string, suggestedFilename: string) => Promise<boolean>
+      }
+      daq: { discoverServices: () => Promise<DaqDiscoveryService[]> }
     } | undefined
   }
 }

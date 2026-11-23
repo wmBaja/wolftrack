@@ -7,6 +7,7 @@ import tailwindcss from '@tailwindcss/vite'
 import electron from 'vite-plugin-electron'
 import renderer from 'vite-plugin-electron-renderer'
 import path from 'path'
+import process from 'node:process'
 
 const dashboardRoot = fileURLToPath(new URL('.', import.meta.url))
 
@@ -26,7 +27,7 @@ export default defineConfig({
     vueDevTools(),
     tailwindcss(),
     // Use the electron plugin, which will build the main and preload scripts
-    electron([
+    ...(process.env.WOLFTRACK_BROWSER_TEST === '1' ? [] : [electron([
       {
         // The entry point for the Electron main process
         entry: 'electron/main.js',
@@ -39,9 +40,9 @@ export default defineConfig({
           options.reload()
         },
       },
-    ]),
+    ])]),
     // Use the renderer plugin to handle the Vue app
-    renderer(),
+    ...(process.env.WOLFTRACK_BROWSER_TEST === '1' ? [] : [renderer()]),
   ],
 
   build: {

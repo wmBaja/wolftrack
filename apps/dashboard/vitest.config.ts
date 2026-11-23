@@ -9,6 +9,7 @@ export default mergeConfig(
   defineConfig({
     test: {
       environment: 'jsdom',
+      setupFiles: ['./src/testSetup.ts'],
       exclude: [...configDefaults.exclude, 'e2e/**'],
       root: dashboardRoot,
     },

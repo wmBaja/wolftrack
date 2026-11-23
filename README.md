@@ -7,9 +7,13 @@ WolfTrack is a cross-platform Electron application for viewing live and recorded
 ```text
 apps/dashboard/   Electron and Vue application
 apps/visualizer/  FastAPI telemetry backend
-packages/         Shared packages (empty during phase 1)
-plugins/          First-party plugins (empty during phase 1)
+packages/plugin-sdk/  Type-only contribution and plugin-context contracts
+plugins/             Reserved for separately packaged plugins in later phases
 ```
+
+The dashboard is organized as a shell around shared core services and built-in
+features. See [the dashboard architecture guide](apps/dashboard/README.md) for
+the contribution flow and current boundaries.
 
 ## Development
 
