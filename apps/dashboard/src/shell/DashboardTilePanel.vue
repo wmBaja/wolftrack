@@ -68,61 +68,63 @@ function dropTile(event: DragEvent) {
 </script>
 
 <template>
-  <section
-    class="tile-panel"
-    :class="{ 'tile-panel--maximized': maximized }"
-    :data-widget-id="params.widgetId"
-    @dragover.prevent
-    @drop.prevent="dropTile"
-  >
-    <header class="tile-panel__toolbar">
-      <span class="tile-panel__drag-handle" draggable="true" aria-label="Move tile" @dragstart="startTileDrag">⠿</span>
-      <span class="tile-panel__title">{{ widget?.title ?? 'Unavailable widget' }}</span>
-      <div class="tile-panel__actions">
-        <div class="tile-panel__move">
-          <button type="button" :aria-expanded="replaceMenuOpen" @click="replaceMenuOpen = !replaceMenuOpen">
-            Replace…
-          </button>
-          <div v-if="replaceMenuOpen" class="tile-panel__move-menu" role="menu">
-            <button
-              v-for="contribution in availableWidgets"
-              :key="contribution.type"
-              type="button"
-              role="menuitem"
-              @click="replaceWidget(contribution.type, contribution.title)"
-            >
-              {{ contribution.title }}
+  <Teleport to="body" :disabled="!maximized">
+    <section
+      class="tile-panel"
+      :class="{ 'tile-panel--maximized': maximized }"
+      :data-widget-id="params.widgetId"
+      @dragover.prevent
+      @drop.prevent="dropTile"
+    >
+      <header class="tile-panel__toolbar">
+        <span class="tile-panel__drag-handle" draggable="true" aria-label="Move tile" @dragstart="startTileDrag">⠿</span>
+        <span class="tile-panel__title">{{ widget?.title ?? 'Unavailable widget' }}</span>
+        <div class="tile-panel__actions">
+          <div class="tile-panel__move">
+            <button type="button" :aria-expanded="replaceMenuOpen" @click="replaceMenuOpen = !replaceMenuOpen">
+              Replace…
             </button>
+            <div v-if="replaceMenuOpen" class="tile-panel__move-menu" role="menu">
+              <button
+                v-for="contribution in availableWidgets"
+                :key="contribution.type"
+                type="button"
+                role="menuitem"
+                @click="replaceWidget(contribution.type, contribution.title)"
+              >
+                {{ contribution.title }}
+              </button>
+            </div>
           </div>
-        </div>
-        <div v-if="otherDashboards.length" class="tile-panel__move">
-          <button type="button" :aria-expanded="moveMenuOpen" @click="moveMenuOpen = !moveMenuOpen">
-            Move to dashboard…
-          </button>
-          <div v-if="moveMenuOpen" class="tile-panel__move-menu" role="menu">
-            <button
-              v-for="dashboard in otherDashboards"
-              :key="dashboard.id"
-              type="button"
-              role="menuitem"
-              @click="moveToDashboard(dashboard.id)"
-            >
-              {{ dashboard.title }}
+          <div v-if="otherDashboards.length" class="tile-panel__move">
+            <button type="button" :aria-expanded="moveMenuOpen" @click="moveMenuOpen = !moveMenuOpen">
+              Move to dashboard…
             </button>
+            <div v-if="moveMenuOpen" class="tile-panel__move-menu" role="menu">
+              <button
+                v-for="dashboard in otherDashboards"
+                :key="dashboard.id"
+                type="button"
+                role="menuitem"
+                @click="moveToDashboard(dashboard.id)"
+              >
+                {{ dashboard.title }}
+              </button>
+            </div>
           </div>
+          <button type="button" :aria-label="maximized ? 'Restore tile size' : 'Maximize tile'" @click="maximized = !maximized">
+            {{ maximized ? 'Restore' : 'Maximize' }}
+          </button>
+          <button type="button" aria-label="Close tile" @click="widgetStore.removeWidget(params.widgetId, params.tabId)">×</button>
         </div>
-        <button type="button" :aria-label="maximized ? 'Restore tile size' : 'Maximize tile'" @click="maximized = !maximized">
-          {{ maximized ? 'Restore' : 'Maximize' }}
-        </button>
-        <button type="button" aria-label="Close tile" @click="widgetStore.removeWidget(params.widgetId, params.tabId)">×</button>
+      </header>
+      <div class="tile-panel__content">
+        <PluginErrorBoundary :owner-id="String(widget?.type ?? 'unknown widget')" @disable="widgetStore.removeWidget(params.widgetId, params.tabId)">
+          <component :is="component" :widget-id="params.widgetId" />
+        </PluginErrorBoundary>
       </div>
-    </header>
-    <div class="tile-panel__content">
-      <PluginErrorBoundary :owner-id="String(widget?.type ?? 'unknown widget')" @disable="widgetStore.removeWidget(params.widgetId, params.tabId)">
-        <component :is="component" :widget-id="params.widgetId" />
-      </PluginErrorBoundary>
-    </div>
-  </section>
+    </section>
+  </Teleport>
 </template>
 
 <style scoped>
@@ -142,6 +144,8 @@ function dropTile(event: DragEvent) {
   position: fixed;
   z-index: 120;
   inset: calc(var(--navbar-height) + 54px) 18px 18px;
+  width: auto;
+  height: auto;
   box-shadow: 0 12px 50px rgb(0 0 0 / 55%);
 }
 .tile-panel__toolbar {

@@ -39,10 +39,20 @@ test('creates dashboard and view tabs and restores the active view state', async
   await page.getByRole('button', { name: 'Replace…' }).first().click()
   await page.getByRole('menuitem', { name: 'Base Widget' }).first().click()
   await expect(page.locator('.tile-panel').first()).toContainText('Base Widget')
-  await page.getByRole('button', { name: 'Maximize tile' }).first().click();
-  await expect(page.locator('.tile-panel--maximized')).toBeVisible();
-  await page.getByRole('button', { name: 'Restore tile size' }).click();
-  await expect(page.locator('.tile-panel--maximized')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Maximize tile' }).first().click()
+  await expect(page.locator('.tile-panel--maximized')).toBeVisible()
+  const maximizedBounds = await page.locator('.tile-panel--maximized').boundingBox()
+  const viewportSize = page.viewportSize()
+  expect(maximizedBounds?.x).toBeGreaterThanOrEqual(0)
+  expect(maximizedBounds?.y).toBeGreaterThanOrEqual(0)
+  expect(maximizedBounds?.width).toBeGreaterThan((viewportSize?.width ?? 0) * 0.9)
+  expect(maximizedBounds?.height).toBeGreaterThan((viewportSize?.height ?? 0) * 0.75)
+  expect((maximizedBounds?.x ?? Infinity) + (maximizedBounds?.width ?? 0))
+    .toBeLessThanOrEqual(viewportSize?.width ?? 0)
+  expect((maximizedBounds?.y ?? Infinity) + (maximizedBounds?.height ?? 0))
+    .toBeLessThanOrEqual(viewportSize?.height ?? 0)
+  await page.getByRole('button', { name: 'Restore tile size' }).click()
+  await expect(page.locator('.tile-panel--maximized')).toHaveCount(0)
   page.once('dialog', (dialog) => dialog.accept('Test Dashboard'));
   await page.getByRole('button', { name: 'Rename active tab' }).click();
   await expect(page.getByRole('tab', { name: 'Test Dashboard' })).toBeVisible();
