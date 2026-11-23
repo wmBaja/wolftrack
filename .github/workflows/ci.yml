@@ -48,11 +48,8 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            binary: wolftrack-visualizer
           - os: windows-latest
-            binary: wolftrack-visualizer.exe
           - os: macos-latest
-            binary: wolftrack-visualizer
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v7
@@ -65,14 +62,20 @@ jobs:
       - name: Install backend dependencies
         working-directory: apps/visualizer
         run: uv sync
+      - name: Run backend tests
+        working-directory: apps/visualizer
+        run: uv run pytest
+      - name: Lint backend
+        working-directory: apps/visualizer
+        run: uv run ruff check src tests
       - name: Build backend
         working-directory: apps/visualizer
-        run: uv run pyinstaller --name wolftrack-visualizer --onefile --noconfirm --clean --paths src src/app.py
+        run: uv run pyinstaller --name wolftrack-visualizer --onedir --noconfirm --clean --paths src src/app.py
       - name: Upload backend artifact
         uses: actions/upload-artifact@v6
         with:
           name: backend-${{ matrix.os }}
-          path: apps/visualizer/dist/${{ matrix.binary }}
+          path: apps/visualizer/dist/wolftrack-visualizer/**
           if-no-files-found: error
 
   app:

@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { getVisualizerBase } from '@/lib/visualizer'
+import { getVisualizerBase, visualizerFetch } from '@/lib/visualizer'
 
 export interface LogStatus {
   status: 'idle' | 'loading' | 'ready' | 'error'
@@ -165,7 +165,7 @@ export const useLogDataStore = defineStore('logData', () => {
   async function checkStatus() {
     try {
       const base = await getVisualizerBase()
-      const res = await fetch(`${base}/api/logfile/status`)
+      const res = await visualizerFetch(`${base}/api/logfile/status`)
       if (res.ok) {
         const data = await res.json()
         const hasNewReadyLog = data.status === 'ready' && (
@@ -229,7 +229,7 @@ export const useLogDataStore = defineStore('logData', () => {
 
     try {
       const base = await getVisualizerBase()
-      const res = await fetch(`${base}/api/logfile/query`, {
+      const res = await visualizerFetch(`${base}/api/logfile/query`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         signal: controller.signal,

@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
-import { getVisualizerBase } from '@/lib/visualizer'
+import { getVisualizerBase, visualizerFetch } from '@/lib/visualizer'
 import { useDataSourceStore, type LiveSourceConfig } from './dataSourceStore'
 import { useLogStore } from './logStore'
 
@@ -230,7 +230,7 @@ export const useDaqConnectionStore = defineStore('daqConnection', () => {
   async function disconnectVisualizerLiveSourceBestEffort() {
     try {
       const visualizerBase = await getVisualizerBase()
-      await fetch(`${visualizerBase}/api/live_source/disconnect`, {
+      await visualizerFetch(`${visualizerBase}/api/live_source/disconnect`, {
         method: 'POST',
       })
     } catch (disconnectError) {
@@ -494,7 +494,7 @@ export const useDaqConnectionStore = defineStore('daqConnection', () => {
 
       connectionState.value = 'connecting'
       const visualizerBase = await getVisualizerBase()
-      const connectResponse = await fetch(`${visualizerBase}/api/live_source/connect`, {
+      const connectResponse = await visualizerFetch(`${visualizerBase}/api/live_source/connect`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -546,7 +546,7 @@ export const useDaqConnectionStore = defineStore('daqConnection', () => {
     isIntentionalLiveSourceChange = true
     try {
       const visualizerBase = await getVisualizerBase()
-      const response = await fetch(`${visualizerBase}/api/live_source/stop`, {
+      const response = await visualizerFetch(`${visualizerBase}/api/live_source/stop`, {
         method: 'POST',
       })
       const payload = await parseJsonResponse<{ detail?: string; message?: string }>(
@@ -691,7 +691,7 @@ export const useDaqConnectionStore = defineStore('daqConnection', () => {
     isIntentionalLiveSourceChange = true
     try {
       const visualizerBase = await getVisualizerBase()
-      const response = await fetch(`${visualizerBase}/api/live_source/disconnect`, {
+      const response = await visualizerFetch(`${visualizerBase}/api/live_source/disconnect`, {
         method: 'POST',
       })
       const payload = await parseJsonResponse<{ detail?: string; message?: string }>(

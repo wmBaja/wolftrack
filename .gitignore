@@ -96,6 +96,7 @@ apps/visualizer/dbc/uploads/
 # Editor and operating-system files
 .DS_Store
 .idea/
+.vscode/
 *.suo
 *.ntvs*
 *.njsproj

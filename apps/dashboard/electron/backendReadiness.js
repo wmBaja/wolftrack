@@ -13,6 +13,7 @@ function delay(milliseconds) {
  */
 export async function waitForBackendReady({
   port,
+  token,
   fetchImpl = fetch,
   timeoutMs = DEFAULT_TIMEOUT_MS,
   retryIntervalMs = DEFAULT_RETRY_INTERVAL_MS,
@@ -23,7 +24,9 @@ export async function waitForBackendReady({
 
   while (Date.now() < deadline) {
     try {
-      const response = await fetchImpl(url)
+      const response = await fetchImpl(url, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
       if (response.ok) {
         return
       }

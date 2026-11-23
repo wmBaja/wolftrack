@@ -1,5 +1,5 @@
 import pytest
-from src.pipeline.processor import ScaleProcessor, BiasProcessor, FilterProcessor
+from src.core.pipeline.processor import ScaleProcessor, BiasProcessor, FilterProcessor
 
 def test_scale_processor():
     processor = ScaleProcessor("TEST_SIGNAL", 2.0)

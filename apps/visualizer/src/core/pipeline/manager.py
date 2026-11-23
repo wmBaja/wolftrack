@@ -4,9 +4,9 @@ from typing import List
 
 from config import AppConfig
 from logging_config import get_logger
-from ws_manager import manager as ws_manager
-from pipeline.source import DataSource, ZMQDataSource, LogFileDataSource
-from pipeline.processor import Processor
+from core.ws_manager import manager as ws_manager
+from core.pipeline.source import DataSource, ZMQDataSource, LogFileDataSource
+from core.pipeline.processor import Processor
 
 logger = get_logger(__name__)
 
