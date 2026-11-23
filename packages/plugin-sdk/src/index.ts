@@ -84,6 +84,8 @@ export interface SignalDataHandle {
 }
 
 export interface PluginDataContext {
+  /** Current built-in data context; workspace tabs may select contexts in a later phase. */
+  readonly contextId: string
   useSignals: (consumerId: string, signalIds: MaybeReactive<readonly string[]>) => SignalDataHandle
   availableSignals: () => SignalDescriptor[]
 }

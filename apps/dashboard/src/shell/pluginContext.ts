@@ -18,6 +18,7 @@ export function createPluginContext(): PluginContext {
     panels,
     commands,
     data: {
+      contextId: 'shared',
       useSignals(consumerId, signalIds) {
         const signals = 'value' in signalIds ? computed(() => signalIds.value) : signalIds
         return useTimeSeriesData(consumerId, signals)

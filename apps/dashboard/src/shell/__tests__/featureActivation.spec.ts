@@ -1,10 +1,14 @@
 import { afterEach, describe, expect, it } from 'vitest'
-import { activateFeatures } from '@/shell/pluginContext'
+import { activateFeatures, createPluginContext } from '@/shell/pluginContext'
 import { clearRegistries, commands, panels, widgets } from '@/shell/registries'
 
 afterEach(() => clearRegistries())
 
 describe('feature activation', () => {
+  it('uses the shared data context until workspace contexts are introduced', () => {
+    expect(createPluginContext().data.contextId).toBe('shared')
+  })
+
   it('registers the existing UI features through the shared context and disposes them', async () => {
     const [charts, dataSource, exportFeature, fileManager] = await Promise.all([
       import('@/features/charts/index'),
