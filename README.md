@@ -38,7 +38,7 @@ Run backend commands from the repository root with `--directory apps/visualizer`
 ```bash
 uv run --directory apps/visualizer python src/app.py
 uv run --directory apps/visualizer --with pytest pytest
-uv run --directory apps/visualizer pyinstaller --name wolftrack-visualizer --onefile --noconfirm --clean --paths src src/app.py
+uv run --directory apps/visualizer pyinstaller --name wolftrack-visualizer --onedir --noconfirm --clean --paths src src/app.py
 ```
 
 `npm run electron:build` builds the visualizer binary, copies it into the Electron package, and writes installers to `apps/dashboard/release/`.

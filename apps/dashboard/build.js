@@ -18,12 +18,9 @@ function runCommand(command, cwd) {
 try {
     console.log("=== Building Python Backend (wolftrack-visualizer) ===");
 
-    // Ensure pyinstaller is installed
-    runCommand('uv add pyinstaller', visualizerDir);
-
-    // Build the standalone executable
-    // Note: added --paths src to ensure local modules like config.py are included
-    runCommand('uv run pyinstaller --name wolftrack-visualizer --onefile --noconfirm --clean --paths src src/app.py', visualizerDir);
+    // Build the standalone backend directory. Local timing showed this starts
+    // faster than --onefile, which extracts the same payload on every launch.
+    runCommand('uv run pyinstaller --name wolftrack-visualizer --onedir --noconfirm --clean --paths src src/app.py', visualizerDir);
 
     console.log("\n=== Copying Backend to Electron Resources ===");
 
@@ -31,15 +28,11 @@ try {
         fs.mkdirSync(backendDir, { recursive: true });
     }
 
-    const isWindows = process.platform === 'win32';
-    const executableName = isWindows ? 'wolftrack-visualizer.exe' : 'wolftrack-visualizer';
-
-    const sourcePath = path.join(visualizerDir, 'dist', executableName);
-    const destPath = path.join(backendDir, executableName);
+    const sourcePath = path.join(visualizerDir, 'dist', 'wolftrack-visualizer');
 
     if (fs.existsSync(sourcePath)) {
-        fs.copyFileSync(sourcePath, destPath);
-        console.log(`Copied executable from ${sourcePath} to ${destPath}`);
+        fs.cpSync(sourcePath, backendDir, { recursive: true });
+        console.log(`Copied backend directory from ${sourcePath} to ${backendDir}`);
     } else {
         console.error(`Error: Could not find built backend executable at ${sourcePath}`);
         process.exit(1);

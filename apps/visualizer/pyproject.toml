@@ -18,3 +18,14 @@ dependencies = [
     "uvicorn>=0.42.0",
     "websockets>=16.0",
 ]
+
+[dependency-groups]
+dev = [
+    "httpx>=0.27.0",
+    "pytest>=8.3.0",
+    "ruff>=0.11.0",
+]
+
+[tool.ruff.lint]
+# Start with syntax and runtime correctness checks; expand after legacy lint findings are cleaned up.
+select = ["E4", "E7", "E9"]
