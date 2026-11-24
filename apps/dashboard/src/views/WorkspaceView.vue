@@ -10,6 +10,7 @@ import DashboardTiles from '@/shell/DashboardTiles.vue'
 import PluginErrorBoundary from '@/shell/PluginErrorBoundary.vue'
 import WorkspaceDockviewTab from '@/shell/WorkspaceDockviewTab.vue'
 import WorkspaceViewPanel from '@/shell/WorkspaceViewPanel.vue'
+import { menuPositionBelow } from '@/shell/menuPosition'
 
 const workspaceStore = useWorkspaceStore()
 const dockApi = shallowRef<DockviewReadyEvent['api']>()
@@ -148,8 +149,8 @@ function saveDockviewLayout() {
 function showAddTabMenu(event: MouseEvent, groupId?: string) {
   event.preventDefault()
   ContextMenu.showContextMenu({
-    x: event.x,
-    y: event.y,
+    ...menuPositionBelow(event.currentTarget),
+    customClass: 'toolbar-dropdown-menu',
     theme: 'mac dark',
     zIndex: 1000,
     items: [

@@ -5,6 +5,7 @@ import { commands, panels } from '@/shell/registries'
 import { useWorkspaceStore } from '@/core/stores/workspaceStore'
 import { commandsForTab } from '@/shell/contextCommands'
 import PluginErrorBoundary from '@/shell/PluginErrorBoundary.vue'
+import { menuPositionBelow } from '@/shell/menuPosition'
 
 const workspaceStore = useWorkspaceStore()
 const sortPanels = (a: (typeof panels.entries.value)[number], b: (typeof panels.entries.value)[number]) => (a.order ?? 0) - (b.order ?? 0)
@@ -31,8 +32,8 @@ function showAddWidgetMenu(event: MouseEvent) {
   if (!tab || tab.kind !== 'dashboard' || contextualCommands.value.length === 0) return
 
   ContextMenu.showContextMenu({
-    x: event.x,
-    y: event.y,
+    ...menuPositionBelow(event.currentTarget),
+    customClass: 'toolbar-dropdown-menu',
     theme: 'mac dark',
     zIndex: 1000,
     items: contextualCommands.value.map((command) => ({
