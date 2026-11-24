@@ -52,8 +52,8 @@ function disablePanel(id: string) {
 <template>
   <nav class="bg-[var(--color-panel)] border-b border-[var(--color-border)] h-[var(--navbar-height)]">
     <div class="mx-auto px-4">
-      <div class="flex items-center justify-between h-14">
-        <div class="flex items-center gap-4 h-full">
+      <div class="flex items-center justify-between h-12">
+        <div class="flex items-center gap-3 h-full">
           <PluginErrorBoundary
             v-for="panel in leftToolbarPanels"
             :key="panel.id"
@@ -121,30 +121,30 @@ function disablePanel(id: string) {
 .navbar-control-groups {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
 .navbar-action-group {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 .navbar-context-group {
-  padding-right: 12px;
+  padding-right: 10px;
   border-right: 1px solid var(--color-border);
 }
 
 .contextual-navbar-action {
   display: inline-flex;
-  min-width: 34px;
-  height: 34px;
+  min-width: 32px;
+  height: 32px;
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 0 9px;
+  padding: 0 8px;
   border: 1px solid var(--color-border);
-  border-radius: 7px;
+  border-radius: 6px;
   background: var(--color-bg);
   color: var(--color-text);
   cursor: pointer;

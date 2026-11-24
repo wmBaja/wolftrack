@@ -244,13 +244,13 @@ defineExpose({ handleRefresh, startEditTitle, setLoading, toggleConfig })
   height: 100%;
   overflow: hidden;
   position: relative;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -2px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.22);
   transition: border-color 0.2s, box-shadow 0.2s;
 }
 
 .base-widget:hover {
   border-color: rgba(59, 130, 246, 0.5);
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.12);
 }
 
 .base-widget--editing {
@@ -267,17 +267,17 @@ defineExpose({ handleRefresh, startEditTitle, setLoading, toggleConfig })
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px 16px;
+  min-height: 22px;
+  padding: 4px 12px;
   border-bottom: 1px solid var(--color-border);
   background: var(--color-panel-header);
   flex-shrink: 0;
-  min-height: 10px;
 }
 
 .base-widget__title-section {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   flex: 1;
   min-width: 0;
 }
@@ -289,7 +289,7 @@ defineExpose({ handleRefresh, startEditTitle, setLoading, toggleConfig })
 }
 
 .base-widget__icon {
-  font-size: 20px;
+  font-size: 16px;
   flex-shrink: 0;
   line-height: 1;
   filter: grayscale(0.3);
@@ -297,7 +297,7 @@ defineExpose({ handleRefresh, startEditTitle, setLoading, toggleConfig })
 
 .base-widget__title {
   margin: 0;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--color-text);
   white-space: nowrap;
@@ -313,10 +313,10 @@ defineExpose({ handleRefresh, startEditTitle, setLoading, toggleConfig })
 
 .base-widget__title-input {
   flex: 1;
-  padding: 6px 10px;
+  padding: 4px 8px;
   border: 1px solid var(--color-accent);
   border-radius: 4px;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   background: var(--color-panel);
   color: var(--color-text);
@@ -331,7 +331,7 @@ defineExpose({ handleRefresh, startEditTitle, setLoading, toggleConfig })
 
 .base-widget__content {
   flex: 1;
-  padding: 16px;
+  padding: 12px;
   overflow: hidden;
   min-height: 0;
   height: 100%;

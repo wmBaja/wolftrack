@@ -227,7 +227,7 @@ function showDropPreview(target: HTMLElement, direction: Direction) {
 .tile-panel--maximized {
   position: fixed;
   z-index: 120;
-  inset: calc(var(--navbar-height) + 54px) 18px 18px;
+  inset: calc(var(--navbar-height) + 50px) 18px 18px;
   width: auto;
   height: auto;
   box-shadow: 0 12px 50px rgb(0 0 0 / 55%);

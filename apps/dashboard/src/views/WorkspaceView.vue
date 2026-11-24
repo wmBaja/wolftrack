@@ -279,9 +279,9 @@ function disablePanel(tabId: string) {
   --dv-edge-dock-indicator-color: var(--color-accent);
   --dv-drag-over-background-color: color-mix(in srgb, var(--color-accent) 16%, transparent);
   --dv-drag-over-border: 1px solid var(--color-accent);
-  --dv-tabs-and-actions-container-height: 38px;
-  --dv-tab-margin: 3px 2px 0;
-  --dv-tab-border-radius: 6px 6px 0 0;
+  --dv-tabs-and-actions-container-height: 34px;
+  --dv-tab-margin: 2px 2px 0;
+  --dv-tab-border-radius: 5px 5px 0 0;
   --dv-border-radius: 6px;
 }
 :global(.workspace-page .dv-tabs-and-actions-container) {
@@ -289,11 +289,11 @@ function disablePanel(tabId: string) {
   border-bottom: 1px solid var(--color-border);
   background: var(--color-panel);
 }
-:global(.workspace-page .dv-tabs-container) { gap: 3px; padding: 0 0 0 8px; }
+:global(.workspace-page .dv-tabs-container) { gap: 2px; padding: 0 0 0 7px; }
 :global(.workspace-page .dv-tab) {
   border: 1px solid transparent;
   border-bottom: 0;
-  border-radius: 6px 6px 0 0;
+  border-radius: 5px 5px 0 0;
   color: var(--color-text-muted);
   transition: background-color 120ms ease, color 120ms ease;
 }
@@ -305,7 +305,7 @@ function disablePanel(tabId: string) {
   border-color: var(--color-border);
   background: var(--color-bg);
   color: var(--color-text);
-  box-shadow: inset 0 2px 0 var(--color-accent);
+  box-shadow: inset 0 1px 0 var(--color-accent);
 }
 :global(.workspace-page .dv-left-actions-container) {
   display: flex;
@@ -315,19 +315,19 @@ function disablePanel(tabId: string) {
 }
 .workspace-tab-add {
   display: grid;
-  width: 24px;
+  width: 22px;
   height: auto;
   align-self: stretch;
   place-items: center;
-  margin-top: 3px;
+  margin-top: 2px;
   border: 0;
   border-radius: 5px;
   background: transparent;
   color: var(--color-text);
-  font-size: 22px;
+  font-size: 20px;
   line-height: 1;
   cursor: pointer;
-  transform: translateY(4px);
+  transform: translateY(2px);
 }
 .workspace-tab-add:hover { background: var(--color-hover); }
 .workspace-tab-add:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
