@@ -32,9 +32,19 @@ test('creates dashboard and view tabs and restores the active view state', async
   await page.locator('.tile-panel__toolbar').first().click({ button: 'right', position: { x: 50, y: 12 } })
   await page.getByText('Add Chart Widget').click()
   await expect(page.locator('.tile-panel')).toHaveCount(2)
-  await page.locator('.tile-panel__drag-handle').first().dragTo(page.locator('.tile-panel').nth(1), {
-    targetPosition: { x: 260, y: 120 },
-  })
+  const sourceHeader = await page.locator('.tile-panel').first().locator('.base-widget__header').boundingBox()
+  const targetTile = await page.locator('.tile-panel').nth(1).boundingBox()
+  expect(sourceHeader).not.toBeNull()
+  expect(targetTile).not.toBeNull()
+  await page.mouse.move(sourceHeader!.x + sourceHeader!.width / 2, sourceHeader!.y + sourceHeader!.height / 2)
+  await page.mouse.down()
+  await page.mouse.move(targetTile!.x + targetTile!.width / 2, targetTile!.y + 12, { steps: 12 })
+  const preview = page.locator('.tile-drop-preview__region')
+  await expect(preview).toBeVisible()
+  const previewBounds = await preview.boundingBox()
+  expect(previewBounds?.height).toBeGreaterThan(targetTile!.height * 0.48)
+  expect(previewBounds?.height).toBeLessThan(targetTile!.height * 0.52)
+  await page.mouse.up()
   await expect(page.locator('.tile-panel')).toHaveCount(2)
   await page.getByRole('button', { name: 'Replace…' }).first().click()
   await page.getByRole('menuitem', { name: 'Base Widget' }).first().click()
@@ -75,6 +85,51 @@ test('creates dashboard and view tabs and restores the active view state', async
   await expect.poll(() => page.evaluate(() => localStorage.getItem('dashboard-widgets'))).toBeNull();
   await expect.poll(() => page.evaluate(() => localStorage.getItem('dashboard-widgets-migrated-v1'))).toBe('[]');
 });
+
+test('shows a directional preview while moving a widget from its title bar', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('wolftrack-workspace-dev', JSON.stringify({
+    format: 'wolftrack-workspace',
+    version: 4,
+    activeTabId: 'drag-dashboard',
+    tabs: [{
+      id: 'drag-dashboard',
+      kind: 'dashboard',
+      title: 'Drag Dashboard',
+      dataContextId: 'shared',
+      layout: {
+        type: 'tiles',
+        widgets: [
+          { i: 'drag-source', type: 'chart', title: 'Source chart', signals: [], config: {}, createdAt: 1 },
+          { i: 'drag-target', type: 'chart', title: 'Target chart', signals: [], config: {}, createdAt: 2 },
+        ],
+        state: null,
+      },
+    }],
+    dockviewLayout: null,
+  })))
+  await page.goto('/')
+  await expect(page.locator('.tile-panel')).toHaveCount(2)
+
+  const sourceHeader = await page.locator('[data-widget-id="drag-source"] .base-widget__header').boundingBox()
+  const targetTile = await page.locator('[data-widget-id="drag-target"]').boundingBox()
+  expect(sourceHeader).not.toBeNull()
+  expect(targetTile).not.toBeNull()
+  await page.mouse.move(sourceHeader!.x + sourceHeader!.width / 2, sourceHeader!.y + sourceHeader!.height / 2)
+  await page.mouse.down()
+  await page.mouse.move(targetTile!.x + targetTile!.width / 2, targetTile!.y + 12, { steps: 12 })
+  const preview = page.locator('.tile-drop-preview__region')
+  await expect(preview).toBeVisible()
+  const previewBounds = await preview.boundingBox()
+  expect(previewBounds?.height).toBeGreaterThan(targetTile!.height * 0.48)
+  expect(previewBounds?.height).toBeLessThan(targetTile!.height * 0.52)
+  await page.mouse.up()
+  await expect(page.locator('.tile-panel')).toHaveCount(2)
+  const movedSource = await page.locator('[data-widget-id="drag-source"]').boundingBox()
+  const movedTarget = await page.locator('[data-widget-id="drag-target"]').boundingBox()
+  expect(movedSource).not.toBeNull()
+  expect(movedTarget).not.toBeNull()
+  expect(movedSource!.y + movedSource!.height).toBeLessThanOrEqual(movedTarget!.y + 2)
+})
 
 test('compares Dockview dashboards and Gridview tiles in the workspace spike', async ({ page }) => {
   await page.addInitScript(() => {

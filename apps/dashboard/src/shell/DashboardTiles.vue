@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { computed, h, nextTick, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
+import { computed, h, nextTick, onBeforeUnmount, onMounted, provide, ref, shallowRef, watch } from 'vue'
 import { GridviewVue, Orientation } from 'dockview-vue'
 import type { GridviewReadyEvent, VueComponent } from 'dockview-vue'
-import type { GridviewApi } from 'dockview-vue'
+import type { Direction, GridviewApi } from 'dockview-vue'
 import 'dockview-vue/dist/styles/dockview.css'
 import ContextMenu from '@imengyu/vue3-context-menu'
 import { confirmDialog } from '@/core/dialog'
@@ -79,6 +79,31 @@ function onGridReady({ api }: GridviewReadyEvent) {
     widgetStore.removeWidget(panel.id, dashboardTabId.value)
   }))
 }
+
+function repositionPanel(sourceId: string, targetId: string, direction: Direction) {
+  const api = gridApi.value
+  const source = api?.getPanel(sourceId)
+  const target = api?.getPanel(targetId)
+  if (!api || !source || !target) return
+
+  syncingPanels = true
+  try {
+    // Gridview.movePanel calculates the target path before removing the source.
+    // Removing a panel can collapse that branch and invalidate the cached path.
+    api.removePanel(source)
+    api.addPanel({
+      id: sourceId,
+      component: 'widget',
+      params: { widgetId: sourceId, tabId: dashboardTabId.value },
+      position: { direction, referencePanel: targetId },
+    })
+  } finally {
+    syncingPanels = false
+  }
+  persistTileState()
+}
+
+provide('wolftrack-reposition-panel', repositionPanel)
 
 function syncPanels() {
   const api = gridApi.value

@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { computed, h, ref, type Component } from 'vue'
-import type { Direction, GridviewApi, GridviewPanelApi } from 'dockview-vue'
+import { computed, h, inject, onBeforeUnmount, ref, type Component } from 'vue'
+import type { Direction, GridviewPanelApi } from 'dockview-vue'
 import ContextMenu from '@imengyu/vue3-context-menu'
 import { useWorkspaceStore } from '@/core/stores/workspaceStore'
 import { useWidgetStore } from '@/core/stores/widgetStore'
@@ -8,13 +8,27 @@ import { widgets } from '@/shell/registries'
 import MissingWidget from '@/shell/MissingWidget.vue'
 import PluginErrorBoundary from '@/shell/PluginErrorBoundary.vue'
 
+let pointerTileDrag: {
+  sourceId: string
+  pointerId: number
+  startX: number
+  startY: number
+  dragging: boolean
+} | undefined
+let activeDropTarget: HTMLElement | undefined
+let activeDropDirection: Direction | undefined
+let activeDropOverlay: HTMLDivElement | undefined
+let activeDropRegion: HTMLDivElement | undefined
+
 const props = defineProps<{
   params: { widgetId: string; tabId: string }
   api: GridviewPanelApi
-  containerApi: GridviewApi
 }>()
 const workspaceStore = useWorkspaceStore()
 const widgetStore = useWidgetStore()
+const repositionPanel = inject<(sourceId: string, targetId: string, direction: Direction) => void>(
+  'wolftrack-reposition-panel',
+)
 const maximized = ref(false)
 const widget = computed(() => widgetStore.getWidgetById(props.params.widgetId))
 const component = computed<Component>(() => widgets.get(widget.value?.type ?? '')?.component ?? MissingWidget)
@@ -22,6 +36,15 @@ const availableWidgets = computed(() => [...widgets.entries.value].sort((a, b) =
 const otherDashboards = computed(() => workspaceStore.tabs.filter(
   (tab) => tab.kind === 'dashboard' && tab.id !== props.params.tabId,
 ))
+
+onBeforeUnmount(() => {
+  if (pointerTileDrag?.sourceId !== props.params.widgetId) return
+  window.removeEventListener('pointermove', moveTilePointer)
+  window.removeEventListener('pointerup', finishTilePointer)
+  window.removeEventListener('pointercancel', finishTilePointer)
+  pointerTileDrag = undefined
+  clearDropPreview()
+})
 
 function moveToDashboard(tabId: string) {
   widgetStore.moveWidget(props.params.widgetId, props.params.tabId, tabId)
@@ -52,37 +75,120 @@ function showWidgetMenu(event: MouseEvent) {
   })
 }
 
-function startTileDrag(event: DragEvent) {
-  event.dataTransfer?.setData('application/x-wolftrack-widget-id', props.params.widgetId)
-  if (event.dataTransfer) event.dataTransfer.effectAllowed = 'move'
+function startTileMove(event: PointerEvent) {
+  if (event.button !== 0 || !(event.target instanceof Element)
+    || !event.target.closest('.base-widget__header')) return
+  if (event.target instanceof Element && event.target.closest('button, input, select, textarea')) {
+    return
+  }
+  clearDropPreview()
+  pointerTileDrag = {
+    sourceId: props.params.widgetId,
+    pointerId: event.pointerId,
+    startX: event.clientX,
+    startY: event.clientY,
+    dragging: false,
+  }
+  window.addEventListener('pointermove', moveTilePointer, { passive: false })
+  window.addEventListener('pointerup', finishTilePointer)
+  window.addEventListener('pointercancel', finishTilePointer)
 }
 
-function dropTile(event: DragEvent) {
-  const sourceId = event.dataTransfer?.getData('application/x-wolftrack-widget-id')
-  if (!sourceId || sourceId === props.params.widgetId) return
-  const source = props.containerApi.getPanel(sourceId)
-  const bounds = event.currentTarget instanceof HTMLElement
-    ? event.currentTarget.getBoundingClientRect()
-    : null
-  if (!source || !bounds) return
-  const horizontal = Math.abs(event.clientX - (bounds.left + bounds.width / 2)) / bounds.width
-    > Math.abs(event.clientY - (bounds.top + bounds.height / 2)) / bounds.height
-  const direction: Direction = horizontal
-    ? event.clientX < bounds.left + bounds.width / 2 ? 'left' : 'right'
-    : event.clientY < bounds.top + bounds.height / 2 ? 'above' : 'below'
-  const panels = props.containerApi.panels
-  const sourceIndex = panels.findIndex(panel => panel.id === sourceId)
-  const targetIndex = panels.findIndex(panel => panel.id === props.params.widgetId)
-  if (sourceIndex < targetIndex) {
-    const opposite: Record<Direction, Direction> = {
-      left: 'right', right: 'left', above: 'below', below: 'above', within: 'within',
-    }
-    const target = props.containerApi.getPanel(props.params.widgetId)
-    if (target) props.containerApi.movePanel(target, { direction: opposite[direction], reference: sourceId })
-  } else {
-    props.containerApi.movePanel(source, { direction, reference: props.params.widgetId })
+function moveTilePointer(event: PointerEvent) {
+  const drag = pointerTileDrag
+  if (!drag || event.pointerId !== drag.pointerId) return
+  if (!drag.dragging) {
+    const distance = Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY)
+    if (distance < 6) return
+    drag.dragging = true
+  }
+
+  event.preventDefault()
+  const element = document.elementFromPoint(event.clientX, event.clientY)
+  const target = element instanceof Element ? element.closest('.tile-panel') as HTMLElement | null : null
+  if (!target || target.dataset.widgetId === drag.sourceId) {
+    clearDropPreview()
+    return
+  }
+  showDropPreview(target, directionAt(target, event.clientX, event.clientY))
+}
+
+function finishTilePointer(event: PointerEvent) {
+  const drag = pointerTileDrag
+  if (!drag || event.pointerId !== drag.pointerId) return
+  window.removeEventListener('pointermove', moveTilePointer)
+  window.removeEventListener('pointerup', finishTilePointer)
+  window.removeEventListener('pointercancel', finishTilePointer)
+
+  const targetId = activeDropTarget?.dataset.widgetId
+  const direction = activeDropDirection
+  clearDropPreview()
+  pointerTileDrag = undefined
+  if (drag.dragging && targetId && direction && targetId !== drag.sourceId) {
+    repositionPanel?.(drag.sourceId, targetId, direction)
   }
 }
+
+function clearDropPreview() {
+  activeDropOverlay?.remove()
+  activeDropTarget = undefined
+  activeDropDirection = undefined
+  activeDropOverlay = undefined
+  activeDropRegion = undefined
+}
+
+function directionAt(target: HTMLElement, x: number, y: number): Direction {
+  const bounds = target.getBoundingClientRect()
+  const horizontal = Math.abs(x - (bounds.left + bounds.width / 2)) / bounds.width
+    > Math.abs(y - (bounds.top + bounds.height / 2)) / bounds.height
+  return horizontal
+    ? x < bounds.left + bounds.width / 2 ? 'left' : 'right'
+    : y < bounds.top + bounds.height / 2 ? 'above' : 'below'
+}
+
+function showDropPreview(target: HTMLElement, direction: Direction) {
+  if (activeDropTarget !== target) {
+    clearDropPreview()
+    activeDropTarget = target
+    activeDropOverlay = document.createElement('div')
+    activeDropRegion = document.createElement('div')
+    activeDropOverlay.className = 'tile-drop-preview'
+    activeDropOverlay.setAttribute('aria-hidden', 'true')
+    activeDropRegion.className = 'tile-drop-preview__region'
+
+    Object.assign(activeDropOverlay.style, {
+      position: 'absolute',
+      inset: '0',
+      zIndex: '2147483647',
+      overflow: 'hidden',
+      borderRadius: '6px',
+      border: '1px solid color-mix(in srgb, var(--color-accent) 55%, transparent)',
+      boxSizing: 'border-box',
+      pointerEvents: 'none',
+    })
+    Object.assign(activeDropRegion.style, {
+      position: 'absolute',
+      boxSizing: 'border-box',
+      background: 'color-mix(in srgb, var(--color-accent) 16%, transparent)',
+    })
+    activeDropOverlay.append(activeDropRegion)
+    target.append(activeDropOverlay)
+  }
+
+  activeDropDirection = direction
+  if (!activeDropRegion) return
+  Object.assign(activeDropRegion.style, { top: '', right: '', bottom: '', left: '', border: '0' })
+  if (direction === 'above') {
+    Object.assign(activeDropRegion.style, { top: '0', right: '0', bottom: '50%', left: '0', borderBottom: '2px solid var(--color-accent)' })
+  } else if (direction === 'below') {
+    Object.assign(activeDropRegion.style, { top: '50%', right: '0', bottom: '0', left: '0', borderTop: '2px solid var(--color-accent)' })
+  } else if (direction === 'left') {
+    Object.assign(activeDropRegion.style, { top: '0', right: '50%', bottom: '0', left: '0', borderRight: '2px solid var(--color-accent)' })
+  } else if (direction === 'right') {
+    Object.assign(activeDropRegion.style, { top: '0', right: '0', bottom: '0', left: '50%', borderLeft: '2px solid var(--color-accent)' })
+  }
+}
+
 </script>
 
 <template>
@@ -91,11 +197,9 @@ function dropTile(event: DragEvent) {
       class="tile-panel"
       :class="{ 'tile-panel--maximized': maximized }"
       :data-widget-id="params.widgetId"
-      @dragover.prevent
-      @drop.prevent="dropTile"
+      @pointerdown="startTileMove"
       @contextmenu="showWidgetMenu"
     >
-      <span class="tile-panel__drag-handle" draggable="true" aria-label="Move tile" @dragstart="startTileDrag">⠿</span>
       <div class="tile-panel__content">
         <PluginErrorBoundary :owner-id="String(widget?.type ?? 'unknown widget')" @disable="widgetStore.removeWidget(params.widgetId, params.tabId)">
           <component :is="component" :widget-id="params.widgetId" />
@@ -107,12 +211,14 @@ function dropTile(event: DragEvent) {
 
 <style scoped>
 .tile-panel {
+  position: relative;
   display: flex;
   width: 100%;
   height: 100%;
   min-width: 0;
   min-height: 0;
   flex-direction: column;
+  isolation: isolate;
   overflow: hidden;
   border: 1px solid var(--color-border);
   border-radius: 6px;
@@ -126,6 +232,7 @@ function dropTile(event: DragEvent) {
   height: auto;
   box-shadow: 0 12px 50px rgb(0 0 0 / 55%);
 }
-.tile-panel__drag-handle { position: absolute; z-index: 3; top: 7px; left: 7px; color: var(--color-text-muted); cursor: grab; }
 .tile-panel__content { flex: 1; min-width: 0; min-height: 0; }
+:deep(.base-widget__header) { cursor: grab; }
+:deep(.base-widget__header:active) { cursor: grabbing; }
 </style>
