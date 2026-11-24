@@ -12,6 +12,7 @@ import { commands, panels } from '@/shell/registries'
 import DashboardTilePanel from '@/shell/DashboardTilePanel.vue'
 import PluginErrorBoundary from '@/shell/PluginErrorBoundary.vue'
 import type { TileLayoutState } from '@/core/workspace'
+import { commandsForTab } from '@/shell/contextCommands'
 
 const props = defineProps<{ tabId?: string }>()
 const workspaceStore = useWorkspaceStore()
@@ -19,7 +20,7 @@ const widgetStore = useWidgetStore()
 const dashboardTabId = computed(() => props.tabId ?? workspaceStore.document.activeTabId)
 const dashboard = computed(() => workspaceStore.getDashboardTab(dashboardTabId.value))
 const dashboardWidgets = computed(() => dashboard.value?.layout.widgets ?? [])
-const dashboardCommands = computed(() => [...commands.entries.value].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)))
+const dashboardCommands = computed(() => commandsForTab(commands.entries.value, dashboard.value, true))
 const dashboardPanels = computed(() => panels.entries.value
   .filter((panel) => panel.location === 'dashboard')
   .sort((a, b) => (a.order ?? 0) - (b.order ?? 0)))

@@ -28,11 +28,16 @@ export interface PanelContribution {
   icon?: string
 }
 
+export type CommandContext =
+  | { kind: 'dashboard' }
+  | { kind: 'view'; viewType: string }
+
 export interface CommandContribution {
   id: string
   title: string
   icon?: string
   order?: number
+  context?: CommandContext
   run: (context: { tabId?: string }) => void | Promise<void>
 }
 

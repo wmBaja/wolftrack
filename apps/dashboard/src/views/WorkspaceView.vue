@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
+import { computed, h, nextTick, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
 import { DockviewVue, themeDark } from 'dockview-vue'
 import type { DockviewReadyEvent } from 'dockview-vue'
 import 'dockview-vue/dist/styles/dockview.css'
+import ContextMenu from '@imengyu/vue3-context-menu'
 import { useWorkspaceStore } from '@/core/stores/workspaceStore'
 import { views } from '@/shell/registries'
 import DashboardTiles from '@/shell/DashboardTiles.vue'
@@ -11,8 +12,10 @@ import WorkspaceViewPanel from '@/shell/WorkspaceViewPanel.vue'
 
 const workspaceStore = useWorkspaceStore()
 const dockApi = shallowRef<DockviewReadyEvent['api']>()
-const addMenuOpen = ref(false)
 const importInput = ref<HTMLInputElement>()
+const editingTabId = ref<string>()
+const editingTitle = ref('')
+const tabTitleInput = ref<HTMLInputElement>()
 const availableViews = computed(() => [...views.entries.value].sort((a, b) => a.title.localeCompare(b.title)))
 let syncingPanels = false
 const disposables: Array<{ dispose: () => void }> = []
@@ -92,7 +95,6 @@ function syncPanels() {
 }
 
 async function createDashboard() {
-  addMenuOpen.value = false
   const tab = workspaceStore.addDashboard()
   await nextTick()
   syncPanels()
@@ -100,7 +102,6 @@ async function createDashboard() {
 }
 
 async function createView(view: (typeof views.entries.value)[number]) {
-  addMenuOpen.value = false
   const tab = workspaceStore.addView(view)
   await nextTick()
   syncPanels()
@@ -112,17 +113,52 @@ function activatePanel(tabId: string) {
   panel?.api.setActive()
 }
 
-function renameActiveTab() {
-  const tab = workspaceStore.activeTab
+async function startRenameTab(tabId: string) {
+  const tab = workspaceStore.tabs.find((item) => item.id === tabId)
   if (!tab) return
-  const title = window.prompt('Rename tab', tab.title)
-  if (!title?.trim()) return
-  workspaceStore.renameTab(tab.id, title)
-  dockApi.value?.panels.find((panel) => panel.id === tab.id)?.api.setTitle(title.trim())
+  editingTabId.value = tabId
+  editingTitle.value = tab.title
+  await nextTick()
+  tabTitleInput.value?.select()
 }
 
-function closeActiveTab() {
-  const tabId = workspaceStore.document.activeTabId
+function saveTabTitle() {
+  const title = editingTitle.value.trim()
+  const tabId = editingTabId.value
+  if (title && tabId) {
+    workspaceStore.renameTab(tabId, title)
+    dockApi.value?.panels.find((panel) => panel.id === tabId)?.api.setTitle(title)
+  }
+  editingTabId.value = undefined
+}
+
+function showTabMenu(event: MouseEvent, tabId?: string) {
+  event.preventDefault()
+  const tab = workspaceStore.tabs.find((item) => item.id === tabId)
+  ContextMenu.showContextMenu({
+    x: event.x,
+    y: event.y,
+    theme: 'mac dark',
+    zIndex: 1000,
+    items: [
+      { label: 'New Dashboard', icon: h('span', '＋'), onClick: () => void createDashboard() },
+      ...availableViews.value.map((view) => ({
+        label: `${view.icon ? `${view.icon} ` : ''}${view.title}`,
+        onClick: () => void createView(view),
+      })),
+      { divided: true },
+      ...(tab ? [
+        { label: 'Rename', icon: h('span', '✏️'), onClick: () => void startRenameTab(tab.id) },
+        { label: 'Close tab', icon: h('span', '✕'), onClick: () => closeTab(tab.id) },
+        { divided: true },
+      ] : []),
+      { label: 'Export Workspace', icon: h('span', '📤'), onClick: () => workspaceStore.exportWorkspace() },
+      { label: 'Import Workspace', icon: h('span', '📥'), onClick: chooseImport },
+    ],
+  })
+}
+
+function closeTab(tabId: string) {
   const panel = dockApi.value?.panels.find((item) => item.id === tabId)
   if (panel) dockApi.value?.removePanel(panel)
   else workspaceStore.removeTab(tabId)
@@ -153,34 +189,15 @@ function disablePanel(tabId: string) {
 
 <template>
   <main v-if="workspaceStore.loaded" class="workspace-page">
-    <header class="workspace-toolbar">
-      <div class="workspace-actions">
-        <div class="add-control">
-          <button type="button" aria-label="Add workspace tab" :aria-expanded="addMenuOpen" @click="addMenuOpen = !addMenuOpen">
-            + Add tab
-          </button>
-          <div v-if="addMenuOpen" class="add-menu" role="menu">
-            <button type="button" role="menuitem" @click="createDashboard">New Dashboard</button>
-            <button
-              v-for="view in availableViews"
-              :key="view.id"
-              type="button"
-              role="menuitem"
-              @click="createView(view)"
-            >
-              {{ view.icon ? `${view.icon} ` : '' }}{{ view.title }}
-            </button>
-          </div>
-        </div>
-        <button type="button" aria-label="Rename active tab" @click="renameActiveTab">Rename</button>
-        <button type="button" aria-label="Close active tab" @click="closeActiveTab">Close tab</button>
+    <nav class="workspace-tabs" role="tablist" aria-label="Workspace tabs" @contextmenu="showTabMenu($event)">
+      <div v-for="tab in workspaceStore.tabs" :key="tab.id" class="workspace-tab" :class="{ 'workspace-tab--active': tab.id === workspaceStore.document.activeTabId }" role="tab" :aria-selected="tab.id === workspaceStore.document.activeTabId" @click="activatePanel(tab.id)" @contextmenu.stop="showTabMenu($event, tab.id)" @dblclick.stop="startRenameTab(tab.id)">
+        <input v-if="editingTabId === tab.id" :ref="(el) => { tabTitleInput = el as HTMLInputElement }" v-model="editingTitle" class="workspace-tab__rename" aria-label="Tab name" @click.stop @keydown.enter.prevent="saveTabTitle" @keydown.esc.prevent="editingTabId = undefined" @blur="saveTabTitle">
+        <span v-else class="workspace-tab__title">{{ tab.title }}</span>
+        <button v-if="editingTabId !== tab.id" type="button" class="workspace-tab__close" :aria-label="`Close ${tab.title}`" @click.stop="closeTab(tab.id)">×</button>
       </div>
-      <div class="workspace-actions">
-        <button type="button" @click="workspaceStore.exportWorkspace">Export</button>
-        <button type="button" @click="chooseImport">Import</button>
-        <input ref="importInput" class="hidden" type="file" accept=".json,application/json" @change="importWorkspace">
-      </div>
-    </header>
+      <button type="button" class="workspace-tab-add" aria-label="Add workspace tab" title="New dashboard" @click="createDashboard" @contextmenu.prevent="showTabMenu($event)">+</button>
+      <input ref="importInput" class="hidden" type="file" accept=".json,application/json" @change="importWorkspace">
+    </nav>
 
     <div class="workspace-dockview">
       <DockviewVue
@@ -214,45 +231,45 @@ function disablePanel(tabId: string) {
   flex-direction: column;
 }
 
-.workspace-toolbar {
+.workspace-tabs {
   display: flex;
-  min-height: 42px;
+  min-height: 36px;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 4px 10px;
+  gap: 2px;
+  padding: 3px 8px 0;
   border-bottom: 1px solid var(--color-border);
   background: var(--color-panel);
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
 }
-
-.workspace-actions { display: flex; align-items: center; gap: 6px; }
-.workspace-actions > button,
-.add-control > button {
-  padding: 5px 9px;
-  border: 1px solid var(--color-border);
-  border-radius: 5px;
-  background: var(--color-bg);
-  color: var(--color-text);
+.workspace-tabs::-webkit-scrollbar { display: none; }
+.workspace-tab {
+  display: flex;
+  min-width: 100px;
+  max-width: 220px;
+  height: 32px;
+  align-items: center;
+  gap: 8px;
+  padding: 0 8px 0 12px;
+  border: 1px solid transparent;
+  border-bottom: 0;
+  border-radius: 6px 6px 0 0;
+  color: var(--color-text-muted);
   cursor: pointer;
 }
-.add-control { position: relative; }
-.add-menu {
-  position: absolute;
-  z-index: 20;
-  top: calc(100% + 5px);
-  left: 0;
-  display: flex;
-  min-width: 190px;
-  flex-direction: column;
-  padding: 5px;
-  border: 1px solid var(--color-border);
-  border-radius: 6px;
-  background: var(--color-panel);
-  box-shadow: 0 8px 24px rgb(0 0 0 / 30%);
+.workspace-tab--active {
+  border-color: var(--color-border);
+  background: var(--color-bg);
+  color: var(--color-text);
 }
-.add-menu button { padding: 7px 9px; text-align: left; color: var(--color-text); }
-.add-menu button:hover { background: var(--color-hover); }
+.workspace-tab__title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.workspace-tab__rename { width: 100%; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--color-text); }
+.workspace-tab__close, .workspace-tab-add { display: grid; width: 22px; height: 22px; flex: 0 0 auto; place-items: center; border: 0; border-radius: 4px; background: transparent; color: inherit; cursor: pointer; }
+.workspace-tab__close:hover, .workspace-tab-add:hover { background: var(--color-hover); color: var(--color-text); }
+.workspace-tab-add { margin: 0 0 4px 3px; font-size: 20px; }
 .workspace-dockview { flex: 1; min-height: 0; }
 .dockview-root { width: 100%; height: 100%; }
+:global(.workspace-page .dv-tabs-and-actions-container) { display: none !important; }
 .workspace-loading { display: grid; min-height: 40vh; place-items: center; color: var(--color-text-muted); }
 </style>
