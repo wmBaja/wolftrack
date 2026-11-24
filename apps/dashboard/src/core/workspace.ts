@@ -1,7 +1,7 @@
 import type { Widget } from './widgets'
 
 export const WORKSPACE_FORMAT = 'wolftrack-workspace'
-export const WORKSPACE_VERSION = 3
+export const WORKSPACE_VERSION = 4
 
 export type TileLayoutState = Record<string, unknown>
 
@@ -30,6 +30,7 @@ export interface WorkspaceDocument {
   version: typeof WORKSPACE_VERSION
   activeTabId: string
   tabs: WorkspaceTab[]
+  dockviewLayout: Record<string, unknown> | null
 }
 
 export function createWorkspaceDocument(): WorkspaceDocument {
@@ -39,6 +40,7 @@ export function createWorkspaceDocument(): WorkspaceDocument {
     version: WORKSPACE_VERSION,
     activeTabId: tab.id,
     tabs: [tab],
+    dockviewLayout: null,
   }
 }
 
@@ -114,7 +116,7 @@ export function parseLegacyWidgets(value: unknown): Widget[] | null {
 export function parseWorkspaceDocument(value: unknown): WorkspaceDocument | null {
   if (!isRecord(value)
     || value.format !== WORKSPACE_FORMAT
-    || (value.version !== WORKSPACE_VERSION && value.version !== 2)
+    || (value.version !== WORKSPACE_VERSION && value.version !== 3 && value.version !== 2)
     || typeof value.activeTabId !== 'string'
     || !Array.isArray(value.tabs)) {
     return null
@@ -179,11 +181,16 @@ export function parseWorkspaceDocument(value: unknown): WorkspaceDocument | null
 
   if (tabs.length === 0) return null
   const activeTabId = ids.has(value.activeTabId) ? value.activeTabId : tabs[0]!.id
+  const dockviewLayout = value.dockviewLayout === null || value.dockviewLayout === undefined
+    ? null
+    : isRecord(value.dockviewLayout) ? value.dockviewLayout : undefined
+  if (dockviewLayout === undefined) return null
   return {
     format: WORKSPACE_FORMAT,
     version: WORKSPACE_VERSION,
     activeTabId,
     tabs,
+    dockviewLayout,
   }
 }
 

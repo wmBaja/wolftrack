@@ -40,6 +40,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     if (loaded.value) return
 
     let stored: unknown = null
+    let migrated = false
     if (window.electronAPI?.workspace) {
       try {
         stored = await window.electronAPI.workspace.load()
@@ -54,11 +55,21 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       if (raw) stored = parseJson(raw)
     }
 
+    // A workspace created in browser/dev mode predates the Electron userData file.
+    // Keep it when moving to the desktop persistence path instead of replacing it
+    // with a fresh default document on the first Electron run.
+    if (stored === null && window.electronAPI?.workspace) {
+      const raw = localStorage.getItem(WORKSPACE_STORAGE_KEY)
+      if (raw) {
+        stored = parseJson(raw)
+        migrated = stored !== null
+      }
+    }
+
     const parsed = parseWorkspaceDocument(stored)
     const workspaceNeedsMigration = Boolean(stored && typeof stored === 'object'
       && 'version' in stored && stored.version !== WORKSPACE_VERSION)
     const legacyRaw = localStorage.getItem(LEGACY_WIDGETS_KEY)
-    let migrated = false
 
     if (parsed) {
       document.value = parsed
@@ -91,10 +102,19 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     if (saveTimer) clearTimeout(saveTimer)
     saveTimer = undefined
     try {
+      // Electron IPC uses structured cloning, which cannot clone Vue's reactive
+      // proxies. Serialize once and send a plain data snapshot across the bridge.
+      const serialized = JSON.stringify(document.value)
+      try {
+        localStorage.setItem(WORKSPACE_STORAGE_KEY, serialized)
+      } catch (error) {
+        console.error('Failed to save workspace browser backup:', error)
+      }
+
       if (window.electronAPI?.workspace) {
-        await window.electronAPI.workspace.save(document.value)
+        await window.electronAPI.workspace.save(JSON.parse(serialized))
       } else {
-        localStorage.setItem(WORKSPACE_STORAGE_KEY, JSON.stringify(document.value))
+        localStorage.setItem(WORKSPACE_STORAGE_KEY, serialized)
       }
     } catch (error) {
       console.error('Failed to save workspace:', error)
@@ -115,6 +135,10 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   function setDashboardTileState(tabId: string, state: Record<string, unknown> | null) {
     const tab = getDashboardTab(tabId)
     if (tab) tab.layout.state = state
+  }
+
+  function setDockviewLayout(state: Record<string, unknown> | null) {
+    document.value.dockviewLayout = state
   }
 
   function addDashboard(title = `Dashboard ${tabs.value.filter(tab => tab.kind === 'dashboard').length + 1}`) {
@@ -222,6 +246,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     getDashboardTab,
     setDashboardWidgets,
     setDashboardTileState,
+    setDockviewLayout,
     addDashboard,
     addView,
     activateTab,

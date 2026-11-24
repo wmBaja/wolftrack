@@ -16,11 +16,20 @@ const dockApi = shallowRef<DockviewReadyEvent['api']>()
 const importInput = ref<HTMLInputElement>()
 const availableViews = computed(() => [...views.entries.value].sort((a, b) => a.title.localeCompare(b.title)))
 let syncingPanels = false
+let restoredDockview = false
 const disposables: Array<{ dispose: () => void }> = []
 
-onMounted(async () => { await workspaceStore.load() })
+function flushWorkspaceOnPageHide() {
+  void workspaceStore.flush()
+}
+
+onMounted(async () => {
+  window.addEventListener('pagehide', flushWorkspaceOnPageHide)
+  await workspaceStore.load()
+})
 onBeforeUnmount(() => {
   disposables.forEach((disposable) => disposable.dispose())
+  window.removeEventListener('pagehide', flushWorkspaceOnPageHide)
   void workspaceStore.flush()
 })
 
@@ -28,20 +37,10 @@ watch(
   () => workspaceStore.tabs.map((tab) => `${tab.id}:${tab.title}`).join('|'),
   () => { void nextTick(syncPanels) },
 )
+watch(() => workspaceStore.loaded, () => restoreDockview())
 
 function onDockviewReady({ api }: DockviewReadyEvent) {
   dockApi.value = api
-  for (const tab of workspaceStore.tabs) {
-    api.addPanel({
-      id: tab.id,
-      component: tab.kind === 'dashboard' ? 'dashboard-panel' : 'view-panel',
-      title: tab.title,
-      params: { tabId: tab.id },
-      renderer: 'onlyWhenVisible',
-      inactive: tab.id !== workspaceStore.document.activeTabId,
-    })
-  }
-
   disposables.push(api.onDidActivePanelChange(({ panel }) => {
     if (panel) workspaceStore.activateTab(panel.id)
   }))
@@ -49,12 +48,32 @@ function onDockviewReady({ api }: DockviewReadyEvent) {
     if (!syncingPanels) workspaceStore.removeTab(panel.id)
   }))
   disposables.push(api.onDidMutateLayout((event) => {
-    if (!syncingPanels && event.kind === 'move') {
-      workspaceStore.reorderTabs(api.panels.map((panel) => panel.id))
-    }
+    if (syncingPanels) return
+    if (event.kind === 'move') workspaceStore.reorderTabs(api.panels.map((panel) => panel.id))
+    saveDockviewLayout()
   }))
 
-  api.panels.find((panel) => panel.id === workspaceStore.document.activeTabId)?.api.setActive()
+  restoreDockview()
+}
+
+function restoreDockview() {
+  const api = dockApi.value
+  if (!api || !workspaceStore.loaded || restoredDockview) return
+  restoredDockview = true
+
+  syncingPanels = true
+  try {
+    const layout = workspaceStore.document.dockviewLayout
+    if (layout) api.fromJSON(layout as unknown as Parameters<typeof api.fromJSON>[0])
+  } catch (error) {
+    console.warn('Failed to restore Dockview layout; rebuilding tabs:', error)
+    api.clear()
+  } finally {
+    syncingPanels = false
+  }
+
+  syncPanels()
+  saveDockviewLayout()
 }
 
 function syncPanels() {
@@ -118,6 +137,12 @@ function movePanelToGroup(tabId: string, groupId?: string) {
 
 function activatePanel(tabId: string) {
   dockApi.value?.panels.find((item) => item.id === tabId)?.api.setActive()
+}
+
+function saveDockviewLayout() {
+  const api = dockApi.value
+  if (!api || !workspaceStore.loaded || syncingPanels) return
+  workspaceStore.setDockviewLayout(JSON.parse(JSON.stringify(api.toJSON())))
 }
 
 function showAddTabMenu(event: MouseEvent, groupId?: string) {

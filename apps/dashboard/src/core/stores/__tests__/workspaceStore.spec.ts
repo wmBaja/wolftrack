@@ -108,7 +108,7 @@ describe('workspace store', () => {
     })
   })
 
-  it('rewrites version 2 grid workspaces as version 3 tiles', async () => {
+  it('rewrites version 2 grid workspaces as version 4 tiles with a dock layout field', async () => {
     localStorage.setItem('wolftrack-workspace-dev', JSON.stringify({
       format: 'wolftrack-workspace', version: 2, activeTabId: 'dash-tab', tabs: [{
         id: 'dash-tab', kind: 'dashboard', title: 'Dashboard', dataContextId: 'shared',
@@ -121,7 +121,8 @@ describe('workspace store', () => {
 
     const saved = JSON.parse(localStorage.getItem('wolftrack-workspace-dev') ?? 'null')
     expect(saved).toMatchObject({
-      version: 3,
+      version: 4,
+      dockviewLayout: null,
       tabs: [{ layout: { type: 'tiles', state: null, widgets: [{ i: 'saved-plugin-widget' }] } }],
     })
   })

@@ -77,29 +77,40 @@ function getWorkspaceFilePath() {
   return path.join(app.getPath('userData'), 'workspace.json')
 }
 
+function getLegacyWorkspaceFilePaths() {
+  const appDataPath = app.getPath('appData')
+  return [
+    path.join(appDataPath, 'wolftrack', 'workspace.json'),
+    path.join(appDataPath, 'WolfTrack', 'workspace.json'),
+    path.join(appDataPath, '@wolftrack', 'dashboard', 'workspace.json'),
+  ].filter((filePath) => filePath !== getWorkspaceFilePath())
+}
+
 function isWorkspaceEnvelope(value) {
   return value && typeof value === 'object'
     && value.format === 'wolftrack-workspace'
-    && (value.version === 2 || value.version === 3)
+    && (value.version === 2 || value.version === 3 || value.version === 4)
     && Array.isArray(value.tabs)
 }
 
 ipcMain.handle('workspace:load', async () => {
   const workspacePath = getWorkspaceFilePath()
-  const backupPath = `${workspacePath}.bak`
-  try {
-    return JSON.parse(await fs.readFile(workspacePath, 'utf8'))
-  } catch {
+  const paths = [workspacePath, `${workspacePath}.bak`, ...getLegacyWorkspaceFilePaths()]
+  for (const filePath of paths) {
     try {
-      const backup = await fs.readFile(backupPath, 'utf8')
-      const recovered = JSON.parse(backup)
-      if (!isWorkspaceEnvelope(recovered)) return null
-      await fs.copyFile(backupPath, workspacePath)
+      const recovered = JSON.parse(await fs.readFile(filePath, 'utf8'))
+      if (!isWorkspaceEnvelope(recovered)) continue
+      if (filePath !== workspacePath) {
+        const temporaryPath = `${workspacePath}.tmp`
+        await fs.writeFile(temporaryPath, JSON.stringify(recovered), 'utf8')
+        await fs.rename(temporaryPath, workspacePath)
+      }
       return recovered
     } catch {
-      return null
+      // Try the backup and previous app-name locations before creating a new workspace.
     }
   }
+  return null
 })
 
 ipcMain.handle('workspace:popout-config', async () => ({
