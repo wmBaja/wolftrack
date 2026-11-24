@@ -131,6 +131,185 @@ test('shows a directional preview while moving a widget from its title bar', asy
   expect(movedSource!.y + movedSource!.height).toBeLessThanOrEqual(movedTarget!.y + 2)
 })
 
+test('scrolls the dashboard in both directions when widget minimums exceed the viewport', async ({ page }) => {
+  await page.addInitScript(() => {
+    const widgets = Array.from({ length: 8 }, (_, index) => ({
+      i: `scroll-widget-${index}`,
+      type: 'chart',
+      title: `Scroll widget ${index}`,
+      signals: [],
+      config: {},
+      createdAt: index,
+    }))
+    localStorage.setItem('wolftrack-workspace-dev', JSON.stringify({
+      format: 'wolftrack-workspace',
+      version: 4,
+      activeTabId: 'scroll-dashboard',
+      tabs: [{
+        id: 'scroll-dashboard',
+        kind: 'dashboard',
+        title: 'Scroll dashboard',
+        dataContextId: 'shared',
+        layout: { type: 'tiles', widgets, state: null },
+      }],
+      dockviewLayout: null,
+    }))
+  })
+  await page.goto('/')
+  await expect(page.locator('.tile-panel')).toHaveCount(8)
+
+  const viewport = page.locator('.dashboard-viewport')
+  await expect.poll(() => viewport.evaluate((element) => ({
+    horizontal: element.scrollWidth > element.clientWidth,
+    vertical: element.scrollHeight > element.clientHeight,
+  }))).toEqual({ horizontal: true, vertical: true })
+
+  const firstTile = await page.locator('.tile-panel').first().boundingBox()
+  expect(firstTile?.width).toBeGreaterThanOrEqual(319)
+  expect(firstTile?.height).toBeGreaterThanOrEqual(219)
+
+  await viewport.evaluate((element) => {
+    element.scrollTo({ left: element.scrollWidth, top: element.scrollHeight })
+  })
+  await expect.poll(() => viewport.evaluate((element) => element.scrollLeft)).toBeGreaterThan(0)
+  await expect.poll(() => viewport.evaluate((element) => element.scrollTop)).toBeGreaterThan(0)
+})
+
+test('resizes a single widget from its border and restores the canvas size', async ({ page }) => {
+  await page.addInitScript(() => {
+    if (localStorage.getItem('wolftrack-workspace-dev')) return
+    localStorage.setItem('wolftrack-workspace-dev', JSON.stringify({
+      format: 'wolftrack-workspace',
+      version: 4,
+      activeTabId: 'expand-dashboard',
+      tabs: [{
+        id: 'expand-dashboard',
+        kind: 'dashboard',
+        title: 'Expand dashboard',
+        dataContextId: 'shared',
+        layout: {
+          type: 'tiles',
+          widgets: [{
+            i: 'expand-widget', type: 'chart', title: 'Expandable chart',
+            signals: [], config: {}, createdAt: 1,
+          }],
+          state: null,
+        },
+      }],
+      dockviewLayout: null,
+    }))
+  })
+  await page.goto('/')
+  await expect(page.locator('.tile-panel')).toHaveCount(1)
+
+  const viewport = page.locator('.dashboard-viewport')
+  const canvas = page.locator('.dashboard-canvas')
+  const panel = page.locator('.tile-panel')
+  const viewportBounds = await viewport.boundingBox()
+  expect(viewportBounds).not.toBeNull()
+  let bounds = await panel.boundingBox()
+  expect(bounds).not.toBeNull()
+  await page.mouse.move(bounds!.x + bounds!.width - 28, bounds!.y + bounds!.height / 2)
+  await page.mouse.down()
+  await page.mouse.move(viewportBounds!.x + viewportBounds!.width - 4, bounds!.y + bounds!.height / 2, { steps: 6 })
+  await expect(page.locator('.dashboard-tiles-container')).toHaveAttribute('data-canvas-resize-hover', 'width')
+  await page.waitForTimeout(180)
+  await page.mouse.up()
+  await expect.poll(() => viewport.evaluate((element) => element.scrollWidth > element.clientWidth)).toBe(true)
+
+  await viewport.evaluate((element) => element.scrollTo({ left: element.scrollWidth, top: 0 }))
+  bounds = await panel.boundingBox()
+  expect(bounds).not.toBeNull()
+  await page.mouse.move(bounds!.x + 100, bounds!.y + bounds!.height - 28)
+  await page.mouse.down()
+  await page.mouse.move(bounds!.x + 100, viewportBounds!.y + viewportBounds!.height - 4, { steps: 6 })
+  await expect(page.locator('.dashboard-tiles-container')).toHaveAttribute('data-canvas-resize-hover', 'height')
+  await page.waitForTimeout(180)
+  await page.mouse.up()
+  await expect.poll(() => viewport.evaluate((element) => element.scrollHeight > element.clientHeight)).toBe(true)
+  await expect(page.locator('.tile-panel')).toHaveCount(1)
+  await expect.poll(() => page.evaluate(() => {
+    const workspace = JSON.parse(localStorage.getItem('wolftrack-workspace-dev') ?? 'null')
+    const canvasSize = workspace?.tabs?.[0]?.layout?.state?.canvasSize
+    return Boolean(canvasSize?.width && canvasSize?.height)
+  })).toBe(true)
+  await page.reload()
+  await expect(page.locator('.tile-panel')).toHaveCount(1)
+  const restoredViewport = page.locator('.dashboard-viewport')
+  await expect.poll(() => restoredViewport.evaluate((element) => element.scrollWidth > element.clientWidth)).toBe(true)
+  await expect.poll(() => restoredViewport.evaluate((element) => element.scrollHeight > element.clientHeight)).toBe(true)
+
+  const restoredPanel = page.locator('.tile-panel')
+  await restoredViewport.evaluate((element) => element.scrollTo({ left: element.scrollWidth, top: element.scrollHeight }))
+  bounds = await restoredPanel.boundingBox()
+  expect(bounds).not.toBeNull()
+  await page.mouse.move(bounds!.x + bounds!.width - 28, bounds!.y + bounds!.height / 2)
+  await page.mouse.down()
+  await page.mouse.move(bounds!.x + bounds!.width - 160, bounds!.y + bounds!.height / 2, { steps: 8 })
+  await page.mouse.up()
+  await expect.poll(() => restoredViewport.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true)
+
+  bounds = await restoredPanel.boundingBox()
+  expect(bounds).not.toBeNull()
+  await page.mouse.move(bounds!.x + 100, bounds!.y + bounds!.height - 28)
+  await page.mouse.down()
+  await page.mouse.move(bounds!.x + 100, bounds!.y + bounds!.height - 160, { steps: 8 })
+  await page.mouse.up()
+  await expect.poll(() => restoredViewport.evaluate((element) => element.scrollHeight <= element.clientHeight)).toBe(true)
+})
+
+test('extends a multi-widget canvas by dragging its existing splitter', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem('wolftrack-workspace-dev', JSON.stringify({
+      format: 'wolftrack-workspace',
+      version: 4,
+      activeTabId: 'split-dashboard',
+      tabs: [{
+        id: 'split-dashboard',
+        kind: 'dashboard',
+        title: 'Split dashboard',
+        dataContextId: 'shared',
+        layout: {
+          type: 'tiles',
+          widgets: ['left-widget', 'right-widget'].map((i) => ({
+            i, type: 'chart', title: i, signals: [], config: {}, createdAt: 1,
+          })),
+          state: null,
+        },
+      }],
+      dockviewLayout: null,
+    }))
+  })
+  await page.goto('/')
+  await expect(page.locator('.tile-panel')).toHaveCount(2)
+
+  const viewport = page.locator('.dashboard-viewport')
+  const sash = page.locator('.dv-sash').first()
+  await expect(sash).toBeVisible()
+  const bounds = await sash.boundingBox()
+  expect(bounds).not.toBeNull()
+  await page.mouse.move(bounds!.x + bounds!.width / 2, bounds!.y + bounds!.height / 2)
+  await page.mouse.down()
+  await page.mouse.move(bounds!.x + bounds!.width / 2 + 450, bounds!.y + bounds!.height / 2, { steps: 18 })
+  await page.mouse.up()
+  await expect.poll(() => viewport.evaluate((element) => element.scrollWidth > element.clientWidth)).toBe(true)
+  await expect(page.locator('.tile-panel')).toHaveCount(2)
+
+  const initialScrollWidth = await viewport.evaluate((element) => element.scrollWidth)
+  const viewportBounds = await viewport.boundingBox()
+  expect(viewportBounds).not.toBeNull()
+  await viewport.evaluate((element) => element.scrollTo({ left: element.scrollWidth, top: 0 }))
+  const outerPanel = page.locator('.tile-panel').last()
+  const outerBounds = await outerPanel.boundingBox()
+  expect(outerBounds).not.toBeNull()
+  await page.mouse.move(outerBounds!.x + outerBounds!.width - 28, outerBounds!.y + outerBounds!.height / 2)
+  await page.mouse.down()
+  await page.mouse.move(viewportBounds!.x + viewportBounds!.width - 4, outerBounds!.y + outerBounds!.height / 2, { steps: 6 })
+  await page.waitForTimeout(180)
+  await page.mouse.up()
+  await expect.poll(() => viewport.evaluate((element) => element.scrollWidth)).toBeGreaterThan(initialScrollWidth)
+})
+
 test('compares Dockview dashboards and Gridview tiles in the workspace spike', async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.setItem('dashboard-widgets', JSON.stringify([{
