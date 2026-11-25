@@ -5,7 +5,7 @@ import SignalRowActions from '@/components/SignalRowActions.vue'
 import SignalEditorModal from '@/components/SignalEditorModal.vue'
 import { useWtsStore } from '@/stores/wtsStore'
 import { confirmDialog } from '@/types/dialog'
-import { lookupName, lookupCategory, lookupNode } from '@/stores/dbcStore';
+import { lookupName, lookupCategory, lookupNode, formatName } from '@/stores/dbcStore';
 
 const props = defineProps<{
   signals: DbcSignal[]
@@ -111,7 +111,7 @@ const treeData = computed<TreeNode[]>(() => {
     }
     nodeMap.get(msgName)!.push({
       id: sig.id,
-      name: sig.display_name || sig.name,
+      name: sig.display_name || formatName(sig.name),
       definitionName: sig.name,
       unit: sig.unit,
       selected: props.selectedSignals.includes(sig.id),
@@ -208,7 +208,7 @@ function handleSignalClick(sig: TreeSignal) {
                 @click="handleSignalClick(sig)"
               >
                 <span class="icon">📈</span>
-                <span class="label">{{ sig.name }}</span>
+                <span class="label">{{ lookupName[sig.name] || formatName(sig.name) }}</span>
                 <span v-if="sig.isVirtual" class="virtual-badge" title="Virtual signal">WT</span>
                 <span
                   v-if="sig.broken"

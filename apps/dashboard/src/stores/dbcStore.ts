@@ -34,7 +34,6 @@ export interface DbcFileInfo {
 export const SETUP_FILE_NAME_PATTERN = /^[^/\\]+\.(dbc|wts)$/
 const DBC_FILE_NAME_PATTERN = /^[^/\\]+\.dbc$/
 
-
 export const lookupName: Record<string, string> = {
   'FrontBrakePressure': 'Front Brake Pressure',
   'RearBrakePressure': 'Rear Brake Pressure',
@@ -61,6 +60,17 @@ export const lookupName: Record<string, string> = {
   'EngineRpmData_rpm': 'Engine RPM',
   'WheelSpeedRpmData_rpm': 'Wheel Speed RPM',
   'ThrottlePos_raw': 'Throttle Position',
+}
+
+export function formatName(name : string) {
+  const split : string[] = name.split(/[_.: ]/)
+  let out : string = ""
+  for (const entry of split) {
+    const formatted = entry.charAt(0).toUpperCase() + entry.slice(1);
+    out += formatted + " "
+  }
+  out.trim()
+  return out
 }
 
 export const lookupCategory: Record<string, string> = {
