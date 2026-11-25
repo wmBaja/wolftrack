@@ -32,6 +32,56 @@ export interface DbcFileInfo {
 }
 
 export const SETUP_FILE_NAME_PATTERN = /^[^/\\]+\.(dbc|wts)$/
+const DBC_FILE_NAME_PATTERN = /^[^/\\]+\.dbc$/
+
+
+export const lookupName: Record<string, string> = {
+  'FrontBrakePressure': 'Front Brake Pressure',
+  'RearBrakePressure': 'Rear Brake Pressure',
+  'FLSuspension_raw': 'Front Left Suspension',
+  'FRSuspension_raw': 'Front Right Suspension',
+  'RLSuspension_raw': 'Rear Left Suspension',
+  'RRSuspension_raw': 'Rear Right Suspension',
+  'IMU_Data_accel_x': 'Acceleration X',
+  'IMU_Data_accel_y': 'Acceleration Y',
+  'IMU_Data_accel_z': 'Acceleration Z',
+  'IMU_Data_angular_vel_x': 'Angular Velocity X',
+  'IMU_Data_angular_vel_y': 'Angular Velocity Y',
+  'IMU_Data_angular_vel_z': 'Angular Velocity Z',
+  'IMU_Data_linear_accel_x': 'Linear Acceleration X',
+  'IMU_Data_linear_accel_y': 'Linear Acceleration Y',
+  'IMU_Data_linear_accel_z': 'Linear Acceleration Z',
+  'IMU_Data_rotation_i': 'Rotation I',
+  'IMU_Data_rotation_j': 'Rotation J',
+  'IMU_Data_rotation_k': 'Rotation K',
+  'IMU_Data_rotation_real': 'Rotation Real',
+  'SteeringAngleData_angleDegrees': 'Steering Angle',
+  'IRCVTTempData_ambientDegreesC': 'IRCVT Ambient Temp',
+  'IRCVTTempData_objectDegreesC': 'IRCVT Object Temp',
+  'EngineRpmData_rpm': 'Engine RPM',
+  'WheelSpeedRpmData_rpm': 'Wheel Speed RPM',
+  'ThrottlePos_raw': 'Throttle Position',
+}
+
+export const lookupCategory: Record<string, string> = {
+  'BrakePressure': 'Brake Pressure',
+  'Front_Suspension': 'Front Suspension',
+  'Rear_Suspension': 'Rear Suspension',
+  'IMU_Data': 'IMU',
+  'IMU_Stats': 'IMU Stats',
+  'SteeringAngleData': 'Steering',
+  'SteeringAngleStats': 'Steering Angle Stats',
+  'IRCVTTempData': 'CVT Temperature',
+  'IRCVTTempStats': 'CVT Temperature Stats',
+  'RPMData': 'RPM',
+  'RPMStats': 'RPM Stats',
+  'ThrottlePosition': 'Throttle',
+}
+
+export const lookupNode: Record<string, string> = {
+  'FrontNode': 'Front Node',
+  'RearNode': 'Rear Node',
+}
 
 export const useDbcStore = defineStore('dbcStore', () => {
   const availableDbcs = ref<DbcFileInfo[]>([])
@@ -91,7 +141,7 @@ export const useDbcStore = defineStore('dbcStore', () => {
     try {
       const formData = new FormData()
       formData.append('file', file)
-      
+
       const baseUrl = await getVisualizerBase()
       const res = await fetch(`${baseUrl}/api/dbc/upload`, {
         method: 'POST',
@@ -101,7 +151,7 @@ export const useDbcStore = defineStore('dbcStore', () => {
         const errData = await res.json()
         throw new Error(errData.detail || 'Upload failed')
       }
-      
+
       await fetchDbcs()
       await fetchSignals()
       return true
@@ -119,7 +169,7 @@ export const useDbcStore = defineStore('dbcStore', () => {
     try {
       const formData = new FormData()
       formData.append('filename', filename)
-      
+
       const baseUrl = await getVisualizerBase()
       const res = await fetch(`${baseUrl}/api/dbc/select`, {
         method: 'POST',
@@ -129,7 +179,7 @@ export const useDbcStore = defineStore('dbcStore', () => {
         const errData = await res.json()
         throw new Error(errData.detail || 'Select failed')
       }
-      
+
       await fetchDbcs()
       await fetchSignals()
       return true
@@ -153,7 +203,7 @@ export const useDbcStore = defineStore('dbcStore', () => {
       if (!res.ok) {
         throw new Error(await getResponseError(res, 'Delete failed'))
       }
-      
+
       await fetchDbcs()
       await fetchSignals()
       return true

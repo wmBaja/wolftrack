@@ -3,6 +3,7 @@
 import { ref, computed, h } from 'vue'
 import { useWidgetStore } from '@/stores/widgetStore'
 import { useDbcStore } from '@/stores/dbcStore'
+import { lookupName } from '@/stores/dbcStore'
 import ContextMenu from '@imengyu/vue3-context-menu'
 import type { MenuOptions } from '@imengyu/vue3-context-menu'
 import type { WIDGET_TYPES } from '@/types/widgets'
@@ -28,6 +29,7 @@ const widget = computed(() => store.getWidgetById(props.widgetId))
 
 const isEditing = ref(false)
 const isLoading = ref(false)
+const customTitle = ref(false)
 const localTitle = ref('')
 const titleInputRef = ref<HTMLInputElement>()
 
@@ -45,11 +47,17 @@ function toggleConfig() {
 
 function removeSignal(sig: string) {
   localSignals.value = localSignals.value.filter(s => s !== sig)
+  if (!customTitle.value && widget.value) {
+    setDefaultTitle()
+  }
 }
 
 function addSignalId(sigId: string) {
   if (!localSignals.value.includes(sigId)) {
     localSignals.value.push(sigId)
+    if (!customTitle.value && widget.value) {
+      setDefaultTitle()
+    }
   }
 }
 
@@ -59,6 +67,9 @@ function handleRefresh() {
 
 function startEditTitle() {
   if (!widget.value) return
+  if (!customTitle.value) {
+    store.updateWidget(props.widgetId, { title: "" })
+  }
   localTitle.value = widget.value.title
   isEditing.value = true
   requestAnimationFrame(() => {
@@ -74,10 +85,33 @@ function startEditTitle() {
 
 function saveTitle() {
   const trimmed = localTitle.value.trim()
+  if (trimmed === widget.value?.title && customTitle.value) {
+    isEditing.value = false
+    return
+  }
   if (trimmed && widget.value) {
     store.updateWidget(props.widgetId, { title: trimmed })
+    customTitle.value = true
+  }
+  else {
+    setDefaultTitle()
+    customTitle.value = false
   }
   isEditing.value = false
+}
+
+function setDefaultTitle() {
+  if (!localSignals.value.length || !widget.value) {
+    store.updateWidget(props.widgetId, { title: "Chart Widget" })
+    return
+  }
+  const title = `${localSignals.value
+    .map(id => {
+      const signalName = id.split('.')[1]
+      return signalName ? (lookupName[signalName as keyof typeof lookupName] ?? id) : id
+    })
+    .join(' & ')} vs. Time`
+  store.updateWidget(props.widgetId, { title: title })
 }
 
 function cancelEdit() {
